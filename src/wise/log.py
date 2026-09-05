@@ -256,7 +256,7 @@ class EventLog:
             cases["exposure"] = exp.astype(float)
         self.cases = cases
 
-        self.window: tuple[pd.Timestamp, pd.Timestamp] | None = None
+        self.window: tuple[pd.Timestamp | None, pd.Timestamp | None] | None = None
         if window is not None:
             start, end = (self._to_ts(window[0]), self._to_ts(window[1]))
             if start is not None and end is not None and start > end:
@@ -582,9 +582,13 @@ class EventLog:
 
     def trace(self, case_id: Any) -> pd.DataFrame:
         """Events of one case in timestamp order (for drill-down)."""
-        i = self.case_ids.get_loc(case_id)
+        pos = self.case_ids.get_loc(case_id)
+        if not isinstance(pos, int | np.integer):
+            raise LogSchemaError(f"case id {case_id!r} is not unique")
+        i = int(pos)
         start = int(self._starts[i])
-        return self.events.iloc[start : start + int(self.cases["n_events"].iat[i])]
+        n = int(self.cases["n_events"].to_numpy()[i])
+        return self.events.iloc[start : start + n]
 
     # ------------------------------------------------------------------ validation
     def validate(self, q: float = 0.001) -> pd.Series:

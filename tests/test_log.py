@@ -93,7 +93,7 @@ def test_order_col_ties_lifecycle_dedupe_keep_columns():
         df, case_col="case", activity_col="activity", timestamp_col="time", lifecycle_col="lc", keep_transitions="complete"
     )
     assert len(one.events) == 2
-    t_a, t_b = log.first_after("GR", "INV")
+    _, t_b = log.first_after("GR", "INV")
     assert t_b["x"] == pd.Timestamp("2024-01-01")
     # events with equal timestamps are simultaneous for every lag reading
     nc = wise.NormConstraint("c", "L", wise.Lag("GR", "INV", delta=10, width=20, activation="each"))

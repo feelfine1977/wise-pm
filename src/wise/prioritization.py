@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -188,7 +188,7 @@ def layer_drivers(
         out[f"{col[len(prefix) :]}__delta"] = deltas[col]
     out = out.rename(columns={c: c[len(prefix) :] for c in layer_cols})
     delta_cols = [f"{c[len(prefix) :]}__delta" for c in layer_cols]
-    best = out[delta_cols].idxmax(axis=1).str.replace("__delta", "", regex=False)
+    best = out[delta_cols].idxmax(axis=1).astype(str).str.replace("__delta", "", regex=False)
     out["dominant_layer"] = best.where(out[delta_cols].max(axis=1) > 0, None)
     return out if as_index else out.reset_index()
 
@@ -306,13 +306,15 @@ def view_agreement(
     by: str | Sequence[str],
     k: int = 20,
     gamma: float = 0.0,
-    method: str = "pearson",
+    method: Literal["pearson", "spearman", "kendall"] = "pearson",
     metric: str = "stable_PI",
 ) -> pd.DataFrame:
     """Pairwise top-``k`` Jaccard overlap of backlogs and case-score correlation
     across views. ``method`` is ``"pearson"`` (default), ``"spearman"`` or
     ``"kendall"``; the latter two need SciPy (``pip install "wise-pm[stats]"``)."""
     by = _keys(by)
+    if method not in ("pearson", "spearman", "kendall"):
+        raise NormError(f"method must be 'pearson', 'spearman' or 'kendall', got {method!r}")
     backlogs = {v: prioritize(result, by, view=v, gamma=gamma) for v in result.views}
     rows = []
     views = result.views
@@ -329,7 +331,7 @@ def view_agreement(
     return pd.DataFrame(rows).set_index(["view_a", "view_b"])
 
 
-def _corr(a: pd.Series, b: pd.Series, method: str) -> float:
+def _corr(a: pd.Series, b: pd.Series, method: Literal["pearson", "spearman", "kendall"]) -> float:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         return float(a.corr(b, method=method))

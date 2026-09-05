@@ -54,7 +54,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from .constraints import _UNITS, as_labels
+from .constraints import _UNITS, as_labels, in_units
 from .errors import LogSchemaError, NormError
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -150,7 +150,7 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
         unit = str(recipe.get("unit", "D"))
         if unit not in _UNITS:
             raise NormError(f"derived attribute {recipe['name']!r}: unknown unit {unit!r}")
-        lag = (t_b - t_a) / pd.Timedelta(1, unit=_UNITS[unit])
+        lag = in_units(t_b - t_a, unit)
         if recipe.get("response", "first_after") == "first_overall" and not recipe.get("allow_negative", False):
             lag = lag.where(lag >= 0)
         return lag

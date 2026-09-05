@@ -69,6 +69,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores")
 
     args = parser.parse_args(argv)
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     try:
         return _run(args)
     except WiseError as exc:

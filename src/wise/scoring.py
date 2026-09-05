@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from ._version import __version__
-from .constraints import Balance, Exclusion, Lag, Metric, Precedence, Presence, Singularity, sat
+from .constraints import Balance, Exclusion, Lag, Metric, Precedence, Presence, Singularity, in_units, sat
 from .errors import NormError, NotScoredError
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
@@ -50,17 +50,16 @@ def _lag_missing(v: pd.Series, lag: pd.Series, t_a: pd.Series, c: Lag, log: Even
         v = v.where(~b_missing, 1.0)
     elif c.missing_b == "censor" and c.delta is not None:
         end = log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit)
-        so_far = (end - t_a) / c.timedelta_unit
+        so_far = in_units(end - t_a, c.unit)
         v = v.where(~b_missing, sat(so_far, c.delta, c.width))
     return v
 
 
 def _evaluate_lag(log: EventLog, c: Lag) -> pd.Series:
-    unit = c.timedelta_unit
     if c.activation in ("first", "last"):
         activation = cast(Literal["first", "last"], c.activation)
         t_a, t_b = log.first_after(c.a, c.b, activation=activation, response=c.response)
-        lag = (t_b - t_a) / unit
+        lag = in_units(t_b - t_a, c.unit)
         if c.response == "first_overall":
             lag = lag.where(lag >= 0)  # b before the activation counts as missing
         v = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
@@ -72,7 +71,7 @@ def _evaluate_lag(log: EventLog, c: Lag) -> pd.Series:
     if pairs.empty:
         v = pd.Series(np.nan, index=log.case_ids)
         return _lag_missing(v, v, t_a_case, c, log)
-    lag = (pairs["t_b"] - pairs["t_a"]) / unit
+    lag = in_units(pairs["t_b"] - pairs["t_a"], c.unit)
     vi = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
     missing = lag.isna()
     if c.missing_b == "violate":
@@ -80,7 +79,7 @@ def _evaluate_lag(log: EventLog, c: Lag) -> pd.Series:
     elif c.missing_b == "censor" and c.delta is not None:
         end = pd.Timestamp(log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit))
         end = end.tz_convert("UTC").tz_localize(None) if end.tzinfo is not None else end
-        so_far = (end - pairs["t_a"]) / unit
+        so_far = in_units(end - pairs["t_a"], c.unit)
         vi = vi.where(~missing, sat(so_far, c.delta, c.width))
     per_case = vi.groupby(pairs["code"].to_numpy()).mean()
     v = pd.Series(per_case.reindex(range(len(log))).to_numpy(), index=log.case_ids)
@@ -94,7 +93,7 @@ def _evaluate(log: EventLog, nc: NormConstraint) -> pd.Series:
     c = nc.constraint
     if isinstance(c, Presence):
         cnt = log.count(c.activity)
-        return 1.0 - np.minimum(cnt / c.m, 1.0)
+        return pd.Series(1.0 - np.minimum(cnt.to_numpy() / c.m, 1.0), index=log.case_ids)
     if isinstance(c, Exclusion):
         cnt = log.count_scoped(c.activity, after=c.after, before=c.before) if (c.after or c.before) else log.count(c.activity)
         return (cnt > 0).astype(float).where(cnt.notna())
@@ -119,8 +118,8 @@ def _evaluate(log: EventLog, nc: NormConstraint) -> pd.Series:
                 f"constraint {nc.id!r}: balance totals must be non-negative (paper Sec. IV-A); "
                 "net credit notes first or take absolute values"
             )
-        denom = np.maximum(np.maximum(tot_x, tot_y), c.eps)
-        d = (tot_x - tot_y).abs() / denom
+        denom = np.maximum(np.maximum(tot_x.to_numpy(), tot_y.to_numpy()), c.eps)
+        d = pd.Series((tot_x - tot_y).abs().to_numpy() / denom, index=log.case_ids)
         return sat(d, c.tau, c.width)
     if isinstance(c, Metric):
         x = log.attribute(c.attribute)
@@ -236,7 +235,7 @@ class ScoreResult:
                 raise NormError(f"unknown view {view!r}; available: {self.views}")
             extra = pd.concat([self.scores[view].rename("score"), self.contributions[view].add_prefix("contrib__")], axis=1)
             return pd.concat([self.cases, extra], axis=1)
-        parts = []
+        parts: list[pd.Series | pd.DataFrame] = []
         for v in self.views:
             parts.append(self.scores[v].rename(f"score__{v}"))
             parts.append(self.contributions[v].add_prefix(f"contrib__{v}__"))

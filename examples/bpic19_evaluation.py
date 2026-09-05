@@ -28,6 +28,8 @@ import pandas as pd
 
 import wise
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 pd.set_option("display.width", 220)
 pd.set_option("display.max_columns", 30)
 

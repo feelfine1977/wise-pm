@@ -102,6 +102,11 @@ def _opt(x: Activities | None) -> Labels:
     return () if x is None else as_labels(x)
 
 
+def in_units(delta: pd.Series, unit: str) -> pd.Series:
+    """Express a Series of time differences in ``unit`` (NaT → NaN)."""
+    return delta.dt.total_seconds() / pd.Timedelta(f"1{_UNITS[unit]}").total_seconds()
+
+
 def _plain(value: Any) -> Any:
     if isinstance(value, tuple):
         return list(value)
@@ -307,7 +312,7 @@ class Lag(Constraint):
 
     @property
     def timedelta_unit(self) -> pd.Timedelta:
-        return pd.Timedelta(1, unit=self.unit)
+        return pd.Timedelta(f"1{self.unit}")
 
 
 @dataclass(frozen=True)

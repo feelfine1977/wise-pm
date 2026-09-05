@@ -3,12 +3,15 @@
 Run:  python examples/quickstart.py
 """
 
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 import wise
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 pd.set_option("display.width", 160)
 
 # Phase 1 — norm and views (Table V)
