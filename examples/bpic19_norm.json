@@ -1,0 +1,848 @@
+{
+  "schema_version": 2,
+  "name": "WISE BPIC'19 norm",
+  "version": "1.0",
+  "description": "Flow-aware purchase-to-pay norm for the BPI Challenge 2019 log: 29 constraints in seven layers, four role-based views (Finance, Logistics, Compliance, Automation). Scoring mode layer_balanced; lag constraints measure from the first activation to the first response in the case and are not applicable when an endpoint is missing; order constraints are precedence checks.",
+  "scoring_mode": "layer_balanced",
+  "metadata": {
+    "domain": "Purchase-to-Pay / BPIC'19",
+    "case_notion": "PO item (Purchasing Document x Item)",
+    "governance_unit": "Purchasing document (PO header)",
+    "flow_types": {
+      "DF1": [
+        "3-way match, invoice after GR"
+      ],
+      "DF2": [
+        "3-way match, invoice before GR"
+      ],
+      "2-way": [
+        "2-way match"
+      ],
+      "Consignment": [
+        "Consignment"
+      ]
+    },
+    "primary_slice": [
+      "case Company",
+      "case Spend area text"
+    ],
+    "drilldown_keys": [
+      "case Vendor",
+      "case Item Type",
+      "case_start_quarter"
+    ]
+  },
+  "layers": [
+    {
+      "id": "L1_closure_completeness",
+      "name": "Expected completion and closure",
+      "description": ""
+    },
+    {
+      "id": "L2_flow_discipline",
+      "name": "Flow-conditioned control discipline",
+      "description": ""
+    },
+    {
+      "id": "L3_timeliness_ageing",
+      "name": "Handovers and ageing",
+      "description": ""
+    },
+    {
+      "id": "L4_rework_instability",
+      "name": "Rework and instability",
+      "description": ""
+    },
+    {
+      "id": "L5_exceptions_corrections",
+      "name": "Exceptions and corrections",
+      "description": ""
+    },
+    {
+      "id": "L6_value_commercial",
+      "name": "Value and commercial integrity",
+      "description": ""
+    },
+    {
+      "id": "L7_effort_automation",
+      "name": "Effort and automation friction",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Finance",
+      "description": "",
+      "layer_weights": {
+        "L1_closure_completeness": 0.24,
+        "L2_flow_discipline": 0.08,
+        "L3_timeliness_ageing": 0.24,
+        "L4_rework_instability": 0.06,
+        "L5_exceptions_corrections": 0.08,
+        "L6_value_commercial": 0.24,
+        "L7_effort_automation": 0.06
+      }
+    },
+    {
+      "name": "Logistics",
+      "description": "",
+      "layer_weights": {
+        "L1_closure_completeness": 0.08,
+        "L2_flow_discipline": 0.24,
+        "L3_timeliness_ageing": 0.22,
+        "L4_rework_instability": 0.22,
+        "L5_exceptions_corrections": 0.08,
+        "L6_value_commercial": 0.04,
+        "L7_effort_automation": 0.12
+      }
+    },
+    {
+      "name": "Compliance",
+      "description": "",
+      "layer_weights": {
+        "L1_closure_completeness": 0.12,
+        "L2_flow_discipline": 0.3,
+        "L3_timeliness_ageing": 0.1,
+        "L4_rework_instability": 0.06,
+        "L5_exceptions_corrections": 0.26,
+        "L6_value_commercial": 0.06,
+        "L7_effort_automation": 0.1
+      }
+    },
+    {
+      "name": "Automation",
+      "description": "",
+      "layer_weights": {
+        "L1_closure_completeness": 0.06,
+        "L2_flow_discipline": 0.08,
+        "L3_timeliness_ageing": 0.1,
+        "L4_rework_instability": 0.28,
+        "L5_exceptions_corrections": 0.06,
+        "L6_value_commercial": 0.08,
+        "L7_effort_automation": 0.34
+      }
+    }
+  ],
+  "derived_attributes": [
+    {
+      "name": "manual_touch_count",
+      "kind": "count_events",
+      "where": {
+        "column": "event org:resource",
+        "regex": "(?i)^(?!(?:batch|none|nan|null|\\s*$))."
+      }
+    },
+    {
+      "name": "distinct_human_resources",
+      "kind": "nunique",
+      "column": "event org:resource",
+      "where": {
+        "column": "event org:resource",
+        "regex": "(?i)^(?!(?:batch|none|nan|null|\\s*$))."
+      }
+    },
+    {
+      "name": "total_events",
+      "kind": "eval",
+      "expr": "n_events"
+    },
+    {
+      "name": "manual_share",
+      "kind": "ratio",
+      "numerator": "manual_touch_count",
+      "denominator": "n_events"
+    },
+    {
+      "name": "networth_cv",
+      "kind": "cv",
+      "column": "event Cumulative net worth (EUR)"
+    },
+    {
+      "name": "exposure_norm",
+      "kind": "quantile_scale",
+      "attribute": "exposure",
+      "q": 0.95
+    },
+    {
+      "name": "c_l6_high_exposure_memo__indicator_x_exposure_norm",
+      "kind": "indicator_times",
+      "activities": [
+        "Vendor creates debit memo",
+        "Vendor creates credit memo"
+      ],
+      "attribute": "exposure_norm"
+    },
+    {
+      "name": "c_l6_high_exposure_price_change__indicator_x_exposure_norm",
+      "kind": "indicator_times",
+      "activities": [
+        "Change Price"
+      ],
+      "attribute": "exposure_norm"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c_l1_invoice_present",
+      "layer": "L1_closure_completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Record Invoice Receipt",
+          "Vendor creates invoice"
+        ],
+        "m": 1
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Invoice evidence should exist for invoice-bearing flows."
+    },
+    {
+      "id": "c_l1_clear_invoice_present",
+      "layer": "L1_closure_completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Clear Invoice"
+        ],
+        "m": 1
+      },
+      "weight": 1.4,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Invoice-bearing flows should eventually be cleared."
+    },
+    {
+      "id": "c_l1_goods_or_ses_present",
+      "layer": "L1_closure_completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "m": 1
+      },
+      "weight": 1.1,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2"
+        ]
+      },
+      "description": "3-way flows should contain goods or service receipt evidence."
+    },
+    {
+      "id": "c_l2_df1_invoice_after_goods",
+      "layer": "L2_flow_discipline",
+      "type": "precedence",
+      "params": {
+        "a": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "b": [
+          "Record Invoice Receipt",
+          "Vendor creates invoice"
+        ],
+        "k": 0,
+        "K": 1.0,
+        "missing_a": "skip",
+        "missing_b": "skip"
+      },
+      "weight": 1.4,
+      "applicability": {
+        "flow_type": [
+          "DF1"
+        ]
+      },
+      "description": "In DF1, invoice evidence should not precede the first goods/service event."
+    },
+    {
+      "id": "c_l2_df2_release_after_goods",
+      "layer": "L2_flow_discipline",
+      "type": "precedence",
+      "params": {
+        "a": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "b": [
+          "Remove Payment Block"
+        ],
+        "k": 0,
+        "K": 1.0,
+        "missing_a": "skip",
+        "missing_b": "skip"
+      },
+      "weight": 1.5,
+      "applicability": {
+        "flow_type": [
+          "DF2"
+        ]
+      },
+      "description": "In DF2, payment-block release should happen after the first goods/service event."
+    },
+    {
+      "id": "c_l2_2way_no_goods_expected",
+      "layer": "L2_flow_discipline",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "2-way"
+        ]
+      },
+      "description": "2-way match should not show goods/service receipt postings."
+    },
+    {
+      "id": "c_l2_consignment_no_clear_invoice",
+      "layer": "L2_flow_discipline",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Clear Invoice"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 0.8,
+      "applicability": {
+        "flow_type": [
+          "Consignment"
+        ]
+      },
+      "description": "Consignment items are not expected to be settled through Clear Invoice."
+    },
+    {
+      "id": "c_l3_df1_goods_to_invoice_days",
+      "layer": "L3_timeliness_ageing",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "b": [
+          "Record Invoice Receipt",
+          "Vendor creates invoice"
+        ],
+        "delta": 10.0,
+        "width": 20.0,
+        "unit": "D",
+        "missing_a": "skip",
+        "missing_b": "skip",
+        "activation": "first",
+        "response": "first_overall"
+      },
+      "weight": 1.3,
+      "applicability": {
+        "flow_type": [
+          "DF1"
+        ]
+      },
+      "description": "In DF1, invoice should follow goods/service within a target time."
+    },
+    {
+      "id": "c_l3_invoice_to_clear_days",
+      "layer": "L3_timeliness_ageing",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Invoice Receipt",
+          "Vendor creates invoice"
+        ],
+        "b": [
+          "Clear Invoice"
+        ],
+        "delta": 30.0,
+        "width": 60.0,
+        "unit": "D",
+        "missing_a": "skip",
+        "missing_b": "skip",
+        "activation": "first",
+        "response": "first_overall"
+      },
+      "weight": 1.5,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Invoice-bearing flows should clear in a reasonable time."
+    },
+    {
+      "id": "c_l3_df2_goods_to_rpb_days",
+      "layer": "L3_timeliness_ageing",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "b": [
+          "Remove Payment Block"
+        ],
+        "delta": 2.0,
+        "width": 10.0,
+        "unit": "D",
+        "missing_a": "skip",
+        "missing_b": "skip",
+        "activation": "first",
+        "response": "first_overall"
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF2"
+        ]
+      },
+      "description": "In DF2, goods/service to Remove Payment Block should be timely."
+    },
+    {
+      "id": "c_l3_df2_rpb_to_clear_days",
+      "layer": "L3_timeliness_ageing",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Remove Payment Block"
+        ],
+        "b": [
+          "Clear Invoice"
+        ],
+        "delta": 5.0,
+        "width": 20.0,
+        "unit": "D",
+        "missing_a": "skip",
+        "missing_b": "skip",
+        "activation": "first",
+        "response": "first_overall"
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF2"
+        ]
+      },
+      "description": "In DF2, released items should clear quickly."
+    },
+    {
+      "id": "c_l4_goods_fragmentation",
+      "layer": "L4_rework_instability",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Record Goods Receipt",
+          "Record Service Entry Sheet"
+        ],
+        "k": 2,
+        "K": 3.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "Consignment"
+        ]
+      },
+      "description": "Too many goods/service receipt events indicate fragmentation."
+    },
+    {
+      "id": "c_l4_change_approval_repeats",
+      "layer": "L4_rework_instability",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Change Approval for Purchase Order"
+        ],
+        "k": 0,
+        "K": 2.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Approval changes should be rare."
+    },
+    {
+      "id": "c_l4_repeated_invoice_receipt",
+      "layer": "L4_rework_instability",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Record Invoice Receipt"
+        ],
+        "k": 1,
+        "K": 2.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Repeated invoice receipt events indicate invoice handling churn."
+    },
+    {
+      "id": "c_l4_change_payment_terms_repeats",
+      "layer": "L4_rework_instability",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Change Payment Terms"
+        ],
+        "k": 0,
+        "K": 2.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Repeated payment-term changes indicate unstable commercial handling."
+    },
+    {
+      "id": "c_l5_cancel_invoice_receipt",
+      "layer": "L5_exceptions_corrections",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Cancel Invoice Receipt"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Invoice receipt cancellations should be exceptional."
+    },
+    {
+      "id": "c_l5_cancel_goods_receipt",
+      "layer": "L5_exceptions_corrections",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Cancel Goods Receipt"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "Consignment"
+        ]
+      },
+      "description": "Goods receipt cancellations should be exceptional."
+    },
+    {
+      "id": "c_l5_delete_item",
+      "layer": "L5_exceptions_corrections",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Delete Purchase Order Item"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.1,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "PO item deletion should be exceptional once execution is underway."
+    },
+    {
+      "id": "c_l5_debit_memo",
+      "layer": "L5_exceptions_corrections",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Vendor creates debit memo"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.3,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Vendor debit memos should be rare."
+    },
+    {
+      "id": "c_l5_credit_memo",
+      "layer": "L5_exceptions_corrections",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Vendor creates credit memo"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.1,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Vendor credit memos should be rare."
+    },
+    {
+      "id": "c_l6_change_price",
+      "layer": "L6_value_commercial",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Change Price"
+        ],
+        "k": 0,
+        "K": 2.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.4,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Price changes after ordering indicate commercial inconsistency risk."
+    },
+    {
+      "id": "c_l6_change_quantity",
+      "layer": "L6_value_commercial",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Change Quantity"
+        ],
+        "k": 0,
+        "K": 2.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Quantity changes after ordering indicate commercial inconsistency risk."
+    },
+    {
+      "id": "c_l6_high_exposure_memo",
+      "layer": "L6_value_commercial",
+      "type": "metric",
+      "params": {
+        "attribute": "c_l6_high_exposure_memo__indicator_x_exposure_norm",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.2,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Correction documents on high-exposure cases matter more financially."
+    },
+    {
+      "id": "c_l6_high_exposure_price_change",
+      "layer": "L6_value_commercial",
+      "type": "metric",
+      "params": {
+        "attribute": "c_l6_high_exposure_price_change__indicator_x_exposure_norm",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Price changes on high-exposure cases are financially more critical."
+    },
+    {
+      "id": "c_l7_manual_touches",
+      "layer": "L7_effort_automation",
+      "type": "metric",
+      "params": {
+        "attribute": "manual_touch_count",
+        "threshold": 4.0,
+        "width": 6.0,
+        "direction": "high"
+      },
+      "weight": 1.4,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Too many manual touches reduce touchless processing potential."
+    },
+    {
+      "id": "c_l7_distinct_human_resources",
+      "layer": "L7_effort_automation",
+      "type": "metric",
+      "params": {
+        "attribute": "distinct_human_resources",
+        "threshold": 2.0,
+        "width": 4.0,
+        "direction": "high"
+      },
+      "weight": 1.1,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Too many human handoffs indicate coordination cost."
+    },
+    {
+      "id": "c_l7_total_events",
+      "layer": "L7_effort_automation",
+      "type": "metric",
+      "params": {
+        "attribute": "total_events",
+        "threshold": 10.0,
+        "width": 15.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "Very long event chains indicate execution friction."
+    },
+    {
+      "id": "c_l7_manual_share",
+      "layer": "L7_effort_automation",
+      "type": "metric",
+      "params": {
+        "attribute": "manual_share",
+        "threshold": 0.5,
+        "width": 0.5,
+        "direction": "high"
+      },
+      "weight": 0.9,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way",
+          "Consignment"
+        ]
+      },
+      "description": "High manual share indicates low straight-through processing."
+    },
+    {
+      "id": "c_l6_networth_volatility",
+      "layer": "L6_value_commercial",
+      "type": "metric",
+      "params": {
+        "attribute": "networth_cv",
+        "threshold": 0.5,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1",
+          "DF2",
+          "2-way"
+        ]
+      },
+      "description": "Net-worth volatility across the item's postings should stay within tolerance."
+    }
+  ]
+}

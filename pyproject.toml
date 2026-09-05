@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wise-pm"
+dynamic = ["version"]
+description = "WISE: norm-based, slice-first prioritisation of process deviations from event logs"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Urszula Jessen" }]
+keywords = ["process mining", "conformance checking", "prioritisation", "event log", "decision support", "BPIC"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Typing :: Typed",
+]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+pm4py = ["pm4py>=2.7"]
+stats = ["scipy>=1.10"]
+dev = [
+  "pytest>=8",
+  "pytest-cov",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pandas-stubs",
+  "pre-commit",
+  "build",
+  "twine",
+]
+docs = ["mkdocs-material", "mkdocstrings[python]"]
+
+[project.scripts]
+wise = "wise.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/feelfine1977/wise-pm"
+Repository = "https://github.com/feelfine1977/wise-pm"
+Issues = "https://github.com/feelfine1977/wise-pm/issues"
+Changelog = "https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+wise = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { attr = "wise._version.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src/wise"]
+addopts = "--doctest-modules"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["wise"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+
+[tool.ruff]
+line-length = 130
+target-version = "py310"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "NPY", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "SIM108", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]
+"examples/*" = ["E402"]
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+warn_unused_ignores = false
+ignore_missing_imports = true
+files = ["src/wise"]

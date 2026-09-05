@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below and the software itself."
+title: "wise: norm-based, slice-first prioritisation for process mining"
+type: software
+authors:
+  - family-names: Jessen
+    given-names: Urszula
+    affiliation: Eindhoven University of Technology
+version: 0.1.0
+license: MIT
+repository-code: https://github.com/feelfine1977/wise-pm
+preferred-citation:
+  type: article
+  title: "WISE: Actionable Norm-Based Scoring for Process Mining"
+  authors:
+    - family-names: Jessen
+      given-names: Urszula
+    - family-names: Fahland
+      given-names: Dirk
+    - family-names: Zerbato
+      given-names: Francesca
+  year: 2026

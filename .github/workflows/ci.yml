@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10", deps: "numpy==1.24.* pandas==2.0.*", experimental: false }
+          - { os: ubuntu-latest, python: "3.12", deps: "", experimental: false }
+          - { os: ubuntu-latest, python: "3.13", deps: "", experimental: false }
+          - { os: ubuntu-latest, python: "3.13", deps: "--pre --upgrade numpy pandas", experimental: true }
+          - { os: macos-latest, python: "3.12", deps: "", experimental: false }
+          - { os: windows-latest, python: "3.12", deps: "", experimental: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev,stats]"
+      - if: matrix.deps != ''
+        run: python -m pip install ${{ matrix.deps }}
+      - run: python -m pytest --cov=wise --cov-report=term-missing
+      - run: python examples/quickstart.py
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . "ruff==0.12.0" "mypy==1.17.1" pandas-stubs
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - run: python -m pip install dist/*.whl
+      - run: python -c "import wise, pathlib; assert pathlib.Path(wise.__file__).with_name('py.typed').exists(); print(wise.__version__)"
+      - run: wise validate examples/bpic19_norm.json
