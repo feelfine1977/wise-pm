@@ -1,0 +1,831 @@
+{
+  "schema": "wise-extension-status/1",
+  "generated_for_stage": "S3 (L01-L03) + S5 drafting half (N01, N02)",
+  "base_commit": "df5db50b839cc124b489a269894f5a2bfe7dc634",
+  "branch": "feat/actionability-ocpm-local-llm",
+  "implementation_scope": "local_extensions (S0-S5 minus A01-A03, which the application owns)",
+  "settings": {
+    "allow_remote_writes": false,
+    "allow_model_downloads": false,
+    "allow_live_llm_tests": false,
+    "allow_private_data_export": false
+  },
+  "environment": {
+    "python": "3.13.9",
+    "install": "editable .[dev,stats]",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "scipy": "1.18.1",
+    "pytest": "9.1.1",
+    "lint_versions_used": {
+      "ci_pinned": {
+        "ruff": "0.12.0",
+        "mypy": "1.17.1"
+      },
+      "worktree_venv": {
+        "ruff": "0.16.6",
+        "mypy": "2.3.1"
+      }
+    }
+  },
+  "stages": {
+    "S0": {
+      "state": "complete",
+      "items": [
+        "E05"
+      ]
+    },
+    "S1": {
+      "state": "complete",
+      "items": [
+        "E01",
+        "E02",
+        "E04"
+      ]
+    },
+    "S2": {
+      "state": "complete",
+      "items": [
+        "E03"
+      ]
+    },
+    "S3": {
+      "state": "complete",
+      "items": [
+        "L01",
+        "L02",
+        "L03"
+      ],
+      "complete_items": [
+        "L01",
+        "L02",
+        "L03"
+      ]
+    },
+    "S4": {
+      "state": "complete",
+      "items": [
+        "O01",
+        "O02",
+        "O03",
+        "O04",
+        "O05"
+      ],
+      "complete_items": [
+        "O01",
+        "O02",
+        "O03",
+        "O04",
+        "O05"
+      ]
+    },
+    "S5": {
+      "state": "partial",
+      "items": [
+        "A01",
+        "A02",
+        "A03",
+        "N01",
+        "N02"
+      ],
+      "complete_items": [
+        "N01",
+        "N02"
+      ],
+      "out_of_scope_items": [
+        "A01",
+        "A02",
+        "A03"
+      ],
+      "note": "the drafting half is complete; the investigation-record half is owned by the application per library-cycles/SCOPE_BOUNDARY.md and is not planned for this library"
+    },
+    "S6": {
+      "state": "out_of_scope",
+      "items": [
+        "L04",
+        "M01",
+        "V01",
+        "M02",
+        "M03",
+        "M04"
+      ]
+    }
+  },
+  "tasks": {
+    "E05": {
+      "stage": "S0",
+      "priority": "P0",
+      "state": "complete",
+      "dependencies": []
+    },
+    "E01": {
+      "stage": "S1",
+      "priority": "P0",
+      "state": "complete",
+      "dependencies": []
+    },
+    "E02": {
+      "stage": "S1",
+      "priority": "P0",
+      "state": "complete",
+      "dependencies": [
+        "E01"
+      ]
+    },
+    "E04": {
+      "stage": "S1",
+      "priority": "P0",
+      "state": "complete",
+      "dependencies": [
+        "E01"
+      ]
+    },
+    "E03": {
+      "stage": "S2",
+      "priority": "P0",
+      "state": "complete",
+      "dependencies": [
+        "E01"
+      ]
+    },
+    "L01": {
+      "stage": "S3",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "E02",
+        "E03"
+      ]
+    },
+    "L02": {
+      "stage": "S3",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "E01",
+        "L01"
+      ]
+    },
+    "L03": {
+      "stage": "S3",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "L01"
+      ]
+    },
+    "L04": {
+      "stage": "S6",
+      "priority": "P1",
+      "state": "out_of_scope",
+      "dependencies": [
+        "L01",
+        "L02",
+        "L03"
+      ]
+    },
+    "O01": {
+      "stage": "S4",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "E01"
+      ]
+    },
+    "O02": {
+      "stage": "S4",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "O01",
+        "E02"
+      ]
+    },
+    "O03": {
+      "stage": "S4",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "O02"
+      ]
+    },
+    "O04": {
+      "stage": "S4",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "O02"
+      ]
+    },
+    "O05": {
+      "stage": "S4",
+      "priority": "P1",
+      "state": "complete",
+      "dependencies": [
+        "O03",
+        "O04"
+      ]
+    },
+    "A01": {
+      "stage": "S5",
+      "priority": "P1",
+      "state": "not_planned_here",
+      "dependencies": [
+        "E02",
+        "E04"
+      ],
+      "note": "owned by the application (SCOPE_BOUNDARY.md)"
+    },
+    "A02": {
+      "stage": "S5",
+      "priority": "P2",
+      "state": "not_planned_here",
+      "dependencies": [
+        "A01"
+      ],
+      "note": "owned by the application (SCOPE_BOUNDARY.md)"
+    },
+    "A03": {
+      "stage": "S5",
+      "priority": "P2",
+      "state": "not_planned_here",
+      "dependencies": [
+        "A01",
+        "L03"
+      ],
+      "note": "owned by the application (SCOPE_BOUNDARY.md)"
+    },
+    "N01": {
+      "stage": "S5",
+      "priority": "P2",
+      "state": "complete",
+      "dependencies": [
+        "L02",
+        "E05"
+      ]
+    },
+    "N02": {
+      "stage": "S5",
+      "priority": "P2",
+      "state": "complete",
+      "dependencies": [
+        "N01"
+      ]
+    },
+    "M01": {
+      "stage": "S6",
+      "priority": "P2",
+      "state": "out_of_scope",
+      "dependencies": [
+        "E03",
+        "E05"
+      ]
+    },
+    "V01": {
+      "stage": "S6",
+      "priority": "P1",
+      "state": "blocked_field_study",
+      "dependencies": [
+        "L04",
+        "A01",
+        "O05"
+      ]
+    },
+    "M02": {
+      "stage": "S6",
+      "priority": "P3",
+      "state": "blocked_research_gate",
+      "dependencies": [
+        "M01",
+        "V01"
+      ]
+    },
+    "M03": {
+      "stage": "S6",
+      "priority": "P3",
+      "state": "blocked_research_gate",
+      "dependencies": [
+        "V01",
+        "O05"
+      ]
+    },
+    "M04": {
+      "stage": "S6",
+      "priority": "P3",
+      "state": "blocked_research_gate",
+      "dependencies": [
+        "A01",
+        "V01"
+      ]
+    }
+  },
+  "commands": {
+    "note": "Per cycle, so an earlier cycle's measured result is never overwritten by a later one. Cycle L1 = stages S0-S2 and the review fix; L2 = S4; L3 = S3 and the drafting half of S5.",
+    "L1": {
+      "suite_no_data_env": {
+        "command": "python -m pytest -q -ra",
+        "exit": 0,
+        "passed": 425,
+        "failed": 0,
+        "skipped": 4
+      },
+      "suite_with_bpic19": {
+        "command": "WISE_BPIC19_CSV=<challenge csv> python -m pytest -q -ra",
+        "exit": 0,
+        "passed": 428,
+        "failed": 0,
+        "skipped": 1
+      },
+      "stage0_regression_contract": {
+        "exit": 0,
+        "passed": 44,
+        "failed": 0,
+        "file_unedited": true
+      },
+      "bpic19_reproduction": {
+        "exit": 0,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ruff_check": {
+        "exit": 0,
+        "result": "All checks passed"
+      },
+      "ruff_format": {
+        "exit": 0,
+        "result": "47 files already formatted"
+      },
+      "mypy": {
+        "exit": 0,
+        "result": "21 source files clean"
+      },
+      "coverage": {
+        "exit": 0,
+        "total": "95.63%",
+        "floor": "85%"
+      },
+      "base_commit_equivalence": {
+        "command": "prioritize / layer_drivers against the reviewed base",
+        "exit": 0,
+        "result": "180 configurations byte-identical (68 on a bare score frame, 112 on ScoreResults), all committed as tests",
+        "configurations": 180,
+        "frame_configurations": 68,
+        "result_configurations": 112
+      },
+      "fix_negative_controls": {
+        "result": "15 of 15 fixes fail without their fix"
+      }
+    },
+    "L2": {
+      "suite_no_data_env": {
+        "command": "python -m pytest -q",
+        "exit": 0,
+        "passed": 672,
+        "failed": 0,
+        "skipped": 8
+      },
+      "suite_with_bpic19": {
+        "exit": 0,
+        "passed": 675,
+        "failed": 0,
+        "skipped": 5
+      },
+      "suite_with_bpic19_and_ocel": {
+        "exit": 0,
+        "passed": 679,
+        "failed": 0,
+        "skipped": 1
+      },
+      "stage0_regression_contract": {
+        "exit": 0,
+        "passed": 44,
+        "failed": 0,
+        "file_unedited": true
+      },
+      "bpic19_reproduction": {
+        "exit": 0,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ruff_check": {
+        "exit": 0,
+        "result": "All checks passed"
+      },
+      "ruff_format": {
+        "exit": 0,
+        "result": "67 files already formatted"
+      },
+      "mypy": {
+        "exit": 0,
+        "result": "31 source files clean"
+      },
+      "coverage": {
+        "exit": 0,
+        "total": "95.86%",
+        "floor": "85%"
+      },
+      "kernel_parity_bpic19": {
+        "result": "max absolute difference 0.0, NaN masks identical, both modes and both views"
+      }
+    },
+    "L3": {
+      "suite_no_data_env": {
+        "command": "python -m pytest -q",
+        "exit": 0,
+        "passed": 991,
+        "failed": 0,
+        "skipped": 9
+      },
+      "suite_with_bpic19": {
+        "command": "WISE_BPIC19_CSV=<challenge csv> python -m pytest -q -ra",
+        "exit": 0,
+        "passed": 994,
+        "failed": 0,
+        "skipped": 6
+      },
+      "stage0_regression_contract": {
+        "command": "python -m pytest -q tests/extensions/test_baseline_contract.py",
+        "exit": 0,
+        "passed": 44,
+        "failed": 0,
+        "skipped": 0,
+        "file_unedited": true,
+        "file_sha256": "a47445b232fe3b3626e7bf8c788a918dfd813aba4d978164060f1b1a975dda5b"
+      },
+      "bpic19_reproduction": {
+        "command": "WISE_BPIC19_CSV=<challenge csv> python -m pytest -q tests/test_bpic19.py",
+        "exit": 0,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "ruff_check": {
+        "command": "ruff check .",
+        "exit": 0,
+        "result": "All checks passed"
+      },
+      "ruff_format": {
+        "command": "ruff format --check .",
+        "exit": 0,
+        "result": "90 files already formatted"
+      },
+      "mypy": {
+        "command": "mypy",
+        "exit": 0,
+        "result": "no issues found in 42 source files"
+      },
+      "coverage": {
+        "command": "python -m pytest -q --cov=wise",
+        "exit": 0,
+        "total": "94.97%",
+        "floor": "85%"
+      },
+      "build": {
+        "command": "python -m build && twine check --strict dist/*",
+        "exit": 0,
+        "result": "sdist + wheel, 2 PASSED"
+      },
+      "installed_wheel": {
+        "command": "pip install the wheel into a clean venv outside the checkout",
+        "exit": 0,
+        "result": "import wise does not import wise.llm; the assisted path renders its deterministic report; packaged schemas readable"
+      },
+      "examples": {
+        "command": "python examples/{quickstart,evidence_review,explanation_review,oc_units_review,oc_invoice_review,local_review,review_norm_draft}.py",
+        "exit": 0,
+        "result": "all seven run"
+      },
+      "guard_negative_controls": {
+        "command": "break one guard at a time, run the test that names it, restore",
+        "mutations": 21,
+        "caught": 21,
+        "result": "every guard has a test that fails without it; two tests were strengthened when this sweep found them passing for the wrong reason"
+      },
+      "new_tests": {
+        "test_ollama_transport.py": 45,
+        "test_llm_gateway.py": 49,
+        "test_retrieval_scope.py": 24,
+        "test_prompt_injection_boundaries.py": 14,
+        "test_local_assistant.py": 39,
+        "test_norm_drafts.py": 38,
+        "test_safe_draft_recipes.py": 37,
+        "test_draft_behaviour.py": 21,
+        "test_live_ollama.py": "1 (opt-in, skipped, not run)",
+        "doctests_in_new_modules": 52,
+        "total": "267 test-file tests + 52 doctests = 319; suite went 672 -> 991 passed (+319) and 8 -> 9 skipped (+1, the opt-in live harness)"
+      }
+    }
+  },
+  "skips": {
+    "count_without_data_env": 9,
+    "count_with_bpic19": 6,
+    "entries": [
+      "tests/test_bpic19.py x3 - set WISE_BPIC19_CSV (executed in this session against the local read-only CSV: 3 passed)",
+      "tests/extensions/test_ocel_io.py x4 - set WISE_OCEL2_JSON / WISE_OCEL2_SQLITE (not executed in this cycle)",
+      "tests/test_log.py x1 - no parquet engine",
+      "tests/extensions/test_live_ollama.py x1 - NEW this cycle: opt-in live local-model harness, skipped unless WISE_OLLAMA_LIVE=1 and WISE_OLLAMA_MODEL are set. It was NOT run; no server was contacted."
+    ]
+  },
+  "baseline_failures": [],
+  "captured_identities": {
+    "norm_fingerprint_running_p2p": "b76e8f39df8510658c4ffe45d07c360b97a834b1655ed70fddc4a758873ba995",
+    "norm_fingerprint_bpic19": "e17ca18ed3c1a30114694c29455b86def27480bb34000e797e1e06a82dc644b0",
+    "sha256_examples_running_p2p_norm_json": "7acda57c1c7e35fd4de92c5a3fd38e8bf0f2bbcc4e2e2761355e178e4c71b4bb",
+    "norm_schema_version": 2,
+    "scoring_modes": [
+      "layer_balanced",
+      "flat"
+    ],
+    "default_scoring_mode": "layer_balanced",
+    "scoreresult_mode_field_default": "flat",
+    "backlog_columns": [
+      "n_cases",
+      "mean_score",
+      "volume",
+      "gap",
+      "PI",
+      "stable_mean",
+      "stable_gap",
+      "stable_PI",
+      "global_mean"
+    ],
+    "backlog_columns_with_z": [
+      "n_cases",
+      "mean_score",
+      "volume",
+      "gap",
+      "PI",
+      "stable_mean",
+      "stable_gap",
+      "stable_PI",
+      "se",
+      "gap_lower",
+      "PI_lower",
+      "global_mean"
+    ]
+  },
+  "regression_contract": {
+    "path": "tests/extensions/test_baseline_contract.py",
+    "tests": 44,
+    "passed": 44,
+    "failed": 0,
+    "tolerance": {
+      "identities_masks_ordering": "strict equality",
+      "floating_point": "rtol=0, atol=1e-12"
+    },
+    "benchmark_tolerances_unchanged": true,
+    "state_after_s1": "unchanged and passing (44 tests)",
+    "state_after_s2": "unchanged and passing (44 tests)",
+    "state_after_s4": "unchanged and passing (44 tests), including after the kernel extraction touched scoring.py"
+  },
+  "changed_paths": [
+    ".gitignore",
+    "CHANGELOG.md",
+    "MANIFEST.in",
+    "README.md",
+    "docs/development/extension-checkpoint.md",
+    "docs/development/extension-plan.md",
+    "docs/development/extension-status.json",
+    "docs/semantics/evidence.md",
+    "docs/semantics/explanation.md",
+    "docs/semantics/object_centric.md",
+    "examples/evidence_review.py",
+    "examples/explanation_review.py",
+    "examples/oc_invoice_review.py",
+    "examples/oc_units_review.py",
+    "pyproject.toml",
+    "src/wise/__init__.py",
+    "src/wise/_aggregation.py",
+    "src/wise/cli.py",
+    "src/wise/derive.py",
+    "src/wise/diagnostics.py",
+    "src/wise/errors.py",
+    "src/wise/evaluation/__init__.py",
+    "src/wise/evaluation/ocel.py",
+    "src/wise/evidence/__init__.py",
+    "src/wise/evidence/calibration.py",
+    "src/wise/evidence/capture.py",
+    "src/wise/evidence/manifest.py",
+    "src/wise/evidence/models.py",
+    "src/wise/evidence/schemas/evidence_packet.example.json",
+    "src/wise/evidence/schemas/evidence_packet.schema.json",
+    "src/wise/explain/__init__.py",
+    "src/wise/explain/baseline.py",
+    "src/wise/explain/priority.py",
+    "src/wise/explain/render.py",
+    "src/wise/log.py",
+    "src/wise/oc/__init__.py",
+    "src/wise/oc/accounting.py",
+    "src/wise/oc/constraints.py",
+    "src/wise/oc/evaluation.py",
+    "src/wise/oc/io.py",
+    "src/wise/oc/model.py",
+    "src/wise/oc/units.py",
+    "src/wise/prioritization.py",
+    "src/wise/scoring.py",
+    "tests/conftest.py",
+    "tests/extensions/_oc_fixtures.py",
+    "tests/extensions/test_aggregation_parity.py",
+    "tests/extensions/test_assessment_units.py",
+    "tests/extensions/test_baseline_contract.py",
+    "tests/extensions/test_baseline_spec.py",
+    "tests/extensions/test_deterministic_render.py",
+    "tests/extensions/test_evidence_capture.py",
+    "tests/extensions/test_evidence_models.py",
+    "tests/extensions/test_frozen_calibration.py",
+    "tests/extensions/test_oc_accounting.py",
+    "tests/extensions/test_oc_case_parity.py",
+    "tests/extensions/test_oc_constraints.py",
+    "tests/extensions/test_oc_representation_comparison.py",
+    "tests/extensions/test_ocel_io.py",
+    "tests/extensions/test_priority_explanation.py",
+    "tests/extensions/test_qualification_contract.py",
+    "tests/extensions/test_run_manifest.py",
+    "tests/fixtures/ocel/p2p_mini.json",
+    "tests/fixtures/ocel/p2p_mini_defects.json"
+  ],
+  "src_changes": [
+    {
+      "path": "src/wise/scoring.py",
+      "change": "additive: detailed evaluation path sharing the primitives with _evaluate/_evaluate_lag; evaluate_detailed(); keyword-only evidence= and calibrations= on score(); appended defaulted ScoreResult fields manifest and evidence; evidence_frame() accessor"
+    },
+    {
+      "path": "src/wise/log.py",
+      "change": "additive: recorded preparation options (options()), LogSnapshot with fingerprint or frozen copy, bounded event_refs(), keyword-only calibrations= on derive()"
+    },
+    {
+      "path": "src/wise/derive.py",
+      "change": "additive: _quantile_divisor shared with the calibration path; keyword-only calibration= on compute_recipe and calibrations= on apply_recipes; the default recalculation is unchanged"
+    },
+    {
+      "path": "src/wise/diagnostics.py",
+      "change": "additive: typed_event_replication, typed_cross_case_replication, typed_right_censored wrapping the existing numeric helpers"
+    },
+    {
+      "path": "src/wise/errors.py",
+      "change": "additive: EvidenceError, EvidenceUnavailableError, StaleEvidenceError"
+    },
+    {
+      "path": "src/wise/cli.py",
+      "change": "additive: opt-in --manifest-out, --evidence-out, --evidence-frame-out, --evidence; stdout CSV unchanged"
+    },
+    {
+      "path": "src/wise/__init__.py",
+      "change": "additive exports; the relative order of the base exports is unchanged"
+    },
+    {
+      "path": "src/wise/explain/",
+      "change": "new: BaselineSpec, AssessmentContext, BaselineCompatibility, ResolvedBaseline, explain_priority, ExplanationPacket and the deterministic renderers"
+    },
+    {
+      "path": "src/wise/prioritization.py",
+      "change": "additive: keyword-only baseline_spec= on prioritize() and layer_drivers(); the comparator resolved once; comparator metadata in attrs only when a specification was supplied; everything from constraint_drivers onward untouched"
+    },
+    {
+      "path": "src/wise/cli.py",
+      "change": "additive: wise explain <packet>; --baseline-file and --explain-out on score"
+    },
+    {
+      "path": "src/wise/evidence/models.py",
+      "change": "additive: twelve explanation QualificationCode members; the 'group' and 'explanation' qualification scopes"
+    },
+    {
+      "path": "src/wise/evidence/capture.py",
+      "change": "additive: to_interchange(baseline=...) accepts a BaselineSpec or ResolvedBaseline, closing S1's current-population-only limitation"
+    },
+    {
+      "path": "src/wise/oc/",
+      "change": "new: OCEventLog (contract wise-oc/1) with identities, qualified E2O/O2O relations, attribute histories, source metadata and observed precision; OCEL 2.0 JSON read+write, OCEL 2.0 SQLite read-only, native pandas tables; UnitSpec/RolePath/PathStep/UnitScope/TraversalLimits and bounded AssessmentUnit with witnesses and truncation"
+    },
+    {
+      "path": "src/wise/errors.py",
+      "change": "additive: OCError, OCValidationError, OCInterchangeError, OCUnitError - deriving from WiseError, deliberately not from EvidenceError"
+    },
+    {
+      "path": "src/wise/evidence/models.py",
+      "change": "additive: seven object-centric QualificationCode members (context_truncated, depth/fan_out/binding_limit_reached, attribute_not_set_at_time, attribute_read_outside_evaluation_time, relation_validity_unknown)"
+    },
+    {
+      "path": "src/wise/__init__.py",
+      "change": "UNCHANGED by this stage: wise.oc is an explicit import, so `import wise` loads no new module and wise.__all__ does not grow"
+    },
+    {
+      "path": "src/wise/_aggregation.py",
+      "change": "new: the single applicability-aware scoring formula, extracted from score(). LayerAssignment, Aggregation, effective_weights, aggregate. Used by wise.scoring and wise.oc.evaluation"
+    },
+    {
+      "path": "src/wise/scoring.py",
+      "change": "_effective_weights and _layer_balanced_weights delegate to the kernel and keep their signatures; the per-view loop in score() calls aggregate(). Bit-identical output, verified on the running example and on BPIC'19"
+    },
+    {
+      "path": "src/wise/oc/constraints.py",
+      "change": "new: RelatedObjectCardinality, CrossObjectLag, RelationalBalance, EventSelector, AmountSelector, CheckOutcome, OBJECT_CHECKS, object_check_from_dict"
+    },
+    {
+      "path": "src/wise/oc/accounting.py",
+      "change": "new: QuantityRecord with canonical identity, Allocation, allocate, AllocationReport (coverage, overlap, combined, residuals), equal_split"
+    },
+    {
+      "path": "src/wise/oc/evaluation.py",
+      "change": "new: ObjectNorm (wise-oc-norm/1) reusing Layer and View, ObjectConstraint, evaluate_units, score_units, OCScoreResult, unit_frame, object_backlog"
+    },
+    {
+      "path": "src/wise/evaluation/ocel.py",
+      "change": "new: naive_projection, identity_preserving_projection, ProjectionReport, measure, Expectation, score_representation, compare_representations"
+    },
+    {
+      "path": "src/wise/errors.py",
+      "change": "additive: OCConstraintError, AccountingError"
+    },
+    {
+      "path": "src/wise/evidence/models.py",
+      "change": "additive: ReasonCode.UNVERIFIED_ABSENCE and INCOMPATIBLE_UNITS (both non-evaluable); six object-centric QualificationCode members"
+    }
+  ],
+  "public_api_changes": [
+    "score(..., *, evidence='none', calibrations=None) \u2014 appended keyword-only",
+    "ScoreResult.manifest, ScoreResult.evidence \u2014 appended defaulted fields",
+    "ScoreResult.evidence_frame(view=None, *, unit_id=None, constraint_id=None)",
+    "evaluate_detailed(log, norm) -> (violations, in_scope, details)",
+    "EventLog.options(), EventLog.snapshot(*, freeze=False, scope='cases'), EventLog.derive(..., calibrations=None)",
+    "wise.evidence: EvaluationRecord, WitnessRef, AbsenceSearch, Qualification, DiagnosticResult, CoverageReport, Truncation, EvidencePacket, RunManifest, CalibrationRecord, capture_evidence, evidence_frame, coverage_report, to_interchange, interchange_schema, fit_calibration, apply_calibration, fingerprint_events, fingerprint_result, new_run_id, recipe_fingerprint",
+    "wise.diagnostics: typed_event_replication, typed_cross_case_replication, typed_right_censored",
+    "errors: EvidenceError, EvidenceUnavailableError, StaleEvidenceError",
+    "CLI: wise score --evidence --manifest-out --evidence-out --evidence-frame-out (opt-in sidecars)",
+    "prioritize(..., *, baseline_spec=None) and layer_drivers(..., *, baseline_spec=None) - appended keyword-only",
+    "wise.explain: BaselineSpec, BaselineKind, BaselineError, AssessmentContext, BaselineCompatibility, ResolvedBaseline, resolve_baseline, norm_context, load_baseline",
+    "wise.explain: explain_priority, ExplanationPacket, Fact, FactKind, LayerComponent, ConstraintComponent, PriorityComponents, ViewContrast, Denominator, safe_identifier",
+    "wise.explain: render_text/render_markdown/render_json/render_explanation, write_explanation, explanation_filename, load_explanation, escape_markdown/escape_prose/escape_text",
+    "CLI: wise explain <packet> [--format --out]; wise score --baseline-file --explain-out",
+    "wise.oc (explicit import; not exported from wise): OCEventLog, OCEvent, OCObject, E2O, O2O, AttributeChange, SourceMetadata, ValidationReport, ValidationIssue, OCIssueCode, IssueSeverity, AttributeReading, AttributePolicy, observed_precision",
+    "wise.oc: read_ocel2_json, write_ocel2_json, ocel2_json_document, read_ocel2_sqlite, to_tables, from_tables, interchange_support, LossReport",
+    "wise.oc: UnitSpec, RolePath, PathStep, UnitScope, TraversalLimits, AssessmentUnit, PathWitness, Hop, UnitTruncation, build_units, context_report",
+    "errors: OCError, OCValidationError, OCInterchangeError, OCUnitError",
+    "wise.oc: RelatedObjectCardinality, CrossObjectLag, RelationalBalance, EventSelector, AmountSelector, ObjectCheck, CheckOutcome, OBJECT_CHECKS, object_check_from_dict",
+    "wise.oc: QuantityRecord, Allocation, AllocationReport, allocate, canonical_record_id, equal_split",
+    "wise.oc: ObjectNorm, ObjectConstraint, OCScoreResult, evaluate_units, score_units, unit_frame, object_backlog, OC_NORM_SCHEMA",
+    "wise.evaluation.ocel (explicit import): naive_projection, identity_preserving_projection, ProjectionReport, measure, Measured, Expectation, RepresentationScore, score_representation, compare_representations",
+    "private: wise._aggregation.LayerAssignment/Aggregation/aggregate/effective_weights - the shared kernel, not exported from wise",
+    "errors: OCConstraintError, AccountingError"
+  ],
+  "semantic_conflicts_found": [
+    "prioritize accepts a scalar baseline while layer_drivers always contrasts against the current scored population; combined, they describe two different comparisons",
+    "a scalar baseline has no layer profile, so additive attribution against it would have to be invented",
+    "prioritize clips gap and stable_gap at zero while layer_drivers keeps signed deltas",
+    "penalty_mass (sum of 1-S) is not the priority index and must stay distinct",
+    "scored populations can differ between views and this is not disclosed",
+    "ScoreResult.log is the live mutable EventLog while ScoreResult.cases is a copy; they can diverge after scoring",
+    "score(derive=True) mutates the caller's log in place",
+    "the quantile_scale recipe recomputes its reference on whatever log it is applied to",
+    "ScoreResult.mode defaults to 'flat' while Norm.scoring_mode defaults to 'layer_balanced'",
+    "event_id_col is accepted but no accessor exposes event identities for witnesses"
+  ],
+  "proposed_api_additions": [
+    "wise.evidence subpackage: models, manifest, capture, calibration",
+    "score(..., *, evidence='none', calibrations=None)",
+    "ScoreResult.evidence_frame(...)",
+    "prioritize(..., *, baseline_spec=None)",
+    "layer_drivers(..., *, baseline_spec=None, reference_profile=None)",
+    "explain_priority(result, ..., *, baseline_spec=...)"
+  ],
+  "next_stage": {
+    "id": "S6",
+    "items": [
+      "L04",
+      "M01"
+    ],
+    "prompt": "handoff/prompts/07_EVALUATION.md",
+    "gate": "S3 and the drafting half of S5 are complete: L01-L03 and N01-N02 implemented and tested against a fake provider, the stage-0 contract unedited and passing, the BPIC'19 reproduction unmoved",
+    "note": "A01-A03 stay out of this library by SCOPE_BOUNDARY.md; L04 needs a task set and, for any measured claim, an explicit live opt-in that this cycle did not take"
+  },
+  "measured_cost": {
+    "context": "BPI Challenge 2019 log, 251734 cases, 1595923 events, 29 constraints",
+    "score_default_seconds": 1.73,
+    "run_manifest_seconds": 0.002,
+    "run_manifest_share_of_score": 0.0012,
+    "evaluate_detailed_seconds": 0.95,
+    "capture_full_50_units_seconds": 2.35,
+    "records_captured": 1450,
+    "records_possible": 7300286,
+    "synthetic_summary_microseconds_per_record": 40,
+    "synthetic_full_microseconds_per_record": 120,
+    "ocel2_json_read_seconds": 1.05,
+    "ocel2_sqlite_read_seconds": 0.88,
+    "ocel2_context": "published OCEL 2.0 procure-to-pay log: 14671 events, 9543 objects, 35927 E2O, 20402 O2O rows, 78508 attribute history rows",
+    "content_fingerprint_seconds": 0.29,
+    "build_units_927_invoice_units_seconds": 0.1,
+    "import_wise_seconds": 0.29,
+    "import_wise_note": "unchanged: wise.oc is not imported by `import wise`, and sqlite3 is imported inside the SQLite reader",
+    "score_bpic19_flat_seconds": 1.65,
+    "score_bpic19_layer_balanced_seconds": 0.75,
+    "kernel_extraction_difference_bpic19": 0.0,
+    "oc_score_units_note": "the comparison fixtures are three to a hundred objects; no large-scale object benchmark is part of this stage",
+    "import_wise_seconds_after_l3": 0.397,
+    "import_wise_llm_seconds": 0.439,
+    "import_note": "wise.llm is not imported by `import wise`; importing it explicitly costs about 40 ms more and opens no socket",
+    "llm_tests_seconds": "the 267 new tests run in under 2 s; no test in the suite contacts a network"
+  },
+  "scope_note": "cycle L1 executed IMPLEMENTATION_SCOPE=foundation (S0-S2); cycle L2 completed S4 (O01-O05); cycle L3 completed S3 (L01-L03) and the drafting half of S5 (N01, N02) against a fake provider only. A01-A03 are owned by the application per library-cycles/SCOPE_BOUNDARY.md. S6 is not started."
+}

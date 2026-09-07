@@ -20,6 +20,8 @@ Column names default to the pm4py / XES conventions ``case:concept:name``,
 
 from __future__ import annotations
 
+import hashlib
+import json
 import warnings
 from collections.abc import Iterable, Mapping
 from typing import Any, Literal
@@ -28,7 +30,7 @@ import numpy as np
 import pandas as pd
 
 from .constraints import Labels, as_labels, as_list
-from .errors import LogSchemaError
+from .errors import LogSchemaError, StaleEvidenceError
 
 _INT_MIN = np.iinfo(np.int64).min
 _INT_MAX = np.iinfo(np.int64).max
@@ -36,6 +38,11 @@ _INT_MAX = np.iinfo(np.int64).max
 CASE_COL = "case:concept:name"
 ACTIVITY_COL = "concept:name"
 TIMESTAMP_COL = "time:timestamp"
+
+#: Prefix of a witness reference that is **local to a snapshot**: the position
+#: of a row in this log's sorted event table. It is deliberately not a source
+#: system event id; see :class:`LogSnapshot`.
+SNAPSHOT_LOCAL_PREFIX = "snapshot-local:row="
 
 _RESERVED = {"n_events", "first_ts", "last_ts", "exposure", "score"}
 
@@ -267,6 +274,30 @@ class EventLog:
         self._first_cache: dict[Labels, pd.Series] = {}
         self._last_cache: dict[Labels, pd.Series] = {}
         self._recipe_cache: dict[str, str] = {}
+
+        # The preparation options exactly as they were supplied, for the run
+        # record (:mod:`wise.evidence.manifest`). Recorded, never re-applied.
+        self._options: dict[str, Any] = {
+            "case_col": case_col,
+            "activity_col": activity_col,
+            "timestamp_col": timestamp_col,
+            "case_attributes": list(case_attributes),
+            "exposure_col": exposure_col,
+            "exposure_agg": exposure_agg if exposure_col is not None else None,
+            "order_col": order_col,
+            "event_id_col": event_id_col,
+            "lifecycle_col": lifecycle_col,
+            "keep_transitions": [str(t) for t in as_list(keep_transitions)] if lifecycle_col is not None else None,
+            "utc": bool(utc),
+            "timestamp_format": timestamp_format,
+            "dayfirst": bool(dayfirst),
+            "missing_timestamps": missing_timestamps,
+            "window": [None if t is None else t.isoformat() for t in self.window] if self.window is not None else None,
+            "keep_columns": None if keep_columns is None else list(keep_columns),
+            "dedupe": bool(dedupe),
+            "tie_order_policy": f"order_col:{order_col}" if order_col is not None else "input_row_order",
+            "timezone": str(self.tz) if self.tz is not None else None,
+        }
 
     # ------------------------------------------------------------------ constructors
     @classmethod
@@ -573,12 +604,27 @@ class EventLog:
         if name not in self.case_attributes:
             self.case_attributes.append(name)
 
-    def derive(self, recipes: Iterable[Mapping[str, Any]], *, overwrite: bool = True) -> list[str]:
+    def derive(
+        self,
+        recipes: Iterable[Mapping[str, Any]],
+        *,
+        overwrite: bool = True,
+        calibrations: Mapping[str, Any] | None = None,
+    ) -> list[str]:
         """Compute derived case attributes from declarative recipes (see
-        :mod:`wise.derive`) and attach them. Returns the attribute names."""
+        :mod:`wise.derive`) and attach them. Returns the attribute names.
+
+        ``calibrations`` maps an attribute name to a frozen
+        :class:`wise.evidence.CalibrationRecord`; those recipes then apply the
+        fitted reference instead of refitting one on this log.
+
+        This modifies the log in place — that is the historical behaviour, and
+        :func:`wise.score` uses it by default. Evidence capture records that
+        the input was modified.
+        """
         from .derive import apply_recipes
 
-        return apply_recipes(self, recipes, overwrite=overwrite)
+        return apply_recipes(self, recipes, overwrite=overwrite, calibrations=calibrations)
 
     def trace(self, case_id: Any) -> pd.DataFrame:
         """Events of one case in timestamp order (for drill-down)."""
@@ -589,6 +635,43 @@ class EventLog:
         start = int(self._starts[i])
         n = int(self.cases["n_events"].to_numpy()[i])
         return self.events.iloc[start : start + n]
+
+    # ------------------------------------------------------------------ provenance
+    def options(self) -> dict[str, Any]:
+        """The preparation options this log was built with, as plain JSON types.
+
+        Includes the column mapping, the lifecycle filter, the timestamp
+        policy, the observation window, ``dedupe`` and the tie-order policy
+        (``"order_col:<name>"`` or ``"input_row_order"``). These are recorded
+        for the run manifest; reading them changes nothing.
+        """
+        return {k: (list(v) if isinstance(v, list) else v) for k, v in self._options.items()}
+
+    def snapshot(self, *, freeze: bool = False, scope: Literal["structure", "cases", "events"] = "cases") -> LogSnapshot:
+        """A witness interface over this log, protected against later mutation.
+
+        With ``freeze=False`` (default) the snapshot keeps a fingerprint of the
+        log and re-checks it before materialising any witness, raising
+        :class:`~wise.errors.StaleEvidenceError` when the log has changed.
+        With ``freeze=True`` it copies the columns needed for witnesses, so it
+        stays valid whatever happens to the log afterwards.
+
+        ``scope="cases"`` (default) fingerprints the case table — which is
+        what :meth:`add_case_attribute` and :meth:`derive` change — together
+        with the structure of the event table; ``scope="events"`` additionally
+        fingerprints **every column** of the event table, at the cost of
+        hashing every event, so a relabelled activity, a shifted timestamp or a
+        changed amount all invalidate it; ``scope="structure"`` hashes no
+        content at all and records only the preparation options, the shapes and
+        the column names.
+
+        :attr:`LogSnapshot.content_hashed_tables` says which tables a snapshot's
+        identity covers, and :attr:`LogSnapshot.content_hashed` is ``True`` only
+        when every one of them is covered — which is ``"events"`` alone. Evidence
+        capture uses ``"events"`` for exactly that reason: a witness served after
+        a changed amount would be the evidence of a different score.
+        """
+        return LogSnapshot(self, freeze=freeze, scope=scope)
 
     # ------------------------------------------------------------------ validation
     def validate(self, q: float = 0.001) -> pd.Series:
@@ -628,3 +711,210 @@ class EventLog:
         if "exposure" in self.cases.columns:
             report["zero_exposure_cases"] = int((self.cases["exposure"] == 0).sum())
         return pd.Series(report, name="log_validation")
+
+
+# ---------------------------------------------------------------------- snapshots
+def _frame_digest(frame: pd.DataFrame) -> str | None:
+    """SHA-256 over pandas' row hashes, or ``None`` if a column is unhashable."""
+    try:
+        values = pd.util.hash_pandas_object(frame, index=True).to_numpy(dtype="uint64")
+    except TypeError:  # pragma: no cover - unhashable object column
+        return None
+    return hashlib.sha256(values.tobytes()).hexdigest()
+
+
+def _iso(value: Any) -> str | None:
+    ts = pd.Timestamp(value)
+    return None if pd.isna(ts) else str(ts.isoformat())
+
+
+class LogSnapshot:
+    """Bounded witness access to an :class:`EventLog`, guarded against mutation.
+
+    A score result keeps the *live* log, and both :meth:`EventLog.derive` and
+    :meth:`EventLog.add_case_attribute` change it in place. A snapshot records
+    what the log looked like when evidence was captured, so that a witness
+    materialised later is either the original one (``freeze=True``) or refused
+    (:class:`~wise.errors.StaleEvidenceError`).
+
+    Event references are source event ids when ``event_id_col`` was configured
+    (:attr:`source_identity_available` is then ``True``); otherwise they are
+    positions in this snapshot's sorted event table, prefixed with
+    ``"snapshot-local:row="``. A snapshot-local reference identifies a row here
+    and nowhere else — it is never presented as a source system event id.
+    """
+
+    def __init__(self, log: EventLog, *, freeze: bool = False, scope: Literal["structure", "cases", "events"] = "cases"):
+        if scope not in ("structure", "cases", "events"):
+            raise ValueError("scope must be 'structure', 'cases' or 'events'")
+        self.scope = scope
+        self.frozen = bool(freeze)
+        self.options = log.options()
+        self.case_col, self.activity_col, self.timestamp_col = log.case_col, log.activity_col, log.timestamp_col
+        self.event_id_col = log.event_id_col
+        self.source_identity_available = log.event_id_col is not None
+        self.n_events = len(log.events)
+        self.n_cases = len(log)
+        self.timezone = str(log.tz) if log.tz is not None else None
+        self._columns = [log.activity_col, log.timestamp_col] + ([log.event_id_col] if log.event_id_col else [])
+        # The identity of the event table covers *every* event column, not only
+        # the three a witness prints: a Balance or a Metric reads an amount, and
+        # a changed amount is a changed input even when the trace is untouched.
+        self._digest_columns = [str(c) for c in log.events.columns]
+        self._case_index = log.case_ids.copy()
+        self._starts = np.asarray(log._starts, dtype=np.int64).copy()
+        self._counts = log.cases["n_events"].to_numpy(dtype=np.int64).copy()
+        self._first = log.cases["first_ts"].copy()
+        self._last = log.cases["last_ts"].copy()
+        self.fingerprint, self.content_hashed_tables = self._fingerprint(log)
+        #: ``True`` only when **every** table is content-hashed. A ``"cases"``
+        #: snapshot hashes the case table and not the events, so it is ``False``
+        #: there: saying otherwise would claim an identity the run never verified.
+        self.content_hashed = all(self.content_hashed_tables.values())
+        self._log: EventLog | None = None if self.frozen else log
+        self._events: pd.DataFrame | None = log.events[self._columns].copy() if self.frozen else None
+        self._cache: tuple[np.ndarray, pd.DatetimeIndex, np.ndarray, np.ndarray | None] | None = None
+
+    def _fingerprint(self, log: EventLog) -> tuple[str, dict[str, bool]]:
+        """The snapshot digest, and which tables its content actually covers."""
+        cases_digest = None if self.scope == "structure" else _frame_digest(log.cases)
+        parts: dict[str, Any] = {
+            "options": log.options(),
+            "n_events": len(log.events),
+            "n_cases": len(log),
+            "event_columns": [str(c) for c in log.events.columns],
+            "case_columns": [str(c) for c in log.cases.columns],
+            "recipes": dict(log._recipe_cache),
+            "cases_digest": cases_digest,
+        }
+        covered = {"cases": self.scope != "structure" and cases_digest is not None, "events": False}
+        if self.scope == "events":
+            columns = [c for c in self._digest_columns if c in log.events.columns]
+            events_digest = _frame_digest(log.events[columns])
+            parts["events_digest"] = events_digest
+            covered["events"] = events_digest is not None
+        canonical = json.dumps(parts, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest(), covered
+
+    def __repr__(self) -> str:
+        kind = "frozen" if self.frozen else f"fingerprinted[{self.scope}]"
+        return f"LogSnapshot({self.n_events:,} events, {self.n_cases:,} cases, {kind}, {self.fingerprint[:12]}…)"
+
+    def check_fresh(self) -> None:
+        """Raise :class:`~wise.errors.StaleEvidenceError` if the log changed.
+
+        A frozen snapshot always passes: it no longer refers to the log.
+        """
+        if self._log is None:
+            return
+        current, _ = self._fingerprint(self._log)
+        if current != self.fingerprint:
+            raise StaleEvidenceError(
+                "the event log changed after this evidence was captured "
+                f"(snapshot {self.fingerprint[:12]}…, log now {current[:12]}…); "
+                "re-score, or capture with EventLog.snapshot(freeze=True) to keep witnesses available"
+            )
+
+    # ------------------------------------------------------------------ access
+    def _frame(self) -> pd.DataFrame:
+        if self._events is not None:
+            return self._events
+        log = self._log
+        if log is None:  # pragma: no cover - a frozen snapshot returned above
+            raise StaleEvidenceError("this snapshot has no log to read witnesses from")
+        return log.events
+
+    def _arrays(self) -> tuple[np.ndarray, pd.DatetimeIndex, np.ndarray, np.ndarray | None]:
+        """Witness columns as arrays, converted once.
+
+        Freshness is checked at the entry points (:meth:`check_fresh`), not per
+        lookup: hashing the case table for every witness would make evidence
+        cost more than scoring.
+        """
+        if self._cache is None:
+            frame = self._frame()
+            activities = frame[self.activity_col].astype(str).to_numpy(dtype=object)
+            stamps = pd.DatetimeIndex(pd.to_datetime(frame[self.timestamp_col]))
+            naive = stamps.tz_convert("UTC").tz_localize(None) if stamps.tz is not None else stamps
+            i8 = naive.to_numpy("datetime64[ns]").view("int64")
+            ids = None if self.event_id_col is None else frame[self.event_id_col].astype(str).to_numpy(dtype=object)
+            self._cache = (activities, stamps, i8, ids)
+        return self._cache
+
+    def _slice(self, unit_id: Any) -> tuple[int, int]:
+        pos = self._case_index.get_loc(unit_id)
+        if not isinstance(pos, int | np.integer):
+            raise LogSchemaError(f"case id {unit_id!r} is not unique in this snapshot")
+        i = int(pos)
+        return int(self._starts[i]), int(self._counts[i])
+
+    def n_events_of(self, unit_id: Any) -> int:
+        """Number of events of one unit in this snapshot."""
+        return self._slice(unit_id)[1]
+
+    def bounds_of(self, unit_id: Any) -> tuple[str | None, str | None]:
+        """First and last event timestamp of one unit, ISO-8601 or ``None``."""
+        pos = int(self._case_index.get_loc(unit_id))  # type: ignore[arg-type]
+        return _iso(self._first.iloc[pos]), _iso(self._last.iloc[pos])
+
+    def event_refs(
+        self,
+        unit_id: Any,
+        activities: Iterable[str] | None = None,
+        *,
+        since: Any = None,
+        until: Any = None,
+        limit: int | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Witness rows of one unit, and how many matched in total.
+
+        Returns ``(rows, n_matched)`` where each row carries ``reference``,
+        ``event_id`` (``None`` without a configured ``event_id_col``),
+        ``activity`` and an ISO-8601 ``timestamp``. ``limit`` bounds the rows
+        returned, never ``n_matched``, so a truncated display keeps the exact
+        total.
+
+        Call :meth:`check_fresh` once before a batch of lookups: this method
+        reads the snapshot's cached columns and does not re-verify the log.
+        """
+        start, n = self._slice(unit_id)
+        if n == 0:
+            return [], 0
+        acts, stamps, stamps_i8, ids = self._arrays()
+        block = slice(start, start + n)
+        mask = np.ones(n, dtype=bool)
+        if activities is not None:
+            wanted = np.asarray(sorted({str(a) for a in activities}), dtype=object)
+            mask &= np.isin(acts[block], wanted)
+        if since is not None or until is not None:
+            values = stamps_i8[block]
+            valid = values != _INT_MIN
+            if since is not None:
+                mask &= valid & (values >= self._to_i8(since))
+            if until is not None:
+                mask &= valid & (values <= self._to_i8(until))
+        positions = np.flatnonzero(mask)
+        n_matched = int(positions.size)
+        if limit is not None:
+            positions = positions[: max(int(limit), 0)]
+        rows: list[dict[str, Any]] = []
+        for offset in positions:
+            row = start + int(offset)
+            rows.append(
+                {
+                    "reference": f"{SNAPSHOT_LOCAL_PREFIX}{row}",
+                    "event_id": None if ids is None else str(ids[row]),
+                    "activity": str(acts[row]),
+                    "timestamp": _iso(stamps[row]),
+                }
+            )
+        return rows, n_matched
+
+    def _to_i8(self, value: Any) -> int:
+        """A timestamp as int64 nanoseconds, in the same convention as the arrays."""
+        ts = pd.Timestamp(value)
+        if self.timezone is not None and ts.tzinfo is None:
+            ts = ts.tz_localize(self.timezone)
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert("UTC").tz_localize(None)
+        return int(np.datetime64(ts, "ns").view("int64"))

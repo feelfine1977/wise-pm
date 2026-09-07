@@ -1,15 +1,35 @@
-"""Command-line interface: ``wise validate | describe | check | score``."""
+"""Command-line interface: ``wise validate | describe | check | score | explain``.
+
+``wise score`` writes the same slice backlog to stdout as it always has. The
+run record, the evidence packet and the explanation packet are **opt-in
+sidecars**: they are written only when ``--manifest-out``, ``--evidence-out``,
+``--evidence-frame-out`` or ``--explain-out`` name a file, they never change
+the stdout CSV or its columns, and their progress messages go to stderr.
+
+``--baseline-file`` reads a reviewed comparator (a
+:class:`~wise.explain.BaselineSpec` as JSON) and ranks against it instead of
+the current population's mean. It changes the reference the backlog uses — that
+is what it is for — and it changes no column.
+
+``wise explain <packet>`` renders an explanation packet written by
+``--explain-out`` (or by :meth:`~wise.explain.ExplanationPacket.to_json`) as
+text, Markdown or JSON. It computes nothing: every number in the output is a
+fact of the packet.
+"""
 
 from __future__ import annotations
 
 import argparse
 import sys
 from collections.abc import Sequence
+from typing import Any
 
 import pandas as pd
 
 from ._version import __version__
 from .errors import WiseError
+from .explain import explain_priority, load_baseline, load_explanation, render_explanation
+from .explain.render import FORMATS
 from .log import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, EventLog
 from .norm import Norm
 from .prioritization import prioritize
@@ -41,6 +61,51 @@ def _add_log_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--missing-timestamps", default="raise", choices=["raise", "drop", "keep"])
 
 
+def _needs_evidence(args: argparse.Namespace) -> bool:
+    return bool(args.evidence_out or args.evidence_frame_out)
+
+
+def _write_sidecars(args: argparse.Namespace, result: Any, *, view: str, backlog: pd.DataFrame, spec: Any = None) -> None:
+    """Write the opt-in run, evidence and explanation sidecars. Never touches stdout."""
+    if args.manifest_out:
+        manifest = result.manifest.finalize(
+            grouping=args.by,
+            view=view,
+            volume=args.volume,
+            comparator=f"{spec.kind.value}:{spec.baseline_id}" if spec is not None else "current_population_mean",
+            comparator_value=backlog.attrs.get("baseline"),
+            min_cases=args.min_cases,
+            gamma=args.gamma,
+        )
+        with open(args.manifest_out, "w", encoding="utf-8") as fh:
+            fh.write(manifest.to_json())
+        print(f"wrote the run record to {args.manifest_out}", file=sys.stderr)
+    if args.evidence_out:
+        with open(args.evidence_out, "w", encoding="utf-8") as fh:
+            fh.write(result.evidence.to_json())
+        print(f"wrote {len(result.evidence)} evidence rows to {args.evidence_out}", file=sys.stderr)
+    if args.evidence_frame_out:
+        result.evidence_frame(view).to_csv(args.evidence_frame_out)
+        print(f"wrote {len(result.evidence)} evidence rows to {args.evidence_frame_out}", file=sys.stderr)
+    if args.explain_out:
+        packet = explain_priority(
+            result,
+            args.by,
+            view=view,
+            gamma=args.gamma,
+            volume=args.volume,
+            min_cases=args.min_cases,
+            baseline_spec=spec,
+            evidence=result.evidence,
+        )
+        with open(args.explain_out, "w", encoding="utf-8") as fh:
+            fh.write(packet.to_json())
+        print(
+            f"wrote the explanation of slice {packet.group_label!r} ({len(packet.facts)} facts) to {args.explain_out}",
+            file=sys.stderr,
+        )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="wise", description="WISE: norm-based, slice-first prioritisation")
     parser.add_argument("--version", action="version", version=f"wise {__version__}")
@@ -67,6 +132,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     s.add_argument("--mode", default=None, choices=["flat", "layer_balanced"], help="override the norm's scoring mode")
     s.add_argument("--out", default="-", help="output CSV path ('-' = stdout)")
     s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores")
+    s.add_argument("--manifest-out", default=None, help="optional JSON run record (mode, views, input identity, options)")
+    s.add_argument("--evidence-out", default=None, help="optional JSON evidence packet (implies evidence capture)")
+    s.add_argument(
+        "--evidence",
+        default=None,
+        choices=["summary", "full"],
+        help="capture evidence: 'summary' (measurements and reasons) or 'full' (also bounded witnesses)",
+    )
+    s.add_argument("--evidence-frame-out", default=None, help="optional CSV of the long-format evidence rows")
+    s.add_argument(
+        "--baseline-file",
+        default=None,
+        help="optional JSON BaselineSpec: rank against a reviewed historical or target comparator",
+    )
+    s.add_argument(
+        "--explain-out",
+        default=None,
+        help="optional JSON explanation packet for the top-ranked slice of this backlog",
+    )
+
+    e = sub.add_parser("explain", help="render an explanation packet (no computation, no model)")
+    e.add_argument("packet", help="explanation packet written by 'wise score --explain-out'")
+    e.add_argument("--format", default="text", choices=list(FORMATS), help="rendering (default text)")
+    e.add_argument("--out", default="-", help="output path ('-' = stdout)")
 
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
@@ -109,9 +198,19 @@ def _run(args: argparse.Namespace) -> int:
     if args.cmd == "score":
         norm = Norm.load(args.norm)
         log = _read_log(args)
-        result = score(log, norm, views=[args.view] if args.view else None, mode=args.mode)
+        wants_evidence = args.evidence or (("full" if args.evidence_out else "summary") if _needs_evidence(args) else "none")
+        result = score(log, norm, views=[args.view] if args.view else None, mode=args.mode, evidence=wants_evidence)
         view = args.view or result.views[0]
-        backlog = prioritize(result, args.by, view=view, gamma=args.gamma, volume=args.volume, min_cases=args.min_cases)
+        spec = load_baseline(args.baseline_file) if args.baseline_file else None
+        backlog = prioritize(
+            result,
+            args.by,
+            view=view,
+            gamma=args.gamma,
+            volume=args.volume,
+            min_cases=args.min_cases,
+            baseline_spec=spec,
+        )
         text = backlog.reset_index().to_csv(index=False)
         if args.out == "-":
             sys.stdout.write(text)
@@ -122,6 +221,16 @@ def _run(args: argparse.Namespace) -> int:
         if args.cases_out:
             result.frame().to_csv(args.cases_out)
             print(f"wrote {len(result.scores)} cases to {args.cases_out}", file=sys.stderr)
+        _write_sidecars(args, result, view=view, backlog=backlog, spec=spec)
+        return 0
+    if args.cmd == "explain":
+        text = render_explanation(load_explanation(args.packet), args.format)
+        if args.out == "-":
+            sys.stdout.write(text if text.endswith("\n") else text + "\n")
+        else:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                fh.write(text)
+            print(f"wrote the explanation to {args.out}", file=sys.stderr)
         return 0
     return 2  # pragma: no cover
 

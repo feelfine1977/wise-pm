@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1-proposal",
+  "parent_norm_hash": "replace-with-the-approved-norm-fingerprint",
+  "review_status": "pending_human_review",
+  "candidate_norm": null,
+  "source_refs": [
+    "pol-clearing-a#s1",
+    "pol-clearing-b#s1"
+  ],
+  "assumptions": [
+    "the clearing clock starts at the recorded invoice receipt, not at the invoice date"
+  ],
+  "unresolved_questions": [
+    "Two approved sources state 30 days and 14 days for invoice clearing. Which applies, and from when?",
+    "Is the limit in calendar days or working days, and against which business calendar?"
+  ],
+  "proposed_examples": [
+    {
+      "example_id": "EX-001",
+      "description": "Invoice received before the observation window ends, with no recorded clearing yet.",
+      "expected_result": "unknown"
+    },
+    {
+      "example_id": "EX-002",
+      "description": "Invoice cleared on the fifteenth day after receipt.",
+      "expected_result": "unknown"
+    }
+  ]
+}

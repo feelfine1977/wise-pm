@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1-proposal",
+  "parent_norm_hash": "synthetic-norm-hash",
+  "review_status": "pending_human_review",
+  "candidate_norm": null,
+  "source_refs": [
+    "policy-span-01"
+  ],
+  "assumptions": [],
+  "unresolved_questions": [
+    "Which business calendar and due-date field are authoritative?"
+  ],
+  "proposed_examples": [
+    {
+      "example_id": "EX-001",
+      "description": "Invoice received before the observation window ends, no recorded clearing yet.",
+      "expected_result": "unknown"
+    }
+  ]
+}

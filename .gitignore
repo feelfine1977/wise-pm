@@ -13,3 +13,41 @@ data/*.csv
 data/*.parquet
 .mypy_cache/
 .ruff_cache/
+
+# --- local development environments -------------------------------------
+.venv*/
+venv/
+env/
+.tox/
+.nox/
+.python-version
+.idea/
+.vscode/
+
+# --- build, test and documentation output --------------------------------
+site/
+.coverage.*
+coverage.xml
+junit*.xml
+.hypothesis/
+
+# --- local run payloads and exported records -----------------------------
+# Scored runs, evidence packets and manifests are local artefacts: commit the
+# sanitised summary in docs/development/, never the payload. Small synthetic
+# fixtures under tests/ and examples/ stay tracked (they match none of these).
+local_runs/
+runs/
+*.wise-run.json
+*.wise-evidence.json
+*.wise-packet.json
+*.wise-manifest.json
+
+# --- private data and model caches ---------------------------------------
+data/*.xes
+data/*.xes.gz
+data/*.jsonocel
+data/*.sqlite
+data/*.zip
+data/*.gz
+models/
+.ollama/

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -31,9 +31,68 @@ from .constraints import as_list
 from .errors import NormError, NotScoredError
 from .scoring import ScoreResult, _where_mask
 
+if TYPE_CHECKING:  # pragma: no cover
+    from .explain.baseline import AssessmentContext, BaselineSpec, ResolvedBaseline
+
+#: The prefix of the per-layer contribution columns of
+#: :meth:`wise.ScoreResult.frame`.
+_CONTRIB = "contrib__"
+
 
 def _keys(by: str | Sequence[str]) -> list[str]:
     return [by] if isinstance(by, str) else list(by)
+
+
+def _context(
+    data: ScoreResult | pd.DataFrame,
+    view: str | None,
+    *,
+    layer_ids: Sequence[str] = (),
+    unit_type: str | None = None,
+) -> AssessmentContext:
+    """What this assessment declares about itself, for comparator checking.
+
+    A :class:`~wise.scoring.ScoreResult` knows its mode, its layers and its
+    norm; a bare score frame knows none of them, and neither knows what the
+    scored rows are meant to *count* — the assessment unit is declared by the
+    caller, in :func:`~wise.explain.explain_priority`. Missing declarations are
+    reported as *unverifiable* rather than assumed to match.
+    """
+    from .explain.baseline import AssessmentContext
+
+    if isinstance(data, ScoreResult):
+        return AssessmentContext.from_result(data, view, unit_type=unit_type)
+    return AssessmentContext(view=view, unit_type=unit_type, layer_ids=tuple(layer_ids))
+
+
+def _resolve(
+    spec: BaselineSpec,
+    data: ScoreResult | pd.DataFrame,
+    view: str | None,
+    *,
+    population_mean: float,
+    population_size: int,
+    population_profile: dict[str, float] | None = None,
+    layer_ids: Sequence[str] = (),
+) -> ResolvedBaseline:
+    from .explain.baseline import resolve_baseline
+
+    return resolve_baseline(
+        spec,
+        _context(data, view, layer_ids=layer_ids),
+        population_mean=population_mean,
+        population_size=population_size,
+        population_profile=population_profile,
+    )
+
+
+def _reject_two_comparators(baseline: float | None, baseline_spec: BaselineSpec | None) -> None:
+    if baseline is not None and baseline_spec is not None:
+        raise NormError(
+            "baseline= and baseline_spec= are two comparators for one backlog: pass the scalar for the "
+            "historical interface, or the specification, which also carries the layer profile the "
+            "explanation needs — not both"
+        )
 
 
 def _frame(data: ScoreResult | pd.DataFrame, view: str | None, score_col: str, by: Sequence[str]) -> tuple[pd.DataFrame, str]:
@@ -70,6 +129,8 @@ def prioritize(
     score_col: str = "score",
     baseline: float | None = None,
     as_index: bool = True,
+    *,
+    baseline_spec: BaselineSpec | None = None,
 ) -> pd.DataFrame:
     """Aggregate scored cases into a ranked slice backlog.
 
@@ -98,6 +159,14 @@ def prioritize(
         Reference score ``μ̄``. Default: the global mean over scored cases
         (paper). Pass a fixed target (last period's mean, or 1.0) to make
         gaps comparable across periods in the governance loop.
+    baseline_spec
+        A :class:`~wise.explain.BaselineSpec` — the *shared* comparator, which
+        also carries the layer profile, the view, the normalisation and the
+        layer meanings, so that :func:`layer_drivers` and
+        :func:`~wise.explain.explain_priority` explain the very comparison
+        this ranking used. Keyword-only, and mutually exclusive with
+        ``baseline``: two comparators for one backlog is the error this
+        argument exists to prevent.
 
     Returns
     -------
@@ -106,8 +175,18 @@ def prioritize(
     ``n_cases, volume, [exposure], mean_score, gap, PI, stable_mean,
     stable_gap, stable_PI, [se, gap_lower, PI_lower], global_mean`` and the
     parameters in ``DataFrame.attrs``.
+
+    Notes
+    -----
+    The ``global_mean`` column keeps its historical name and position, and it
+    holds whatever reference was used: with ``baseline`` or ``baseline_spec``
+    that reference **need not be global**. The comparator's identity and kind
+    are recorded in ``DataFrame.attrs`` under ``baseline_id`` and
+    ``comparator`` whenever a specification was supplied; a call without one
+    keeps exactly its historical attributes.
     """
     by = _keys(by)
+    _reject_two_comparators(baseline, baseline_spec)
     try:
         gamma = float(gamma)
     except (TypeError, ValueError) as exc:
@@ -118,7 +197,14 @@ def prioritize(
     d = df.dropna(subset=[score_col])
     if d.empty:
         raise NotScoredError("no scored cases to aggregate")
-    mu_bar = float(d[score_col].mean()) if baseline is None else float(baseline)
+    # the population mean is computed over every scored case, before the
+    # minimum-support filter below removes small slices from the ranking
+    resolved = None
+    if baseline_spec is None:
+        mu_bar = float(d[score_col].mean()) if baseline is None else float(baseline)
+    else:
+        resolved = _resolve(baseline_spec, data, view, population_mean=float(d[score_col].mean()), population_size=len(d))
+        mu_bar = resolved.reference_score
 
     vol_col = None if volume == "cases" else ("exposure" if volume == "exposure" else volume)
     if vol_col is not None and vol_col not in d.columns:
@@ -150,6 +236,20 @@ def prioritize(
     agg = agg[agg["n_cases"] >= int(min_cases)]
     agg = agg.sort_index().sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
     agg.attrs.update({"view": view, "gamma": float(gamma), "baseline": mu_bar, "volume": volume, "by": by})
+    if resolved is not None:
+        # only a call that supplied a specification gains metadata: a historical
+        # call keeps exactly the attributes it always had
+        agg.attrs.update(
+            {
+                "baseline_id": resolved.spec.baseline_id,
+                "comparator": resolved.spec.kind.value,
+                "comparator_resolved_from": resolved.resolved_from,
+                # what the comparator supports; prioritize itself resolves only
+                # the scalar, and layer_drivers resolves the profile
+                "explanation_kind": resolved.spec.explanation_kind,
+                "baseline_spec": resolved.spec.to_dict(),
+            }
+        )
     return agg if as_index else agg.reset_index()
 
 
@@ -159,17 +259,36 @@ def layer_drivers(
     view: str | None = None,
     layers: Sequence[str] | None = None,
     as_index: bool = True,
+    *,
+    baseline_spec: BaselineSpec | None = None,
 ) -> pd.DataFrame:
-    """Mean layer contribution ``Δ_λ`` per slice and its delta to the global mean.
+    """Mean layer contribution ``Δ_λ`` per slice and its delta to the comparator.
 
     Returns a DataFrame indexed by slice with ``n_cases``, per layer
-    ``<layer>`` (mean contribution) and ``<layer>__delta`` (minus the global
-    mean), and ``dominant_layer`` (the largest positive delta). Positive
-    deltas mark mechanisms more pronounced in the slice than in the log.
+    ``<layer>`` (mean contribution) and ``<layer>__delta`` (minus the
+    comparator's layer penalty), and ``dominant_layer`` (the largest positive
+    delta). Positive deltas mark mechanisms more pronounced in the slice than
+    in the comparator.
+
+    Without ``baseline_spec`` the comparator is the current scored population,
+    exactly as before. With one, it is the shared specification
+    :func:`prioritize` ranked against, so the two no longer describe different
+    comparisons of one backlog:
+
+    * a compatible **complete profile** gives signed deltas that sum to the
+      same score gap the priority used;
+    * a **scalar-only** comparator keeps the absolute layer means, sets every
+      ``<layer>__delta`` to null and ``dominant_layer`` to ``None``, and
+      reports ``attrs["reference_profile_available"] = False`` with
+      ``attrs["unavailable_reason"] = "reference_profile_unavailable"``. The
+      current population's profile is *not* substituted: it would explain a
+      comparison nobody made;
+    * an **incompatible** comparator raises
+      :class:`~wise.explain.BaselineError` naming every mismatch.
     """
     by = _keys(by)
     df, score_col = _frame(data, view, "score", by)
-    prefix = "contrib__"
+    prefix = _CONTRIB
     if isinstance(data, ScoreResult):
         layer_cols = [f"{prefix}{layer}" for layer in (as_list(layers) or data.norm.layer_ids)]
     else:
@@ -183,13 +302,53 @@ def layer_drivers(
     g = d.groupby(by, dropna=False, observed=True, sort=True)
     out = g[layer_cols].mean()
     out.insert(0, "n_cases", g.size())
-    deltas = out[layer_cols] - global_mean
+    layer_names = [c[len(prefix) :] for c in layer_cols]
+    resolved = None
+    reference = global_mean
+    if baseline_spec is not None:
+        resolved = _resolve(
+            baseline_spec,
+            data,
+            view,
+            population_mean=float(d[score_col].mean()),
+            population_size=len(d),
+            population_profile={name: float(global_mean[col]) for name, col in zip(layer_names, layer_cols)},
+            layer_ids=layer_names,
+        )
+        profile = resolved.reference_layer_penalties
+        reference = (
+            pd.Series(np.nan, index=layer_cols)
+            if profile is None
+            else pd.Series([profile[name] for name in layer_names], index=layer_cols)
+        )
+    deltas = out[layer_cols] - reference
     for col in layer_cols:
         out[f"{col[len(prefix) :]}__delta"] = deltas[col]
     out = out.rename(columns={c: c[len(prefix) :] for c in layer_cols})
-    delta_cols = [f"{c[len(prefix) :]}__delta" for c in layer_cols]
-    best = out[delta_cols].idxmax(axis=1).astype(str).str.replace("__delta", "", regex=False)
-    out["dominant_layer"] = best.where(out[delta_cols].max(axis=1) > 0, None)
+    delta_cols = [f"{name}__delta" for name in layer_names]
+    if resolved is not None and resolved.reference_layer_penalties is None:
+        # nulls, not zeros, and no dominant layer: nothing was contrasted
+        out["dominant_layer"] = pd.Series([None] * len(out), index=out.index, dtype=object)
+    else:
+        best = out[delta_cols].idxmax(axis=1).astype(str).str.replace("__delta", "", regex=False)
+        out["dominant_layer"] = best.where(out[delta_cols].max(axis=1) > 0, None)
+    if resolved is not None:
+        available = resolved.reference_layer_penalties is not None
+        out.attrs.update(
+            {
+                "view": view,
+                "by": by,
+                "baseline_id": resolved.spec.baseline_id,
+                "comparator": resolved.spec.kind.value,
+                "comparator_resolved_from": resolved.resolved_from,
+                "reference_score": resolved.reference_score,
+                "reference_layer_penalties": resolved.reference_layer_penalties,
+                "reference_profile_available": available,
+                "explanation_kind": resolved.explanation_kind,
+                "unavailable_reason": None if available else "reference_profile_unavailable",
+                "baseline_spec": resolved.spec.to_dict(),
+            }
+        )
     return out if as_index else out.reset_index()
 
 

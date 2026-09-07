@@ -2,4 +2,6 @@ include LICENSE README.md CHANGELOG.md CITATION.cff
 recursive-include docs *.md
 recursive-include examples *.py *.json
 recursive-include tests *.py
+recursive-include tests/fixtures *.json
 recursive-include src/wise py.typed
+recursive-include src/wise/evidence/schemas *.json

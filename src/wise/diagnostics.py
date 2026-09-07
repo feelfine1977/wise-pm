@@ -24,6 +24,7 @@ import pandas as pd
 
 from .constraints import as_labels, as_list
 from .errors import LogSchemaError, NotScoredError
+from .evidence.models import DiagnosticResult, Qualification, QualificationCode, SourceIdentity
 from .log import EventLog
 from .prioritization import _frame, _keys, prioritize
 from .scoring import ScoreResult
@@ -235,3 +236,110 @@ def validation_table(
     out["reading"] = out.apply(reading, axis=1)
     out = out.sort_values("stable_PI", ascending=False, kind="mergesort")
     return out.head(top) if top else out
+
+
+# ------------------------------------------------------- typed diagnostics (E04)
+def typed_event_replication(log: EventLog, *, ratio_flag: float = 2.0) -> DiagnosticResult:
+    """:func:`event_replication` as a typed result with its denominator stated.
+
+    Counts **cases whose events per distinct timestamp exceed ``ratio_flag``** —
+    the same rule :func:`validation_table` applies. This measures *timestamp
+    multiplicity inside a case*. It is not evidence that one source event was
+    copied: equal activity labels and equal timestamps do not establish
+    identity, and this diagnostic never claims they do. Use
+    :func:`typed_cross_case_replication` for the cross-case question, and
+    declare an ``event_id_col`` if the source identity is available.
+    """
+    frame = event_replication(log)
+    flagged = (frame["replication_ratio"] > ratio_flag).fillna(False)
+    return DiagnosticResult(
+        name="event_replication",
+        policy="timestamp_multiplicity_within_case",
+        numerator=float(flagged.sum()),
+        denominator=float(len(log)),
+        unit_of_counting="cases",
+        scope="all cases of the log",
+        threshold=float(ratio_flag),
+        interpretation=(
+            "share of cases with more than "
+            f"{ratio_flag:g} events per distinct timestamp; a timestamp tie, not an identified duplicate event"
+        ),
+        source_identity=SourceIdentity.SOURCE if log.event_id_col is not None else SourceIdentity.NONE,
+    )
+
+
+def typed_cross_case_replication(
+    log: EventLog,
+    group_col: str,
+    keys: Sequence[str] | None = None,
+    *,
+    threshold: float = 0.5,
+) -> DiagnosticResult:
+    """:func:`cross_case_replication` as a typed result, honest about its key.
+
+    Counts cases in which at least ``threshold`` of the events also appear in
+    another case of the same ``group_col``. What "the same event" means depends
+    entirely on the key: with an ``event_id_col`` the match is on **source
+    event identity**; without one it is a match on activity and timestamp,
+    which can pair two genuinely different business events. The policy and
+    :attr:`~wise.evidence.DiagnosticResult.source_identity` fields say which of
+    the two was actually used.
+    """
+    share = cross_case_replication(log, group_col, keys)
+    by_identity = log.event_id_col is not None and (keys is None or log.event_id_col in as_list(keys))
+    quals: tuple[Qualification, ...] = ()
+    if not by_identity:
+        quals = (
+            Qualification(
+                QualificationCode.NO_SOURCE_EVENT_IDENTITY,
+                "matched on activity and timestamp: two distinct source events with equal values are indistinguishable here, "
+                "so this is an upper bound on real replication",
+                scope="run",
+            ),
+        )
+    return DiagnosticResult(
+        name="cross_case_replication",
+        policy="cross_case_source_event_id_match" if by_identity else "cross_case_activity_timestamp_key_match",
+        numerator=float((share >= threshold).sum()),
+        denominator=float(len(log)),
+        unit_of_counting="cases",
+        scope=f"cases grouped by {group_col!r}",
+        threshold=float(threshold),
+        interpretation=(
+            f"share of cases in which at least {threshold:.0%} of the events also occur in another case of the same {group_col!r}"
+        ),
+        source_identity=SourceIdentity.SOURCE if by_identity else SourceIdentity.SNAPSHOT_LOCAL,
+        qualifications=quals,
+    )
+
+
+def typed_right_censored(
+    log: EventLog,
+    closure: str | Sequence[str],
+    window: str | pd.Timedelta = "60D",
+    opened_by: str | Sequence[str] | None = None,
+    window_end: Any = None,
+    q: float = 0.001,
+) -> DiagnosticResult:
+    """:func:`right_censored` as a typed result with its horizon recorded.
+
+    A censored case is one whose closure has not been observed *yet*. It is an
+    open item at the horizon, never a case that completed there.
+    """
+    flag = right_censored(log, closure, window=window, opened_by=opened_by, window_end=window_end, q=q)
+    win = pd.Timedelta(window)
+    end = _resolve_end(log, window_end, win, q)
+    scope = "all cases" if opened_by is None else f"cases containing {as_labels(opened_by, what='opened_by')}"
+    return DiagnosticResult(
+        name="right_censored",
+        policy="open_case_active_within_window_of_horizon",
+        numerator=float(flag.sum()),
+        denominator=float(len(log)),
+        unit_of_counting="cases",
+        scope=f"{scope}; horizon {end}",
+        threshold=float(win / pd.Timedelta("1D")),
+        interpretation=(
+            f"share of cases without a closing activity whose last event lies within {win} of the horizon {end}; "
+            "their duration is a lower bound, not a completed duration"
+        ),
+    )

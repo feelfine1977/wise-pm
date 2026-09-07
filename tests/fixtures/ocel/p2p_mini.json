@@ -1,0 +1,230 @@
+{
+  "objectTypes": [
+    {
+      "name": "purchase_order",
+      "attributes": [
+        {"name": "vendor", "type": "string"}
+      ]
+    },
+    {
+      "name": "invoice",
+      "attributes": [
+        {"name": "amount", "type": "float"},
+        {"name": "owner", "type": "string"}
+      ]
+    },
+    {
+      "name": "goods_receipt",
+      "attributes": [
+        {"name": "quantity", "type": "float"}
+      ]
+    },
+    {
+      "name": "item",
+      "attributes": [
+        {"name": "quantity", "type": "float"}
+      ]
+    },
+    {
+      "name": "payment",
+      "attributes": [
+        {"name": "amount", "type": "float"}
+      ]
+    }
+  ],
+  "eventTypes": [
+    {
+      "name": "Create Purchase Order",
+      "attributes": [
+        {"name": "resource", "type": "string"}
+      ]
+    },
+    {
+      "name": "Record Goods Receipt",
+      "attributes": [
+        {"name": "resource", "type": "string"}
+      ]
+    },
+    {
+      "name": "Record Invoice Receipt",
+      "attributes": [
+        {"name": "resource", "type": "string"}
+      ]
+    },
+    {
+      "name": "Execute Payment",
+      "attributes": [
+        {"name": "resource", "type": "string"}
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "id": "po1",
+      "type": "purchase_order",
+      "attributes": [
+        {"name": "vendor", "value": "V1", "time": "2024-01-01T09:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "it1", "qualifier": "has item"},
+        {"objectId": "it2", "qualifier": "has item"},
+        {"objectId": "it3", "qualifier": "has item"}
+      ]
+    },
+    {
+      "id": "inv1",
+      "type": "invoice",
+      "attributes": [
+        {"name": "amount", "value": 100.0, "time": "2024-01-05T10:00:00+00:00"},
+        {"name": "amount", "value": 120.0, "time": "2024-01-20T10:00:00+00:00"},
+        {"name": "owner", "value": "team-a", "time": "2024-01-05T10:00:00+00:00"},
+        {"name": "owner", "value": "team-b", "time": "2024-01-25T10:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "belongs to"}
+      ]
+    },
+    {
+      "id": "inv2",
+      "type": "invoice",
+      "attributes": [
+        {"name": "amount", "value": 60.0, "time": "2024-01-05T10:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "belongs to"}
+      ]
+    },
+    {
+      "id": "gr1",
+      "type": "goods_receipt",
+      "attributes": [
+        {"name": "quantity", "value": 4.0, "time": "2024-01-03T08:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "receipt for"}
+      ]
+    },
+    {
+      "id": "gr2",
+      "type": "goods_receipt",
+      "attributes": [
+        {"name": "quantity", "value": 6.0, "time": "2024-01-04T08:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "receipt for"}
+      ]
+    },
+    {
+      "id": "it1",
+      "type": "item",
+      "attributes": [
+        {"name": "quantity", "value": 4.0, "time": "2024-01-01T09:00:00+00:00"}
+      ],
+      "relationships": []
+    },
+    {
+      "id": "it2",
+      "type": "item",
+      "attributes": [
+        {"name": "quantity", "value": 3.0, "time": "2024-01-01T09:00:00+00:00"}
+      ],
+      "relationships": []
+    },
+    {
+      "id": "it3",
+      "type": "item",
+      "attributes": [
+        {"name": "quantity", "value": 3.0, "time": "2024-01-01T09:00:00+00:00"}
+      ],
+      "relationships": []
+    },
+    {
+      "id": "pay1",
+      "type": "payment",
+      "attributes": [
+        {"name": "amount", "value": 160.0, "time": "2024-02-01T12:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "inv1", "qualifier": "settles"},
+        {"objectId": "inv2", "qualifier": "settles"}
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "e1",
+      "type": "Create Purchase Order",
+      "time": "2024-01-01T09:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "buyer-1"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "purchase_order"},
+        {"objectId": "it1", "qualifier": "item"},
+        {"objectId": "it2", "qualifier": "item"},
+        {"objectId": "it3", "qualifier": "item"}
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "Record Goods Receipt",
+      "time": "2024-01-03T08:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "warehouse"}
+      ],
+      "relationships": [
+        {"objectId": "gr1", "qualifier": "goods_receipt"},
+        {"objectId": "po1", "qualifier": "purchase_order"}
+      ]
+    },
+    {
+      "id": "e3",
+      "type": "Record Goods Receipt",
+      "time": "2024-01-04T08:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "warehouse"}
+      ],
+      "relationships": [
+        {"objectId": "gr2", "qualifier": "goods_receipt"},
+        {"objectId": "po1", "qualifier": "purchase_order"}
+      ]
+    },
+    {
+      "id": "e4",
+      "type": "Record Invoice Receipt",
+      "time": "2024-01-05T10:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "finance"}
+      ],
+      "relationships": [
+        {"objectId": "inv1", "qualifier": "invoice"},
+        {"objectId": "po1", "qualifier": "purchase_order"}
+      ]
+    },
+    {
+      "id": "e5",
+      "type": "Record Invoice Receipt",
+      "time": "2024-01-05T10:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "finance"}
+      ],
+      "relationships": [
+        {"objectId": "inv2", "qualifier": "invoice"},
+        {"objectId": "po1", "qualifier": "purchase_order"}
+      ]
+    },
+    {
+      "id": "e6",
+      "type": "Execute Payment",
+      "time": "2024-02-01T12:00:00+00:00",
+      "attributes": [
+        {"name": "resource", "value": "treasury"}
+      ],
+      "relationships": [
+        {"objectId": "pay1", "qualifier": "payment"},
+        {"objectId": "inv1", "qualifier": "invoice"},
+        {"objectId": "inv2", "qualifier": "invoice"}
+      ]
+    }
+  ]
+}

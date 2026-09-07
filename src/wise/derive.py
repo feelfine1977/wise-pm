@@ -58,9 +58,63 @@ from .constraints import _UNITS, as_labels, in_units
 from .errors import LogSchemaError, NormError
 
 if TYPE_CHECKING:  # pragma: no cover
+    from .evidence.calibration import CalibrationRecord
     from .log import EventLog
 
 KINDS = ("count", "count_events", "nunique", "agg", "cv", "lag", "ratio", "quantile_scale", "indicator_times", "eval")
+
+#: The keys each kind requires, beside ``name`` and ``kind``. One maintained
+#: table: :func:`validate_recipe` enforces it and :mod:`wise.schema` publishes
+#: it, so there is no second hand-written catalogue to drift.
+REQUIRED_RECIPE_KEYS: dict[str, tuple[str, ...]] = {
+    "count": ("activities",),
+    "count_events": ("where",),
+    "nunique": ("column",),
+    "agg": ("column", "agg"),
+    "cv": ("column",),
+    "lag": ("a", "b"),
+    "ratio": ("numerator", "denominator"),
+    "quantile_scale": ("attribute",),
+    "indicator_times": ("activities", "attribute"),
+    "eval": ("expr",),
+}
+
+#: The further keys each kind reads. A trusted recipe is *not* rejected for
+#: carrying an unknown key — that has never been the behaviour — but the
+#: untrusted draft path (:mod:`wise.llm.drafts`) refuses anything not listed
+#: here, because an unrecognised key in a proposal is an unreviewed one.
+OPTIONAL_RECIPE_KEYS: dict[str, tuple[str, ...]] = {
+    "count": ("after", "before"),
+    "count_events": (),
+    "nunique": ("where",),
+    "agg": ("where",),
+    "cv": ("eps",),
+    "lag": ("unit", "activation", "response", "allow_negative"),
+    "ratio": (),
+    "quantile_scale": ("q",),
+    "indicator_times": (),
+    "eval": (),
+}
+
+#: Kinds that evaluate an expression carried by the recipe itself. Declared
+#: once, here, beside the code that runs them: ``eval`` reaches
+#: :meth:`pandas.DataFrame.eval`, which is why the untrusted path refuses it
+#: before anything is computed. Trusted, explicitly authored recipes keep
+#: working — removing that is a separate deprecation decision.
+UNSAFE_RECIPE_KINDS: tuple[str, ...] = ("eval",)
+
+
+def _quantile_divisor(values: pd.Series, q: float) -> float:
+    """The divisor of a ``quantile_scale`` recipe, fitted on ``values``.
+
+    Shared by the default recalculation in :func:`compute_recipe` and by
+    :func:`wise.evidence.fit_calibration`, so a frozen reference and a fresh
+    recomputation are the same number when they are fitted on the same data.
+    """
+    divisor = float(values.quantile(float(q)))
+    if not np.isfinite(divisor) or divisor <= 0:
+        divisor = 1.0
+    return divisor
 
 
 def _where_mask(log: EventLog, where: Mapping[str, Any] | None) -> np.ndarray:
@@ -90,26 +144,27 @@ def validate_recipe(recipe: Mapping[str, Any]) -> None:
     kind = recipe.get("kind")
     if kind not in KINDS:
         raise NormError(f"derived attribute {recipe['name']!r}: unknown kind {kind!r}; known {KINDS}")
-    needs = {
-        "count": ("activities",),
-        "count_events": ("where",),
-        "nunique": ("column",),
-        "agg": ("column", "agg"),
-        "cv": ("column",),
-        "lag": ("a", "b"),
-        "ratio": ("numerator", "denominator"),
-        "quantile_scale": ("attribute",),
-        "indicator_times": ("activities", "attribute"),
-        "eval": ("expr",),
-    }[kind]
+    needs = REQUIRED_RECIPE_KEYS[kind]
     missing = [k for k in needs if k not in recipe]
     if missing:
         raise NormError(f"derived attribute {recipe['name']!r} ({kind}): missing {missing}")
 
 
-def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
-    """Evaluate one recipe on a log → Series aligned to ``log.cases``."""
+def compute_recipe(log: EventLog, recipe: Mapping[str, Any], *, calibration: CalibrationRecord | None = None) -> pd.Series:
+    """Evaluate one recipe on a log → Series aligned to ``log.cases``.
+
+    ``calibration`` applies a frozen fitted reference
+    (:class:`wise.evidence.CalibrationRecord`) instead of fitting one on this
+    log. Without it the historical behaviour is unchanged: a
+    ``quantile_scale`` recipe recomputes its quantile from the log it is
+    applied to.
+    """
     validate_recipe(recipe)
+    if calibration is not None and not calibration.matches(recipe):
+        raise NormError(
+            f"derived attribute {recipe['name']!r}: the frozen calibration was fitted from a different recipe "
+            f"({calibration.recipe_fingerprint[:12]}…); a changed recipe needs a new calibration, not a silent reuse"
+        )
     kind = recipe["kind"]
     codes = log._codes
     n = len(log)
@@ -160,9 +215,7 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
         return (num / den.replace(0, np.nan)).astype(float)
     if kind == "quantile_scale":
         x = log.attribute(recipe["attribute"])
-        q = float(x.quantile(float(recipe.get("q", 0.95))))
-        if not np.isfinite(q) or q <= 0:
-            q = 1.0
+        q = _quantile_divisor(x, recipe.get("q", 0.95)) if calibration is None else calibration.divisor
         return (x / q).clip(0.0, 1.0)
     if kind == "indicator_times":
         ind = (log.count(as_labels(recipe["activities"])) > 0).astype(float)
@@ -176,21 +229,36 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
     raise NormError(f"unknown recipe kind {kind!r}")  # pragma: no cover
 
 
-def apply_recipes(log: EventLog, recipes: Iterable[Mapping[str, Any]], *, overwrite: bool = True) -> list[str]:
+def apply_recipes(
+    log: EventLog,
+    recipes: Iterable[Mapping[str, Any]],
+    *,
+    overwrite: bool = True,
+    calibrations: Mapping[str, CalibrationRecord] | None = None,
+) -> list[str]:
     """Compute and attach all recipes in order (later recipes may use earlier ones).
 
     With ``overwrite=False`` an attribute is kept when it was produced by the
     same recipe before; a changed recipe is always recomputed.
+
+    ``calibrations`` maps an attribute name to a frozen fitted reference. A
+    recipe named there is applied with that reference instead of fitting a new
+    one, and the cache key records which calibration produced the column, so a
+    later uncalibrated call recomputes rather than reusing it.
     """
     names: list[str] = []
+    frozen = dict(calibrations or {})
     for r in recipes:
         validate_recipe(r)
         name = str(r["name"])
+        calibration = frozen.get(name)
         key = json.dumps(dict(r), sort_keys=True, default=str)
+        if calibration is not None:
+            key = f"{key}|calibration={calibration.calibration_id}"
         if name in log.cases.columns and not overwrite and log._recipe_cache.get(name) == key:
             names.append(name)
             continue
-        log.add_case_attribute(name, compute_recipe(log, r))
+        log.add_case_attribute(name, compute_recipe(log, r, calibration=calibration))
         log._recipe_cache[name] = key
         names.append(name)
     return names

@@ -1,0 +1,71 @@
+{
+  "provenance": "not part of the OCEL 2.0 structure; the reader reports it and does not carry it",
+  "objectTypes": [
+    {
+      "name": "purchase_order",
+      "attributes": [
+        {"name": "vendor", "type": "string"}
+      ]
+    },
+    {
+      "name": "invoice",
+      "attributes": [
+        {"name": "amount", "type": "float"}
+      ]
+    }
+  ],
+  "eventTypes": [
+    {
+      "name": "Record Invoice Receipt",
+      "attributes": []
+    }
+  ],
+  "objects": [
+    {
+      "id": "po1",
+      "type": "purchase_order",
+      "attributes": [
+        {"name": "vendor", "value": "V1", "time": "2024-01-01T09:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "supersedes"}
+      ]
+    },
+    {
+      "id": "inv1",
+      "type": "invoice",
+      "colour": "not part of the OCEL 2.0 structure either",
+      "attributes": [
+        {"name": "amount", "value": 100.0, "time": "2024-01-05T10:00:00+00:00"},
+        {"name": "amount", "value": 100.0, "time": "2024-01-05T10:00:00+00:00"}
+      ],
+      "relationships": [
+        {"objectId": "po1", "qualifier": "belongs to"},
+        {"objectId": "po1", "qualifier": "belongs to"},
+        {"objectId": "po_missing", "qualifier": "belongs to"},
+        {"objectId": "po1", "qualifier": ""}
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "e1",
+      "type": "Record Invoice Receipt",
+      "time": "2024-01-05T10:00:00+00:00",
+      "attributes": [],
+      "relationships": [
+        {"objectId": "inv1", "qualifier": "invoice"},
+        {"objectId": "inv1", "qualifier": "invoice"}
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "Record Invoice Receipt",
+      "time": "2024-01-05T10:00:00+00:00",
+      "attributes": [],
+      "relationships": [
+        {"objectId": "inv1", "qualifier": "invoice"}
+      ]
+    }
+  ]
+}
