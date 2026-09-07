@@ -1,0 +1,53 @@
+{
+  "schema_version": "0.1-proposal",
+  "run": {
+    "run_id": "synthetic-run-01",
+    "commit": "df5db50b839cc124b489a269894f5a2bfe7dc634",
+    "norm_hash": "synthetic-norm-hash",
+    "data_hash": "synthetic-data-hash",
+    "scoring_mode": "flat",
+    "observation_policy_id": "explicit-window-01"
+  },
+  "baseline": {
+    "baseline_id": "historical-profile-01",
+    "kind": "historical",
+    "score": 0.9,
+    "layer_profile": {
+      "timeliness": 0.05,
+      "handling": 0.05
+    }
+  },
+  "explanation_kind": "absolute_and_reference_contrast",
+  "unit_type": "invoice",
+  "evidence": [
+    {
+      "evidence_id": "EV-001",
+      "unit_id": "INV-001",
+      "constraint_id": "lag-01",
+      "in_scope": true,
+      "evaluable": true,
+      "violation": 0.5,
+      "raw_value": 20.0,
+      "raw_unit": "calendar_day",
+      "reason": "observed endpoints, declared pairing",
+      "witness_ids": [
+        "event-receipt-01",
+        "event-clear-01"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "FACT-001",
+      "value": 20.0,
+      "unit": "calendar_day",
+      "description": "Observed elapsed duration in the synthetic example",
+      "evidence_refs": [
+        "EV-001"
+      ]
+    }
+  ],
+  "qualifications": [
+    "Synthetic illustration; not a BPIC or CRM result."
+  ]
+}
