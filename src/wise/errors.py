@@ -164,4 +164,15 @@ class AccountingError(OCError):
     group, for allocating more than the whole of a record, and for mixing
     units without a declared conversion. An *incomplete* allocation is not an
     error: it is reported as a residual.
+
+    :attr:`code` carries the
+    :class:`~wise.oc.accounting.AccountingIssueCode` naming which rule was
+    broken, so a caller can branch on the code rather than on the sentence.
+    It is ``None`` for the malformed-input refusals that are not one of the
+    named accounting rules — a share that is not a number, say.
     """
+
+    def __init__(self, *args: object, code: object = None) -> None:
+        super().__init__(*args)
+        #: the named accounting rule, or ``None``
+        self.code = code

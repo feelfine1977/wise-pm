@@ -580,7 +580,7 @@ def test_an_unread_amount_is_missing_and_not_zero():
     assert "not a zero amount" in " ".join(q.message for q in outcome.qualifications)
 
 
-def _receipts_missing_one_amount() -> "oc.OCEventLog":
+def _receipts_missing_one_amount() -> oc.OCEventLog:
     """``partial_deliveries(3)`` with ``gr3``'s amount never recorded.
 
     The role still binds three receipts. Two of them carry 30; the third
@@ -853,3 +853,54 @@ def test_the_catalogue_reuses_the_norms_layers_and_views_unchanged():
         views=(View("Finance", constraint_weights={"c1": 1.0}),),
     )
     assert case_norm.layers[0] == norm.layers[0], "one Layer class, one meaning"
+
+
+# ================================================== the per-check evaluation budget
+def budgeted_catalogue() -> oc.ObjectNorm:
+    """Two checks in two layers, so a budget can stop between them."""
+    return oc.ObjectNorm(
+        constraints=(
+            oc.ObjectConstraint("m1", "matching", oc.RelatedObjectCardinality(role="order", minimum=1)),
+            oc.ObjectConstraint("h1", "handling", oc.RelatedObjectCardinality(role="receipts", maximum=1, width=3)),
+        ),
+        layers=(Layer("matching"), Layer("handling")),
+        views=(View("Finance", constraint_weights={"m1": 0.5, "h1": 0.5}),),
+        name="budgeted invoice review",
+    )
+
+
+def test_a_bounded_object_evaluation_is_qualified():
+    """O03's per-check budget: a cut evaluation says so, with both counts.
+
+    ``max_evaluations`` stops the run part-way through the (unit x check)
+    grid. The pairs below the cut have no outcome, so the scores that remain
+    are computed over fewer checks than the catalogue declares — which is a
+    complete-looking number over an incomplete assessment unless the run says
+    otherwise.
+    """
+    log = partial_deliveries(3)
+    spec = invoice_spec()
+    units = units_of(log, spec)
+    norm = budgeted_catalogue()
+
+    whole = oc.score_units(log, norm, units)
+    assert whole.budget.max_evaluations is None
+    assert whole.budget.evaluated == whole.budget.in_scope == len(units) * 2
+    assert not whole.budget.truncated
+    assert QualificationCode.EVALUATION_TRUNCATED not in {q.code for q in whole.qualifications()}
+
+    cut = oc.score_units(log, norm, units, max_evaluations=1)
+    assert cut.budget.truncated
+    assert (cut.budget.evaluated, cut.budget.in_scope) == (1, len(units) * 2)
+    note = next(q for q in cut.qualifications() if q.code is QualificationCode.EVALUATION_TRUNCATED)
+    assert note.scope == "run"
+    assert f"{cut.budget.evaluated} of {cut.budget.in_scope}" in note.message
+
+    # the pairs below the cut are not out of scope and are not satisfied
+    unreached = cut.record(units[0].unit_id, "h1")
+    assert unreached.in_scope and not unreached.evaluable
+    assert unreached.reason_code is ReasonCode.NOT_EVALUATED_BUDGET
+    assert unreached.violation is None
+
+    with pytest.raises(OCConstraintError, match="max_evaluations"):
+        oc.score_units(log, norm, units, max_evaluations=0)

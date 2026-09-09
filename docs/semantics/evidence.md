@@ -80,7 +80,15 @@ The rest mark a check that was **not** evaluated, and such a record has
 
 `out_of_scope`, `skipped_missing_activation`, `skipped_missing_response`,
 `skipped_missing_anchor`, `missing_attribute`, `ambiguous_match`,
-`missing_source_identity`, `budget_truncated`.
+`missing_source_identity`, `budget_truncated`, `not_evaluated_budget`,
+`unverified_absence`, `incompatible_units`.
+
+`budget_truncated` and `not_evaluated_budget` are two different findings and
+are kept apart on purpose: the first means the check *ran*, on a context a
+traversal budget had cut, so its number is a property of the cut as much as of
+the unit; the second means the check never ran at all, because an evaluation
+budget stopped before that pair was reached. Neither is `out_of_scope`, where
+somebody declared the check irrelevant.
 
 A missing endpoint under `Lag(missing_b="violate")` is therefore an *evaluated,
 policy-based* violation, not an unevaluable check; the same endpoint under
@@ -90,10 +98,13 @@ keeps `lag = None` (no completed duration was observed) and records
 `elapsed_at_horizon` instead. The resolved horizon is in
 `manifest.observation.resolved_horizons`.
 
-The last two codes are part of the contract but are not produced by the
-case-based evaluator today: it never matches ambiguously and never truncates an
-evaluation. They exist so that an evaluator that can do either has a way to say
-so, and they are validated like the rest.
+`ambiguous_match`, the two budget codes, `unverified_absence` and
+`incompatible_units` are part of the contract but are not produced by the
+case-based evaluator today: it never matches ambiguously, never truncates an
+evaluation, always searches a declared window and never adds two currencies.
+They are produced by the object evaluator (`wise.oc`), and they exist here so
+that an evaluator that can do any of those has a way to say so. They are
+validated like the rest.
 
 ## Witnesses, and the absence of one
 
@@ -151,6 +162,22 @@ Each bound is also a **named qualification**, not only a field:
 * `max_records=` stopping the traversal before every constraint was reached →
   a run-scope `evaluation_truncated` naming the constraints with no row at all.
   The coverage counts of such a packet are not the run's coverage.
+
+### An object run's packet
+
+`capture_evidence` also accepts an `OCScoreResult`, and takes a different route
+for it: `wise.oc.score_units` already built one record per check per unit while
+it evaluated, so nothing is re-derived and the call takes no `details=`. The
+packet's `unit_type` is the run's own assessment unit rather than `"case"`, its
+`capture_mode` is `"native"`, and a run over several unit types is refused
+unless the caller names the one to capture — a packet has one `unit_type` and
+one coverage denominator.
+
+Two consequences are stated rather than hidden. No log snapshot travels with
+such a packet, so a witness the checks did not already materialise cannot be
+materialised later; and a run cut by `max_evaluations` produces a packet whose
+`evaluation_truncated` is already true, before any `max_records` this capture
+applies.
 
 A bounded packet also cannot resolve the run's current population. Exporting one
 with `to_interchange(packet, view=...)` and no explicit comparator yields a

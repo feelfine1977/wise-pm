@@ -55,6 +55,12 @@ MANIFEST_SCHEMA_VERSION = "wise-run/1"
 #: configuration, so the two are different records.
 STAGES = ("score", "backlog")
 
+#: ``RunManifest.unit_type`` for a run that scored units of several types. It is
+#: a declared sentinel, never an assessment unit type: the types themselves are
+#: in ``preprocessing["unit_types"]``, because their counts are not one volume
+#: and no single name would be true of the run.
+HETEROGENEOUS_UNIT_TYPE = "heterogeneous"
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -138,10 +144,17 @@ class EnvironmentInfo:
 
 @dataclass(frozen=True)
 class InputIdentity:
-    """What was read, and how far its identity is actually established."""
+    """What was read, and how far its identity is actually established.
+
+    ``n_cases`` is ``None`` for an input that has no case table — an
+    object-centric log has events, objects and relations, and its assessment
+    units are *constructed* from them rather than read, so they are a
+    preparation step and belong in ``RunManifest.preprocessing``. A zero would
+    be a count; ``None`` is the absence of one.
+    """
 
     n_events: int
-    n_cases: int
+    n_cases: int | None
     event_columns: tuple[str, ...]
     case_columns: tuple[str, ...]
     event_id_col: str | None
@@ -151,12 +164,18 @@ class InputIdentity:
     data_digest: str | None = None
     digest_algorithm: str | None = None
     digest_canonicalisation: str | None = None
+    #: Objects in an object-centric input; ``None`` when the input has none.
+    n_objects: int | None = None
+    #: Event-to-object plus object-to-object links in an object-centric input.
+    n_object_relations: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "source": self.source,
             "n_events": int(self.n_events),
-            "n_cases": int(self.n_cases),
+            "n_cases": None if self.n_cases is None else int(self.n_cases),
+            "n_objects": None if self.n_objects is None else int(self.n_objects),
+            "n_object_relations": None if self.n_object_relations is None else int(self.n_object_relations),
             "event_columns": list(self.event_columns),
             "case_columns": list(self.case_columns),
             "event_id_col": self.event_id_col,
@@ -196,9 +215,18 @@ class ObservationScope:
 
     @property
     def policy_id(self) -> str:
-        """A short, stable identifier of the observation policy."""
+        """A short, stable identifier of the observation policy.
+
+        >>> ObservationScope("object_log_extent", "2024-01-01", "2024-03-01", 0.0, "not_applicable").policy_id
+        'object-log-extent[2024-01-01..2024-03-01]'
+        """
         if self.window_source == "explicit":
             return f"explicit-window[{self.window_start}..{self.window_end}]"
+        if self.window_source == "object_log_extent":
+            # not a derived quantile and not a declared window: the extent of
+            # the events the object log actually holds, and nothing is censored
+            # against it
+            return f"object-log-extent[{self.window_start}..{self.window_end}]"
         return f"derived-quantile-window[q={self.quantile:g}]"
 
     def to_dict(self) -> dict[str, Any]:

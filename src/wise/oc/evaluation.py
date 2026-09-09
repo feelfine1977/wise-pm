@@ -40,6 +40,14 @@ import pandas as pd
 from .._aggregation import LayerAssignment, aggregate
 from .._version import __version__
 from ..errors import OCConstraintError, OCUnitError
+from ..evidence.manifest import (
+    HETEROGENEOUS_UNIT_TYPE,
+    EnvironmentInfo,
+    InputIdentity,
+    ObservationScope,
+    RunManifest,
+    new_run_id,
+)
 from ..evidence.models import (
     EvaluationRecord,
     Qualification,
@@ -312,12 +320,59 @@ class ObjectNorm:
 
 
 # ------------------------------------------------------------------- evaluation
+@dataclass(frozen=True)
+class EvaluationBudget:
+    """What a per-check evaluation budget allowed, and what it left unevaluated.
+
+    ``in_scope`` counts the ``(unit, check)`` pairs the catalogue puts in scope;
+    ``evaluated`` counts the ones that actually ran. They differ only when a
+    ``max_evaluations`` bound stopped the run.
+
+    >>> EvaluationBudget(max_evaluations=1, evaluated=1, in_scope=6).truncated
+    True
+    >>> EvaluationBudget(max_evaluations=None, evaluated=6, in_scope=6).truncated
+    False
+    """
+
+    max_evaluations: int | None
+    evaluated: int
+    in_scope: int
+
+    @property
+    def truncated(self) -> bool:
+        """Whether the budget stopped the run before every in-scope pair ran."""
+        return self.evaluated < self.in_scope
+
+    @property
+    def not_evaluated(self) -> int:
+        return max(self.in_scope - self.evaluated, 0)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "max_evaluations": self.max_evaluations,
+            "evaluated": int(self.evaluated),
+            "in_scope": int(self.in_scope),
+            "not_evaluated": self.not_evaluated,
+            "truncated": self.truncated,
+        }
+
+
+def _check_budget(max_evaluations: int | None) -> int | None:
+    if max_evaluations is None:
+        return None
+    bound = int(max_evaluations)
+    if bound < 1:
+        raise OCConstraintError(f"max_evaluations must be a positive integer or None, got {max_evaluations!r}")
+    return bound
+
+
 def evaluate_units(
     log: OCEventLog,
     norm: ObjectNorm,
     units: Sequence[AssessmentUnit],
     *,
     spec: UnitSpec | None = None,
+    max_evaluations: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[tuple[str, str], CheckOutcome]]:
     """Evaluate a catalogue over units → ``(violations, in_scope, outcomes)``.
 
@@ -325,7 +380,19 @@ def evaluate_units(
     scope **or** not evaluable; ``in_scope`` separates the two. ``outcomes``
     carries the measurements, witnesses, reasons and qualifications behind
     every cell, keyed by ``(unit_id, check_id)``.
+
+    ``max_evaluations`` bounds how many ``(unit, check)`` pairs are evaluated
+    at all. The traversal stops when the bound is reached; the pairs below the
+    cut stay **in scope** — nobody declared them irrelevant — and simply have
+    no outcome, which is why ``in_scope.to_numpy().sum()`` and ``len(outcomes)``
+    are the two counts a caller needs to know whether the grid is complete.
+    :func:`score_units` turns that difference into an
+    :class:`~wise.evidence.models.EvaluationBudget` and a run-scope
+    ``evaluation_truncated`` qualification, because a score computed over the
+    surviving checks is renormalised over them and otherwise looks exactly like
+    a complete assessment of a smaller catalogue.
     """
+    bound = _check_budget(max_evaluations)
     if spec is not None:
         problems = norm.check(spec)
         if problems:
@@ -347,6 +414,10 @@ def evaluate_units(
             if not constraint.applies_to(unit):
                 continue
             scope[row, column] = True
+            if bound is not None and len(outcomes) >= bound:
+                # in scope and unevaluated: the pair keeps its scope bit and
+                # gains no outcome, so the two counts stay distinguishable
+                continue
             outcome = constraint.check.evaluate(log, unit)
             outcomes[(unit.unit_id, constraint.id)] = outcome
             if outcome.violation is not None:
@@ -406,6 +477,13 @@ class OCScoreResult:
     norm_fingerprint: str = ""
     log_fingerprint: str = ""
     wise_version: str = __version__
+    #: What the per-check evaluation budget allowed. ``None`` on a result built
+    #: by hand; :func:`score_units` always fills it in.
+    budget: EvaluationBudget | None = None
+    #: The run record of this evaluation — the same
+    #: :class:`~wise.evidence.manifest.RunManifest` contract a case run keeps,
+    #: with ``unit_type`` naming *this* run's assessment unit.
+    manifest: RunManifest | None = field(default=None, repr=False)
     oc_log: OCEventLog | None = field(default=None, repr=False)
     _weights: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
     _eff_cache: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
@@ -421,6 +499,16 @@ class OCScoreResult:
     @property
     def views(self) -> list[str]:
         return list(self.scores.columns)
+
+    @property
+    def unit_table(self) -> pd.DataFrame:
+        """The per-unit attribute table — :attr:`units`, under the shared name.
+
+        The counterpart of :attr:`wise.scoring.ScoreResult.unit_table`, so the
+        slicing and explanation code can read a unit's attributes without
+        calling it a case.
+        """
+        return self.units
 
     @property
     def unit_types(self) -> tuple[str, ...]:
@@ -474,6 +562,16 @@ class OCScoreResult:
         interchangeable volume, and a mean over both is a mean over nothing.
         """
         rows = self._rows(unit_type, allow_mixed)
+        out = self._assemble(rows, view)
+        pooled = tuple(sorted(str(t) for t in pd.unique(out["unit_type"]))) if len(out) else ()
+        if len(pooled) > 1:
+            # the decision to pool stops being visible one step later:
+            # wise.prioritize ranks the pooled rows against one global_mean and
+            # reports no unit type at all, so the marker travels here or nowhere
+            out.attrs["heterogeneous_unit_types"] = list(pooled)
+        return out
+
+    def _assemble(self, rows: pd.Index, view: str | None) -> pd.DataFrame:
         parts: list[pd.Series | pd.DataFrame] = []
         if view is not None:
             if view not in self.contributions:
@@ -528,6 +626,17 @@ class OCScoreResult:
         for r in self.records:
             for q in r.qualifications:
                 seen.setdefault((q.code.value, q.message), q)
+        if self.budget is not None and self.budget.truncated:
+            q = Qualification(
+                QualificationCode.EVALUATION_TRUNCATED,
+                f"a max_evaluations={self.budget.max_evaluations} budget stopped this run after "
+                f"{self.budget.evaluated} of {self.budget.in_scope} in-scope (unit x check) evaluations; the "
+                f"{self.budget.not_evaluated} pair(s) below the cut have no outcome. The scores here are "
+                "renormalised over the checks that did run, so they look exactly like a complete assessment "
+                "of a smaller catalogue and are not one",
+                scope="run",
+            )
+            seen[(q.code.value, q.message)] = q
         if len(self.unit_types) > 1:
             q = Qualification(
                 QualificationCode.HETEROGENEOUS_UNIT_TYPES,
@@ -553,6 +662,8 @@ def score_units(
     spec: UnitSpec | None = None,
     exposure: Mapping[str, float] | None = None,
     run_id: str | None = None,
+    max_evaluations: int | None = None,
+    source: str | None = None,
 ) -> OCScoreResult:
     """Score assessment units against an object catalogue.
 
@@ -563,9 +674,16 @@ def score_units(
     ``exposure`` attaches a per-unit additive volume — typically the output of
     :mod:`wise.oc.accounting`, so that the amount behind a backlog has been
     through the conservation contract before it is ranked.
-    """
-    from ..evidence.manifest import new_run_id
 
+    ``max_evaluations`` bounds the ``(unit, check)`` grid. The resulting
+    :class:`EvaluationBudget` is on the result, and a bound that actually cut
+    the run adds a run-scope ``evaluation_truncated`` qualification naming both
+    counts.
+
+    The result carries a :class:`~wise.evidence.manifest.RunManifest` whose
+    ``unit_type`` is this run's assessment unit — the same run-record contract
+    :func:`wise.score` keeps, rather than a second, object-shaped one.
+    """
     chosen_views = [views] if isinstance(views, str) else list(dict.fromkeys(views or norm.view_names))
     for v in chosen_views:
         norm.get_view(v)
@@ -573,7 +691,12 @@ def score_units(
     if chosen_mode not in SCORING_MODES:
         raise OCConstraintError(f"mode must be one of {SCORING_MODES}, got {chosen_mode!r}")
 
-    V, S, outcomes = evaluate_units(log, norm, units, spec=spec)
+    V, S, outcomes = evaluate_units(log, norm, units, spec=spec, max_evaluations=max_evaluations)
+    budget = EvaluationBudget(
+        max_evaluations=_check_budget(max_evaluations),
+        evaluated=len(outcomes),
+        in_scope=int(S.to_numpy(dtype=bool).sum()),
+    )
     layers = norm.layer_assignment()
     Vm = V.to_numpy(dtype=float)
     row_ids = tuple(V.index)
@@ -593,9 +716,10 @@ def score_units(
 
     identity = run_id or new_run_id("ocrun")
     records = _records(identity, norm, units, outcomes)
+    table = unit_frame(units, exposure)
     return OCScoreResult(
         norm=norm,
-        units=unit_frame(units, exposure),
+        units=table,
         violations=V,
         in_scope=S,
         scores=scores,
@@ -605,8 +729,110 @@ def score_units(
         run_id=identity,
         norm_fingerprint=norm.fingerprint(),
         log_fingerprint=log.content_fingerprint(),
+        budget=budget,
+        manifest=build_object_run_manifest(
+            log,
+            norm,
+            table,
+            views=chosen_views,
+            mode=chosen_mode,
+            mode_source="norm_default" if mode is None else "call_override",
+            spec=spec,
+            budget=budget,
+            run_id=identity,
+            source=source,
+        ),
         oc_log=log,
         _weights=weights,
+    )
+
+
+def build_object_run_manifest(
+    log: OCEventLog,
+    norm: ObjectNorm,
+    units: pd.DataFrame,
+    *,
+    views: Sequence[str],
+    mode: str,
+    mode_source: str,
+    spec: UnitSpec | None = None,
+    budget: EvaluationBudget | None = None,
+    run_id: str | None = None,
+    source: str | None = None,
+) -> RunManifest:
+    """The run record of one :func:`score_units` call.
+
+    The same :class:`~wise.evidence.manifest.RunManifest` a case run keeps, with
+    three differences that are declared rather than papered over:
+
+    * ``unit_type`` is this run's assessment unit — the whole point of the
+      record, and ``"heterogeneous"`` (a sentinel, never a type name) when the
+      run scored several, with the types themselves in ``preprocessing``;
+    * ``input.n_cases`` is ``None``, because an object log has no case table to
+      count. What was read is in ``n_events``, ``n_objects`` and
+      ``n_object_relations``; how many assessment units were *constructed* from
+      it is a preparation step and lives in ``preprocessing["n_units"]``;
+    * the observation scope is the log's own event extent, not a derived
+      quantile window: an object run resolves no censoring horizon.
+    """
+    types = tuple(sorted(str(t) for t in pd.unique(units["unit_type"]))) if len(units) else ()
+    unit_type = types[0] if len(types) == 1 else HETEROGENEOUS_UNIT_TYPE
+    stamps = sorted(e.timestamp for e in log.events)
+    notes: list[str] = []
+    if len(types) > 1:
+        notes.append(
+            f"this run scored the unit types {list(types)}; 'unit_type' above is the declared sentinel "
+            f"{HETEROGENEOUS_UNIT_TYPE!r} and names no assessment unit, because their counts are not one volume"
+        )
+    if budget is not None and budget.truncated:
+        notes.append(
+            f"score_units(max_evaluations={budget.max_evaluations}) evaluated {budget.evaluated} of "
+            f"{budget.in_scope} in-scope (unit x check) pairs; the coverage of this run is not the catalogue's"
+        )
+    return RunManifest(
+        run_id=run_id or new_run_id("ocrun"),
+        mode=mode,
+        mode_source=mode_source,
+        norm_fingerprint=norm.fingerprint(),
+        input=InputIdentity(
+            n_events=len(log.events),
+            n_cases=None,
+            event_columns=("event_id", "activity", "timestamp", "attributes"),
+            case_columns=tuple(str(c) for c in units.columns),
+            event_id_col="event_id",
+            source_identity_available=True,
+            snapshot_fingerprint=log.content_fingerprint(),
+            source=source or log.source.interchange,
+            n_objects=len(log.objects),
+            n_object_relations=len(log.e2o) + len(log.o2o),
+        ),
+        observation=ObservationScope(
+            window_source="object_log_extent",
+            window_start=None if not stamps else str(stamps[0].isoformat()),
+            window_end=None if not stamps else str(stamps[-1].isoformat()),
+            quantile=0.0,
+            missing_timestamps="not_applicable",
+            timezone=None,
+            resolved_horizons=None,
+        ),
+        preprocessing={
+            "input_model": "object_centric",
+            "oc_schema_version": log.schema_version,
+            "catalogue_schema": norm.schema,
+            "n_units": len(units),
+            "unit_types": list(types),
+            "unit_spec": None if spec is None else spec.to_dict(),
+            "evaluation_budget": None if budget is None else budget.to_dict(),
+            "snapshot_scope": "oc_content_fingerprint",
+            "content_hashed": {"events": True, "objects": True, "relations": True, "attribute_history": True},
+        },
+        views=tuple(views),
+        norm_name=norm.name,
+        norm_version=norm.version,
+        norm_default_mode=norm.scoring_mode,
+        environment=EnvironmentInfo(),
+        unit_type=unit_type,
+        notes=tuple(notes),
     )
 
 
@@ -620,7 +846,9 @@ def _records(
 
     Out-of-scope pairs get a record too: "this check does not apply to this
     unit type" is a fact about the assessment, and leaving it out would make an
-    unevaluated check indistinguishable from one nobody asked for.
+    unevaluated check indistinguishable from one nobody asked for. A pair an
+    evaluation budget never reached gets a third, distinct answer — in scope,
+    not evaluable, ``not_evaluated_budget`` — for the same reason.
     """
     out: list[EvaluationRecord] = []
     for unit in units:
@@ -637,9 +865,9 @@ def _records(
                         constraint_id=constraint.id,
                         constraint_type=constraint.type,
                         constraint_version=norm.version,
-                        in_scope=False,
+                        in_scope=in_scope,
                         evaluable=False,
-                        reason_code=ReasonCode.OUT_OF_SCOPE,
+                        reason_code=ReasonCode.OUT_OF_SCOPE if not in_scope else ReasonCode.NOT_EVALUATED_BUDGET,
                         violation=None,
                         parameters=constraint.check.params(),
                         qualifications=unit.qualifications,
@@ -716,6 +944,11 @@ def object_backlog(
     cut = int((~frame["complete"].astype(bool)).sum()) if "complete" in frame.columns else 0
     out.attrs["context_truncated"] = cut
     out.attrs["context_truncated_share"] = (cut / len(frame)) if len(frame) else float("nan")
+    # the same reasoning one layer up: a run whose (unit x check) grid was cut
+    # produces scores renormalised over the checks that ran, and the aggregate
+    # is the last place that can say so
+    out.attrs["evaluation_truncated"] = bool(result.budget is not None and result.budget.truncated)
+    out.attrs["evaluations"] = None if result.budget is None else result.budget.to_dict()
     return out
 
 

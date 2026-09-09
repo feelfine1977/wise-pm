@@ -282,10 +282,13 @@ fields, because each of them silently changes the answer: `activation` /
 response `censor` against a `horizon`).
 
 When two candidate events tie on the matching timestamp the result is a typed
-`ambiguous_match` with both events as witnesses and no violation. There is no
-silent nearest-timestamp rule. `on_ambiguous="tie_break"` resolves by the
-smaller event id **and says so** (`ambiguous_match_resolved`);
-`on_ambiguous="error"` raises.
+`ambiguous_match` with both events as witnesses and no violation, qualified
+`ambiguous_match_unresolved`. There is no silent nearest-timestamp rule.
+`on_ambiguous="tie_break"` resolves by the smaller event id **and says so**
+(`ambiguous_match_resolved`); `on_ambiguous="error"` raises. The two codes are
+deliberately different: "the configuration chose for you" and "nothing was
+chosen" are different findings, and a reader filtering on codes rather than on
+prose has to be able to tell them apart.
 
 ### RelationalBalance
 
@@ -336,6 +339,53 @@ refuses to produce a single table unless a `unit_type` is chosen or
 obligations are not one interchangeable volume. `object_backlog` checks the
 typed grouping and the exposure column before handing anything to
 `wise.prioritize`.
+
+Pooling on purpose is still pooling, so the decision travels with the table.
+`frame(allow_mixed=True)` sets `attrs["heterogeneous_unit_types"]` to the types
+it pooled, and `wise.prioritize` copies that key into the backlog's `attrs`.
+Without it the artefact a reader receives would rank one order against three
+invoices against a shared `global_mean` and name no unit type at all.
+
+### The per-check evaluation budget
+
+`evaluate_units` and `score_units` take `max_evaluations=`, which bounds how
+many `(unit, check)` pairs are evaluated. The pairs below the cut stay **in
+scope** — nobody declared them irrelevant — and gain no outcome, so their
+records carry `not_evaluated_budget`, which is a third answer distinct from
+both `out_of_scope` (nobody asked) and `budget_truncated` (the check ran on a
+context a traversal budget had cut).
+
+The result's `budget` is an `EvaluationBudget` with the evaluated and in-scope
+counts, and a bound that actually cut the run adds a run-scope
+`evaluation_truncated` qualification carrying both. It has to, because the
+scores that remain are renormalised over the checks that did run: without the
+qualification they look exactly like a complete assessment of a smaller
+catalogue. `object_backlog` carries `evaluation_truncated` and `evaluations`
+into the backlog's `attrs` for the same reason `context_truncated` is there.
+
+### The run record
+
+`score_units` builds a `RunManifest` — the same run-record contract
+`wise.score` keeps — and puts it on the result. Its `unit_type` is *this* run's
+assessment unit, so an object run stops being a run that cannot say what it
+assessed. Three fields differ from a case run and are declared rather than
+papered over:
+
+* `unit_type` is `"heterogeneous"` for a run over several unit types. That is a
+  declared sentinel, never a type name; the types are in
+  `preprocessing["unit_types"]`.
+* `input.n_cases` is `null`: an object log has no case table to count. What was
+  read is `n_events`, `n_objects` and `n_object_relations`; how many assessment
+  units were *constructed* from it is a preparation step, in
+  `preprocessing["n_units"]`.
+* the observation scope is `object_log_extent` — the extent of the events the
+  log holds — not a derived quantile window, because an object run resolves no
+  censoring horizon.
+
+`wise.evidence.capture_evidence(oc_result)` produces a packet whose `unit_type`
+is the object unit type, from the records the evaluation already built (see
+`docs/semantics/evidence.md`), and `wise.explain_priority` accepts an
+`OCScoreResult` and declares the same unit.
 
 ## Native versus projected
 

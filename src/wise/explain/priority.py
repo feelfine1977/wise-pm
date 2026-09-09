@@ -51,7 +51,14 @@ from ..constraints import as_list
 from ..errors import EvidenceError
 from ..evidence.manifest import _canonical
 from ..evidence.models import EvaluationRecord, Qualification, QualificationCode, WitnessRef
-from ..prioritization import _keys, _reject_two_comparators, constraint_drivers, layer_drivers, prioritize
+from ..prioritization import (
+    _is_scored_result,
+    _keys,
+    _reject_two_comparators,
+    constraint_drivers,
+    layer_drivers,
+    prioritize,
+)
 from ..scoring import ScoreResult
 from .baseline import (
     AssessmentContext,
@@ -67,6 +74,7 @@ from .baseline import (
 if TYPE_CHECKING:  # pragma: no cover
     from ..evidence.manifest import RunManifest
     from ..evidence.models import EvidencePacket
+    from ..oc.evaluation import OCScoreResult
 
 #: Version of the explanation contract. Bumped when a field changes meaning.
 EXPLANATION_SCHEMA_VERSION = "wise-explanation/1"
@@ -617,14 +625,38 @@ def _implicit_spec(result: ScoreResult, view: str, baseline: float | None, unit_
     )
 
 
-def _group_mask(result: ScoreResult, keys: Sequence[str], key: Sequence[Any]) -> pd.Series:
+def _declared_unit_type(result: ScoreResult | OCScoreResult, declared: str | None) -> str:
+    """What the scored rows count, resolved once.
+
+    An explicit ``unit_type=`` always wins — it is the caller's declaration and
+    :class:`~wise.explain.baseline.BaselineSpec` compares it exactly. Left
+    unset, a case run stays ``"case"`` (the historical default, unchanged) and
+    an object run reports its own assessment unit, which is the whole reason
+    that run exists. A run holding several unit types has no single answer and
+    is refused here rather than labelled with one of them.
+    """
+    if declared is not None:
+        return str(declared)
+    held = tuple(getattr(result, "unit_types", ()) or ())
+    if not held:
+        return "case"
+    if len(held) > 1:
+        raise BaselineError(
+            f"this run scored the unit types {list(held)}; an explanation declares what its rows count, "
+            "so name it with unit_type=... (and rank inside one type: their counts are not one volume)"
+        )
+    return str(held[0])
+
+
+def _group_mask(result: ScoreResult | OCScoreResult, keys: Sequence[str], key: Sequence[Any]) -> pd.Series:
     """A null-safe membership mask over the cases of one group."""
-    mask = pd.Series(True, index=result.cases.index)
+    table = result.unit_table
+    mask = pd.Series(True, index=table.index)
     for name, value in zip(keys, key):
-        if name in result.cases.columns:
-            column = result.cases[name]
-        elif name == result.cases.index.name:
-            column = pd.Series(result.cases.index, index=result.cases.index)
+        if name in table.columns:
+            column = table[name]
+        elif name == table.index.name:
+            column = pd.Series(table.index, index=table.index)
         else:  # pragma: no cover - prioritize already refused this grouping
             raise BaselineError(f"slice column {name!r} is not a case attribute")
         mask &= column.isna() if _isna(value) else (column == value)
@@ -660,7 +692,7 @@ def explain_priority(
     evidence: EvidencePacket | None = None,
     witness_limit: int = 4,
     max_constraints: int = 10,
-    unit_type: str = "case",
+    unit_type: str | None = None,
     atol: float = DEFAULT_ATOL,
 ) -> ExplanationPacket:
     """Explain exactly why one slice carries the priority it does.
@@ -686,6 +718,12 @@ def explain_priority(
     evidence
         An :class:`~wise.evidence.EvidencePacket` from the same run. When
         given, bounded witnesses and coverage facts are attached.
+    unit_type
+        What the scored rows count. ``None`` (the default) resolves to
+        ``"case"`` for a :class:`~wise.scoring.ScoreResult` and to the run's
+        own assessment unit for an
+        :class:`~wise.oc.evaluation.OCScoreResult`, so an object run is
+        explained as what it actually assessed rather than as a case run.
 
     Returns
     -------
@@ -710,11 +748,12 @@ def explain_priority(
     >>> round(sum(layer.delta for layer in packet.layers), 12) == round(packet.priority.signed_gap, 12)
     True
     """
-    if not isinstance(result, ScoreResult):
+    if not _is_scored_result(result):
         raise BaselineError(
-            "explain_priority needs a ScoreResult: an explanation resolves every number to a run, "
-            "and a bare score frame carries no run identity"
+            "explain_priority needs a scored result (a ScoreResult or an OCScoreResult): an explanation "
+            "resolves every number to a run, and a bare score frame carries no run identity"
         )
+    unit_type = _declared_unit_type(result, unit_type)
     _reject_two_comparators(baseline, baseline_spec)
     view = _one_view(result, view)
     keys = _keys(by)
@@ -1018,7 +1057,7 @@ def _slice_unit_ids(result: ScoreResult, view: str, keys: Sequence[str], key: Se
     share taken here has the denominator the constraint table shows.
     """
     mask = _group_mask(result, keys, key) & result.scores[view].notna()
-    return {str(unit) for unit in result.cases.index[mask]}
+    return {str(unit) for unit in result.unit_table.index[mask]}
 
 
 def _records_in_slice(evidence: EvidencePacket | None, unit_ids: set[str]) -> tuple[EvaluationRecord, ...]:
@@ -1183,11 +1222,14 @@ def _witnesses_for_group(
         if not float(row.max()) > 0:
             continue
         requested += 1
-        try:
-            record = evidence.record(f"{evidence.run_id}:{constraint_id}:{unit}")
-        except EvidenceError:
+        # addressed by what it is about, not by a formatted id: the case capture
+        # and the object evaluation compose their evaluation ids in different
+        # orders, and a packet holds at most one record per (unit, constraint)
+        found = evidence.records_for(unit_id=unit, constraint_id=constraint_id)
+        if not found:
             missing += 1  # a bounded capture did not keep this unit; say so, do not skip it
             continue
+        record = found[0]
         refs.append(record.evaluation_id)
         for witness in record.witnesses[:2]:
             witnesses.setdefault(witness.witness_id, witness)

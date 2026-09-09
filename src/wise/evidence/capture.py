@@ -30,7 +30,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import pandas as pd
@@ -61,10 +61,25 @@ from .models import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
+    from ..oc.evaluation import OCScoreResult
     from ..scoring import ScoreResult, _Detail
 
 #: Default number of witnesses materialised per record.
 DEFAULT_WITNESS_LIMIT = 8
+
+
+def _is_object_result(result: Any) -> bool:
+    """Whether this is an object run rather than a case run.
+
+    Structural, not nominal, and for the same reason as in
+    :mod:`wise.prioritization`: naming :class:`~wise.oc.evaluation.OCScoreResult`
+    here would make the object model an import-time dependency of the evidence
+    package, which every reader of an exported packet would then pay for. The
+    two attributes tested are the two an object run has and a case run cannot:
+    it carries its own evaluation records, and an object log where
+    :class:`~wise.scoring.ScoreResult` promises an :class:`~wise.log.EventLog`.
+    """
+    return hasattr(result, "oc_log") and hasattr(result, "records") and not hasattr(result, "cases")
 
 
 # ------------------------------------------------------------------ manifests
@@ -444,7 +459,7 @@ def _qualifications_for(
 
 
 def capture_evidence(
-    result: ScoreResult,
+    result: ScoreResult | OCScoreResult,
     *,
     details: Mapping[str, _Detail] | None = None,
     mode: str = "summary",
@@ -453,7 +468,7 @@ def capture_evidence(
     witness_limit: int = DEFAULT_WITNESS_LIMIT,
     max_records: int | None = None,
     units: Sequence[Any] | None = None,
-    unit_type: str = "case",
+    unit_type: str | None = None,
 ) -> EvidencePacket:
     """Build an :class:`~wise.evidence.models.EvidencePacket` from a scored result.
 
@@ -468,9 +483,26 @@ def capture_evidence(
     packet to named units and ``max_records`` caps it outright. Both are
     reported in :attr:`EvidencePacket.truncation`, so a bounded packet never
     passes for a complete one.
+
+    An :class:`~wise.oc.evaluation.OCScoreResult` goes to
+    :func:`capture_object_evidence` instead: an object run builds its records
+    while it evaluates, so that path re-derives nothing and takes no
+    ``details``. The packet it returns keeps this contract, with ``unit_type``
+    naming the run's own assessment unit rather than ``"case"``.
     """
     from ..errors import EvidenceUnavailableError
 
+    if _is_object_result(result):
+        if details is not None:
+            raise EvidenceError(
+                "capture_evidence(OCScoreResult) takes no details=: an object run keeps its measurements, "
+                "witnesses and reasons on the records it built while evaluating, and this path re-derives nothing"
+            )
+        return capture_object_evidence(
+            cast("OCScoreResult", result), views=views, max_records=max_records, units=units, unit_type=unit_type
+        )
+    result = cast("ScoreResult", result)
+    unit_type = "case" if unit_type is None else unit_type
     if mode not in ("summary", "full"):
         raise EvidenceError(f"capture mode must be 'summary' or 'full', got {mode!r}")
     if details is None:
@@ -679,6 +711,192 @@ def capture_evidence(
         norm=norm,
     )
     return packet
+
+
+#: :attr:`EvidencePacket.capture_mode` of a packet built from an object run.
+#: Not ``"summary"`` and not ``"full"``: the records were not read back out of
+#: a scored result, they *are* the records the evaluation produced, and no
+#: snapshot travels with them because an object log is not a
+#: :class:`~wise.log.LogSnapshot`.
+NATIVE_CAPTURE_MODE = "native"
+
+
+def capture_object_evidence(
+    result: OCScoreResult,
+    *,
+    views: Sequence[str] | None = None,
+    max_records: int | None = None,
+    units: Sequence[Any] | None = None,
+    unit_type: str | None = None,
+) -> EvidencePacket:
+    """An :class:`~wise.evidence.models.EvidencePacket` from an object run.
+
+    :func:`wise.oc.score_units` builds one
+    :class:`~wise.evidence.models.EvaluationRecord` per check per unit while it
+    evaluates, so this function re-derives nothing at all: it selects, counts,
+    annotates per view and states the limitations. That makes it structurally
+    different from the case path, which reads matrices back and rebuilds
+    records from them.
+
+    Three things it does *not* do:
+
+    * it does not invent a case model — ``unit_type`` is the run's own
+      assessment unit, and a run over several unit types is refused unless the
+      caller names the one they want, because a packet has one ``unit_type``
+      and one coverage denominator;
+    * it does not carry a snapshot, so witnesses that the checks did not
+      already materialise cannot be materialised later;
+    * it does not hide the run's own evaluation budget: a run cut by
+      ``max_evaluations`` produces a packet whose
+      :attr:`~wise.evidence.models.Truncation.evaluation_truncated` is true,
+      alongside any further truncation ``max_records`` causes here.
+    """
+    manifest = getattr(result, "manifest", None)
+    if manifest is None:
+        raise EvidenceError(
+            "this object result carries no run record, so its evidence cannot be identified; "
+            "wise.oc.score_units builds one, and a hand-built OCScoreResult has none"
+        )
+    held = tuple(result.unit_types)
+    if unit_type is None:
+        if len(held) != 1:
+            raise EvidenceError(
+                f"this run scored the unit types {list(held)}; a packet has one unit_type and one coverage "
+                "denominator, so name the one to capture with unit_type=..."
+            )
+        unit_type = held[0]
+    elif unit_type not in held:
+        raise EvidenceError(f"unknown unit type {unit_type!r}; this run scored {list(held)}")
+
+    selected = list(result.views if views is None else views)
+    unknown_views = [v for v in selected if v not in result.views]
+    if unknown_views:
+        raise EvidenceError(f"unknown view(s) {unknown_views}; this run scored {result.views}")
+
+    wanted = tuple(r for r in result.records if r.unit_type == unit_type)
+    if units is not None:
+        allowed = {str(u) for u in units}
+        known = {r.unit_id for r in wanted}
+        missing = sorted(u for u in allowed if u not in known)
+        if missing:
+            raise EvidenceError(f"unknown {unit_type} ids for capture: {missing[:5]}")
+        wanted = tuple(r for r in wanted if r.unit_id in allowed)
+    n_available = len(wanted)
+    kept = wanted if max_records is None else wanted[: max(int(max_records), 0)]
+
+    unit_ids = list(dict.fromkeys(r.unit_id for r in kept))
+    n_in_scope = sum(1 for r in kept if r.in_scope)
+    n_evaluated = sum(1 for r in kept if r.evaluable)
+    reasons: dict[str, int] = {}
+    for r in kept:
+        reasons[r.reason_code.value] = reasons.get(r.reason_code.value, 0) + 1
+    scored = {view: result.scores[view].loc[unit_ids].notna() for view in selected}
+    coverage = CoverageReport(
+        unit_type=unit_type,
+        n_units=len(unit_ids),
+        n_checks=len(kept),
+        n_in_scope=n_in_scope,
+        n_evaluated=n_evaluated,
+        n_out_of_scope=len(kept) - n_in_scope,
+        n_unevaluable=n_in_scope - n_evaluated,
+        n_scored={view: int(mask.sum()) for view, mask in scored.items()},
+        n_unscored={view: int((~mask).sum()) for view, mask in scored.items()},
+        reasons=reasons,
+    )
+
+    annotations: list[ViewAnnotation] = []
+    row_of = {str(u): i for i, u in enumerate(result.violations.index)}
+    col_of = {str(c): j for j, c in enumerate(result.violations.columns)}
+    for view in selected:
+        weights = result.effective_weights(view).to_numpy(dtype=float)
+        penalties = result.penalties(view).to_numpy(dtype=float)
+        for r in kept:
+            is_scored = bool(scored[view].loc[r.unit_id])
+            weighted = is_scored and r.evaluable
+            cell = (row_of[r.unit_id], col_of[r.constraint_id])
+            weight = float(weights[cell])
+            penalty = float(penalties[cell])
+            annotations.append(
+                ViewAnnotation(
+                    run_id=r.run_id,
+                    evaluation_id=r.evaluation_id,
+                    unit_id=r.unit_id,
+                    constraint_id=r.constraint_id,
+                    view=view,
+                    effective_weight=weight if weighted and np.isfinite(weight) else None,
+                    penalty=penalty if weighted and np.isfinite(penalty) else None,
+                    scored=is_scored,
+                )
+            )
+
+    # a record budget stops the *display*; the run's own max_evaluations budget
+    # stopped the evaluation, and the two are different claims kept apart here
+    not_reached = tuple(c.id for c in result.norm.constraints if c.id not in {r.constraint_id for r in kept})
+    budget = getattr(result, "budget", None)
+    truncation = Truncation(
+        records_captured=len(kept),
+        records_total=n_available,
+        witnesses_captured=sum(len(r.witnesses) for r in kept),
+        witnesses_total=sum(r.n_witnesses_total if r.n_witnesses_total is not None else len(r.witnesses) for r in kept),
+        evaluation_truncated=bool((budget is not None and budget.truncated) or (len(kept) < n_available and not_reached)),
+    )
+
+    qualifications: list[Qualification] = [
+        Qualification(QualificationCode.COVERAGE_IS_NOT_CONFIDENCE, coverage.interpretation, scope="run")
+    ]
+    seen = {(q.code.value, q.message) for q in qualifications}
+    for q in result.qualifications():
+        if q.scope == "run" and (q.code.value, q.message) not in seen:
+            qualifications.append(q)
+            seen.add((q.code.value, q.message))
+    if truncation.records_truncated:
+        qualifications.append(
+            Qualification(
+                QualificationCode.RECORDS_TRUNCATED,
+                f"this capture kept {truncation.records_captured} of {truncation.records_total} "
+                f"constraint x {unit_type} records. The scores and the run's own numbers are complete; "
+                "the evidence rows, the coverage counts and anything derived from them cover the kept records only",
+                scope="run",
+            )
+        )
+    if truncation.records_truncated and not_reached:
+        qualifications.append(
+            Qualification(
+                QualificationCode.EVALUATION_TRUNCATED,
+                "the record budget stopped the capture before every check was reached: "
+                + ", ".join(str(cid) for cid in not_reached)
+                + " have no evidence row at all, so the coverage counts above are not the run's coverage",
+                scope="run",
+            )
+        )
+    unscored = {view: n for view, n in coverage.n_unscored.items() if n}
+    if unscored:
+        qualifications.append(
+            Qualification(
+                QualificationCode.UNSCORED_UNIT,
+                "unscored units per view: "
+                + ", ".join(f"{view}={n}" for view, n in sorted(unscored.items()))
+                + "; they have no score, which is not a score of zero",
+                scope="run",
+            )
+        )
+    note = (
+        f"captured from an object run over {unit_type!r} units; the records are the ones the evaluation produced. "
+        "No log snapshot travels with this packet, so a witness a check did not already materialise cannot be "
+        "materialised later"
+    )
+    return EvidencePacket(
+        manifest=replace(manifest, unit_type=unit_type, views=tuple(selected), notes=(*manifest.notes, note)),
+        unit_type=unit_type,
+        records=kept,
+        coverage=coverage,
+        annotations=tuple(annotations),
+        qualifications=tuple(qualifications),
+        truncation=truncation,
+        capture_mode=NATIVE_CAPTURE_MODE,
+        snapshot=None,
+        norm=None,
+    )
 
 
 def _replace_record(record: EvaluationRecord, **changes: Any) -> EvaluationRecord:

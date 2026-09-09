@@ -1,0 +1,13 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "09_stale_snapshot_fingerprint",
+  "family": "stale_snapshot_fingerprint",
+  "policy": "whole_run",
+  "ask": "A witness is asked for after the event log changed underneath the captured evidence.",
+  "expected_outcome": "refused",
+  "expected_markers": [
+    "changed after this evidence was captured"
+  ],
+  "forbidden_markers": [],
+  "notes": "F11. The scenario builds its own run before tampering, because mutating the shared material would leave every later scenario reading an edited log."
+}

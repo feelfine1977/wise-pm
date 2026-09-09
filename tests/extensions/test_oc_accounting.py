@@ -271,6 +271,65 @@ def test_disjoint_groups_add_up_without_a_warning():
     assert combined["qualifications"] == ()
 
 
+def test_every_declared_issue_code_has_a_producer():
+    """A declared code no path builds is a promise the module does not keep.
+
+    Six of the seven were declared and never produced: the refusals were real
+    but untyped, so a caller could only tell them apart by reading the prose.
+    Each one now travels on the raised error as ``code``.
+    """
+    eur, usd = record("a", 100.0), record("b", 50.0, unit="USD")
+    twin = QuantityRecord.build("a", "amount", 999.0, "EUR", pd.Timestamp("2024-01-05T10:00:00Z"))
+    assert twin.record_id == eur.record_id, "same identity, different value"
+
+    def negative_share() -> None:
+        allocate([eur], [Allocation(eur.record_id, "g", -0.5)])
+
+    def duplicate_consumption() -> None:
+        allocate([eur], [Allocation(eur.record_id, "g", 0.5), Allocation(eur.record_id, "g", 0.5)])
+
+    def over_allocation() -> None:
+        allocate([eur], [Allocation(eur.record_id, "g1", 0.7), Allocation(eur.record_id, "g2", 0.7)])
+
+    def unknown_record() -> None:
+        allocate([eur], [Allocation("not-a-record", "g", 1.0)])
+
+    def duplicate_record_id() -> None:
+        allocate([eur, twin], [Allocation(eur.record_id, "g", 1.0)])
+
+    def mixed_units() -> None:
+        allocate([eur, usd], [Allocation(eur.record_id, "g", 1.0), Allocation(usd.record_id, "g", 1.0)])
+
+    refusals = {
+        AccountingIssueCode.NEGATIVE_SHARE: negative_share,
+        AccountingIssueCode.DUPLICATE_CONSUMPTION: duplicate_consumption,
+        AccountingIssueCode.OVER_ALLOCATION: over_allocation,
+        AccountingIssueCode.UNKNOWN_RECORD: unknown_record,
+        AccountingIssueCode.DUPLICATE_RECORD_ID: duplicate_record_id,
+        AccountingIssueCode.MIXED_UNITS: mixed_units,
+    }
+    for code, provoke in refusals.items():
+        with pytest.raises(AccountingError) as raised:
+            provoke()
+        assert raised.value.code is code, f"{code.value} is declared; the refusal that means it must carry it"
+
+    # the seventh is reported rather than raised, and always was
+    partial = allocate([eur], [Allocation(eur.record_id, "g", 0.25)])
+    reported = {issue.code for issue in partial.issues}
+    assert reported == {AccountingIssueCode.INCOMPLETE_ALLOCATION}
+
+    assert set(refusals) | reported == set(AccountingIssueCode), "every declared code has a producer, and no code is idle"
+
+
+def test_the_same_refusal_is_still_readable_prose():
+    """A typed code is added beside the sentence, not instead of it."""
+    eur = record("a", 100.0)
+    with pytest.raises(AccountingError, match="a negative share is a credit note") as raised:
+        allocate([eur], [Allocation(eur.record_id, "g", -0.5)])
+    assert raised.value.code is AccountingIssueCode.NEGATIVE_SHARE
+    assert str(raised.value).startswith("allocation 'g' of ")
+
+
 def test_combining_an_unknown_group_is_refused():
     with pytest.raises(AccountingError, match="unknown group"):
         three_reviews().combined(["nobody"])

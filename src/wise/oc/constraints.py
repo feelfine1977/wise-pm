@@ -552,7 +552,17 @@ class CrossObjectLag(ObjectCheck):
             ReasonCode.AMBIGUOUS_MATCH,
             (Measurement(f"tied_{side}_events", float(len(tied)), "events", MeasurementKind.COUNT),),
             tuple(_event_witness(e, side, unit) for e in tied),
-            (Qualification(QualificationCode.AMBIGUOUS_MATCH_RESOLVED, message + "; no match was made", scope="evaluation"),),
+            (
+                Qualification(
+                    # not AMBIGUOUS_MATCH_RESOLVED: nothing was resolved. The
+                    # prose said so already; the code has to as well, or a
+                    # consumer grouping by code cannot separate a tie that was
+                    # broken from a tie that stood.
+                    QualificationCode.AMBIGUOUS_MATCH_UNRESOLVED,
+                    message + "; no match was made",
+                    scope="evaluation",
+                ),
+            ),
             policies,
         )
 

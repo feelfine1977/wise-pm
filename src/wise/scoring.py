@@ -346,6 +346,18 @@ class ScoreResult:
         return self.violations.notna()
 
     @property
+    def unit_table(self) -> pd.DataFrame:
+        """The per-unit attribute table, under the name a non-case run can use too.
+
+        For a case run this *is* :attr:`cases`, and :attr:`cases` keeps its name
+        and its meaning. The alias exists so that the slicing, driver and
+        explanation code can read the attributes of an assessment unit without
+        asserting that the unit is a case — which
+        :class:`wise.oc.evaluation.OCScoreResult` would make untrue.
+        """
+        return self.cases
+
+    @property
     def views(self) -> list[str]:
         return list(self.scores.columns)
 

@@ -76,7 +76,16 @@ class ReasonCode(str, Enum):
     MISSING_ATTRIBUTE = "missing_attribute"
     AMBIGUOUS_MATCH = "ambiguous_match"
     MISSING_SOURCE_IDENTITY = "missing_source_identity"
+    #: The check *ran*, on a context a traversal budget had cut, so what it
+    #: reports is a property of the cut as much as of the unit
+    #: (:mod:`wise.oc.constraints`).
     BUDGET_TRUNCATED = "budget_truncated"
+    #: The check never ran: an evaluation budget stopped the run before this
+    #: (unit, check) pair was reached. A different finding from the one above
+    #: and from ``out_of_scope`` — nobody declared this check irrelevant and
+    #: nothing was measured on a cut context; the pair simply has no outcome
+    #: (:func:`wise.oc.evaluate_units`).
+    NOT_EVALUATED_BUDGET = "not_evaluated_budget"
     #: A shortfall was measured but the scope was never declared complete, so
     #: "we did not see it" cannot be reported as "it is not there"
     #: (:mod:`wise.oc.constraints`).
@@ -180,7 +189,11 @@ class QualificationCode(str, Enum):
     REVIEWED_MAPPING_APPLIED = "reviewed_mapping_applied"
 
     # object-centric limitations (:mod:`wise.oc`)
+    #: the configuration broke a tie, and the choice was the configuration's
     AMBIGUOUS_MATCH_RESOLVED = "ambiguous_match_resolved"
+    #: the tie stood and nothing was matched — a different finding, and one a
+    #: consumer filtering on codes must be able to tell from the one above
+    AMBIGUOUS_MATCH_UNRESOLVED = "ambiguous_match_unresolved"
     COUNT_IS_A_LOWER_BOUND = "count_is_a_lower_bound"
     UNIT_CONVERSION_APPLIED = "unit_conversion_applied"
     ALLOCATION_INCOMPLETE = "allocation_incomplete"
@@ -192,6 +205,17 @@ class QualificationCode(str, Enum):
     BINDING_LIMIT_REACHED = "binding_limit_reached"
     ATTRIBUTE_NOT_SET_AT_TIME = "attribute_not_set_at_time"
     ATTRIBUTE_READ_OUTSIDE_EVALUATION_TIME = "attribute_read_outside_evaluation_time"
+
+    # rank sensitivity (:mod:`wise.evaluation.sensitivity`)
+    #: the resampling treated the assessment units as independent draws, which
+    #: units sharing a vendor, a document or an object are not
+    EXCHANGEABLE_UNITS_ASSUMED = "exchangeable_units_assumed"
+    #: at least one ranked slice changed rank across a large part of the
+    #: backlog; its position is a reading of one sample, not a finding
+    RANK_MOVES_UNDER_RESAMPLING = "rank_moves_under_resampling"
+    #: a stability claim was made while one of the three uncertainty sources
+    #: was never varied, so nothing here bounds that source
+    UNCERTAINTY_SOURCE_NOT_VARIED = "uncertainty_source_not_varied"
     RELATION_VALIDITY_UNKNOWN = "relation_validity_unknown"
 
 

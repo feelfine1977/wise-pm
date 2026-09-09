@@ -1,0 +1,20 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "02_relabelled_comparator",
+  "family": "relabelled_comparator",
+  "policy": "slice_only",
+  "ask": "A principal who holds every unit of company B, and nothing else, asks for its explanation.",
+  "expected_outcome": "served_relabelled",
+  "replies": [
+    "{\"schema_version\": \"0.1-proposal\", \"calls\": [{\"tool\": \"explain_priority\", \"arguments\": {}}]}"
+  ],
+  "expected_markers": [
+    "authorised-population",
+    "withheld_facts",
+    "was recomputed as"
+  ],
+  "forbidden_markers": [
+    "0.7098333333333334"
+  ],
+  "notes": "The slice is theirs, so it is served; the comparator is not, so it is re-derived over the authorised population and every relative-priority fact computed against the replaced one is withheld by name rather than restated against a comparator it was not computed against."
+}

@@ -28,8 +28,17 @@ library, contacts no network and reads no repository state.
 from __future__ import annotations
 
 from .calibration import CalibrationRecord, apply_calibration, fit_calibration, recipe_fingerprint
-from .capture import capture_evidence, coverage_report, evidence_frame, interchange_schema, load_evidence, to_interchange
+from .capture import (
+    capture_evidence,
+    capture_object_evidence,
+    coverage_report,
+    evidence_frame,
+    interchange_schema,
+    load_evidence,
+    to_interchange,
+)
 from .manifest import (
+    HETEROGENEOUS_UNIT_TYPE,
     EnvironmentInfo,
     InputIdentity,
     ObservationScope,
@@ -59,6 +68,7 @@ from .models import (
 )
 
 __all__ = [
+    "HETEROGENEOUS_UNIT_TYPE",
     "AbsenceSearch",
     "CalibrationRecord",
     "Completeness",
@@ -83,6 +93,7 @@ __all__ = [
     "WitnessRef",
     "apply_calibration",
     "capture_evidence",
+    "capture_object_evidence",
     "coverage_report",
     "evidence_frame",
     "fingerprint_events",

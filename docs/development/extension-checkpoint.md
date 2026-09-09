@@ -1,20 +1,17 @@
-# Extension checkpoint
+# Historical extension validation (through S3/S5 drafting)
 
-Kept accurate across sessions. Sanitised summary only: no run payloads, no
-event data, no dataset paths.
+This is the preserved validation record from the foundation, object-centric and
+local-assistance implementation cycles, before the evaluation harness and rank
+sensitivity work. Counts, environments, fingerprints and timings below describe
+those runs; they are not current test totals or release certification.
 
-## Current position
-
-| Field | Value |
-|---|---|
-| Branch | `feat/actionability-ocpm-local-llm` |
-| Base commit | `df5db50b839cc124b489a269894f5a2bfe7dc634` |
-| Scope | cycle L1: `foundation` (S0–S2). Cycle L2: stage **S4**. Cycle L3: stage **S3** (L01–L03) and the drafting half of **S5** (N01, N02). S6 is not started |
-| Stages completed | **S0 — baseline and regression contract (E05)**, **S1 — evidence, observations and complete runs (E01, E02, E04)**, **S2 — shared baselines and exact explanations (E03)**, **S2-fix — the review's eight must-fix items**, **S4 — native object-centric assessment (O01–O05)**, **S3 — local read-only assistance (L01, L02, L03)** |
-| Stage in progress | **S5, drafting half only**: N01 and N02 complete. A01–A03 (investigation records, queues, transitions, exports) are **out of scope for this library** by `library-cycles/SCOPE_BOUNDARY.md` — the application owns them |
-| Next stage | **S6** (L04 held-out local explanation benchmark, M01 evaluation harness) — not started. A01–A03 are not planned here |
-| Local commits on the branch | none yet; the owner commits at the stage boundary |
-| Remote state | no push, no pull request, no tag, no release |
+The reference is classic commit `df5db50b839cc124b489a269894f5a2bfe7dc634`.
+The immutable 44-test contract is
+`tests/extensions/test_baseline_contract.py`, SHA-256
+`a47445b232fe3b3626e7bf8c788a918dfd813aba4d978164060f1b1a975dda5b`.
+Current capabilities, including the implemented S6 library work (L04/M01), are
+listed in [the capability matrix](../capabilities.md). Field studies and
+research-gated work remain outside the implemented scope.
 
 ---
 

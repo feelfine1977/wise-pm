@@ -466,3 +466,45 @@ def test_the_unit_table_can_be_built_on_its_own():
     frame = oc.unit_frame(units, exposure={"invoice_review:inv1": 100.0})
     assert frame.loc["invoice_review:inv1", "exposure"] == 100.0
     assert oc.unit_frame([]).index.name == "unit_id"
+
+
+# ============================================ the heterogeneity marker travels (O09)
+def mixed_result():
+    """One order unit and one invoice unit under one catalogue, deliberately pooled."""
+    log = partial_deliveries(3)
+    invoices = oc.build_units(log, invoice_spec(), strict=False)
+    order_spec = oc.UnitSpec(
+        unit_type="order_review",
+        anchor_type="purchase_order",
+        roles=(oc.RolePath("receipts", (oc.PathStep("receipt for", target_type="goods_receipt", direction="reverse"),)),),
+    )
+    orders = oc.build_units(log, order_spec, strict=False)
+    norm = invoice_catalogue(
+        constraints=(oc.ObjectConstraint("h1", "handling", oc.RelatedObjectCardinality(role="receipts", maximum=1, width=3)),),
+        layers=(Layer("handling"),),
+        views=(View("Finance", constraint_weights={"h1": 1.0}),),
+    )
+    return oc.score_units(log, norm, [*invoices, *orders])
+
+
+def test_a_pooled_frame_carries_its_own_warning():
+    """A pooled frame's warning must survive into the artefact a reader receives.
+
+    ``allow_mixed=True`` is a decision, and the frame is where the decision
+    stops being visible: ``wise.prioritize`` ranks one order against one
+    invoice against a shared ``global_mean`` and reports neither unit type.
+    The marker travels in ``attrs``, or it travels nowhere.
+    """
+    result = mixed_result()
+    assert result.unit_types == ("invoice_review", "order_review")
+
+    pooled = result.frame("Finance", allow_mixed=True)
+    assert pooled.attrs["heterogeneous_unit_types"] == ["invoice_review", "order_review"]
+
+    backlog = wise.prioritize(pooled, by="anchor_type", view=None)
+    assert backlog.attrs["heterogeneous_unit_types"] == ["invoice_review", "order_review"]
+
+    # the control: one unit type pools nothing, so it carries no warning
+    single = result.frame("Finance", unit_type="invoice_review")
+    assert "heterogeneous_unit_types" not in single.attrs
+    assert "heterogeneous_unit_types" not in wise.prioritize(single, by="anchor_type", view=None).attrs

@@ -23,7 +23,9 @@ from wise.errors import LLMError, TransportError
 from wise.llm.ollama import CHAT_ROUTE, OllamaConfig, OllamaProvider, embedding_payload
 from wise.llm.provider import ChatMessage, ChatRequest, ProviderStatus
 from wise.llm.transport import (
+    ALLOWED_ROUTES,
     DEFAULT_ENDPOINT,
+    DEFAULT_ROUTES,
     Outcome,
     StrictLocalTransport,
     TransportConfig,
@@ -110,6 +112,23 @@ def test_only_declared_routes_can_be_posted_to():
 def test_a_route_with_traversal_cannot_even_be_configured():
     with pytest.raises(TransportError, match="traversal"):
         TransportConfig(routes=("/api/../etc",))
+
+
+def test_a_mutating_route_cannot_be_configured():
+    """The claim "this code cannot pull" has to be true of the type, not only of
+    the default. ``routes`` was an ordinary constructor field, so
+    ``TransportConfig(routes=("/api/pull",))`` was accepted and the sentence in
+    the report was stronger than the code."""
+    for route in ("/api/pull", "/api/create", "/api/delete", "/api/push", "/api/copy"):
+        with pytest.raises(TransportError, match="not a route this library will post to"):
+            TransportConfig(routes=(route,))
+        assert route not in ALLOWED_ROUTES
+    with pytest.raises(TransportError, match="not a route this library will post to"):
+        TransportConfig(routes=("/api/chat", "/api/pull"))
+
+    assert frozenset(DEFAULT_ROUTES) == ALLOWED_ROUTES
+    narrowed = TransportConfig(routes=("/api/chat",))
+    assert narrowed.routes == ("/api/chat",), "an application may still narrow the set"
 
 
 # ---------------------------------------------------------------- L07 proxy

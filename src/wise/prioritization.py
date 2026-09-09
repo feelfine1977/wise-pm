@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -33,18 +33,40 @@ from .scoring import ScoreResult, _where_mask
 
 if TYPE_CHECKING:  # pragma: no cover
     from .explain.baseline import AssessmentContext, BaselineSpec, ResolvedBaseline
+    from .oc.evaluation import OCScoreResult
 
 #: The prefix of the per-layer contribution columns of
 #: :meth:`wise.ScoreResult.frame`.
 _CONTRIB = "contrib__"
+
+#: Keys a ranking copies from the frame it ranked. A frame carries its own
+#: warnings — that its rows pool several assessment unit types, say — and this
+#: is the one point where they would otherwise be dropped, because ``agg`` is a
+#: fresh frame built by ``groupby``.
+CARRIED_FRAME_ATTRS = ("heterogeneous_unit_types",)
 
 
 def _keys(by: str | Sequence[str]) -> list[str]:
     return [by] if isinstance(by, str) else list(by)
 
 
+def _is_scored_result(data: Any) -> bool:
+    """Whether ``data`` is a scored result rather than a bare per-unit frame.
+
+    Structural, not nominal. :class:`~wise.scoring.ScoreResult` and
+    :class:`wise.oc.evaluation.OCScoreResult` are deliberately different types
+    with no common base — one promises a case :class:`~wise.log.EventLog`, the
+    other an object log — but both carry the four things a ranking needs: the
+    views, the wide per-unit frame, the norm's layers and the mode. Naming the
+    second one here would pull the whole object model into ``import wise``.
+    """
+    if isinstance(data, pd.DataFrame):
+        return False
+    return isinstance(data, ScoreResult) or all(hasattr(data, name) for name in ("views", "frame", "norm", "mode", "scores"))
+
+
 def _context(
-    data: ScoreResult | pd.DataFrame,
+    data: ScoreResult | OCScoreResult | pd.DataFrame,
     view: str | None,
     *,
     layer_ids: Sequence[str] = (),
@@ -60,14 +82,14 @@ def _context(
     """
     from .explain.baseline import AssessmentContext
 
-    if isinstance(data, ScoreResult):
-        return AssessmentContext.from_result(data, view, unit_type=unit_type)
+    if _is_scored_result(data):
+        return AssessmentContext.from_result(cast("ScoreResult | OCScoreResult", data), view, unit_type=unit_type)
     return AssessmentContext(view=view, unit_type=unit_type, layer_ids=tuple(layer_ids))
 
 
 def _resolve(
     spec: BaselineSpec,
-    data: ScoreResult | pd.DataFrame,
+    data: ScoreResult | OCScoreResult | pd.DataFrame,
     view: str | None,
     *,
     population_mean: float,
@@ -95,17 +117,21 @@ def _reject_two_comparators(baseline: float | None, baseline_spec: BaselineSpec 
         )
 
 
-def _frame(data: ScoreResult | pd.DataFrame, view: str | None, score_col: str, by: Sequence[str]) -> tuple[pd.DataFrame, str]:
-    if isinstance(data, ScoreResult):
+def _frame(
+    data: ScoreResult | OCScoreResult | pd.DataFrame, view: str | None, score_col: str, by: Sequence[str]
+) -> tuple[pd.DataFrame, str]:
+    if _is_scored_result(data):
+        scored = cast("ScoreResult | OCScoreResult", data)
         if view is None:
-            if len(data.views) != 1:
-                raise NormError(f"specify view=...; available: {data.views}")
-            view = data.views[0]
-        df, score_col = data.frame(view), "score"
+            if len(scored.views) != 1:
+                raise NormError(f"specify view=...; available: {scored.views}")
+            view = scored.views[0]
+        df, score_col = scored.frame(view), "score"
     else:
-        if score_col not in data.columns:
+        frame = cast("pd.DataFrame", data)
+        if score_col not in frame.columns:
             raise NormError(f"score column {score_col!r} not in frame")
-        df = data
+        df = frame
     index_names = [n for n in df.index.names if n]
     clash = [n for n in index_names if n in df.columns]
     if any(c not in df.columns and c in index_names for c in by):
@@ -119,7 +145,7 @@ def _frame(data: ScoreResult | pd.DataFrame, view: str | None, score_col: str, b
 
 
 def prioritize(
-    data: ScoreResult | pd.DataFrame,
+    data: ScoreResult | OCScoreResult | pd.DataFrame,
     by: str | Sequence[str],
     view: str | None = None,
     gamma: float = 0.0,
@@ -236,6 +262,14 @@ def prioritize(
     agg = agg[agg["n_cases"] >= int(min_cases)]
     agg = agg.sort_index().sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
     agg.attrs.update({"view": view, "gamma": float(gamma), "baseline": mu_bar, "volume": volume, "by": by})
+    # `agg` is a fresh frame, so a warning the ranked frame carried about
+    # itself — that its rows pool several assessment unit types, say — stops
+    # here unless it is copied on. The backlog is the artefact a reader
+    # receives, and it is the last place that can say the volumes it summed
+    # are not one volume.
+    for name in CARRIED_FRAME_ATTRS:
+        if name in df.attrs:
+            agg.attrs[name] = df.attrs[name]
     if resolved is not None:
         # only a call that supplied a specification gains metadata: a historical
         # call keeps exactly the attributes it always had
@@ -254,7 +288,7 @@ def prioritize(
 
 
 def layer_drivers(
-    data: ScoreResult | pd.DataFrame,
+    data: ScoreResult | OCScoreResult | pd.DataFrame,
     by: str | Sequence[str],
     view: str | None = None,
     layers: Sequence[str] | None = None,
@@ -289,8 +323,9 @@ def layer_drivers(
     by = _keys(by)
     df, score_col = _frame(data, view, "score", by)
     prefix = _CONTRIB
-    if isinstance(data, ScoreResult):
-        layer_cols = [f"{prefix}{layer}" for layer in (as_list(layers) or data.norm.layer_ids)]
+    if _is_scored_result(data):
+        norm = cast("ScoreResult | OCScoreResult", data).norm
+        layer_cols = [f"{prefix}{layer}" for layer in (as_list(layers) or norm.layer_ids)]
     else:
         layer_cols = [c for c in df.columns if c.startswith(prefix)]
     if not layer_cols:
@@ -353,7 +388,7 @@ def layer_drivers(
 
 
 def constraint_drivers(
-    result: ScoreResult,
+    result: ScoreResult | OCScoreResult,
     view: str,
     where: dict[str, Any] | pd.Series | None = None,
 ) -> pd.DataFrame:
@@ -365,7 +400,7 @@ def constraint_drivers(
     evaluated cases with a non-zero violation, the share of cases in scope,
     and the share actually evaluated.
     """
-    mask = _where_mask(result.cases, where) & result.scores[view].notna()
+    mask = _where_mask(result.unit_table, where) & result.scores[view].notna()
     V = result.violations[mask]
     S = result.in_scope[mask]
     pen = result.penalties(view)[mask]
@@ -377,7 +412,7 @@ def constraint_drivers(
             {
                 "constraint": nc.id,
                 "layer": nc.layer,
-                "type": nc.constraint.type,
+                "type": nc.type,
                 "mean_penalty": float(pen[nc.id].mean()) if len(pen) else np.nan,
                 "mean_violation": float(v[ev].mean()) if ev.any() else np.nan,
                 "share_violated": float((v[ev] > 0).mean()) if ev.any() else np.nan,

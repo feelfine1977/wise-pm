@@ -59,6 +59,16 @@ LOOPBACK_NAMES = ("localhost",)
 #: The only routes this library ever posts to.
 DEFAULT_ROUTES = ("/api/chat", "/api/embed")
 
+#: Every route a :class:`TransportConfig` may name — frozen at import, and the
+#: same two. ``routes`` exists so an application can *narrow* the set, never so
+#: it can widen it: ``/api/pull``, ``/api/create``, ``/api/delete``,
+#: ``/api/push`` and ``/api/copy`` are the half of the server's API that
+#: installs, replaces or removes a model, and nothing here has any use for
+#: them. Without this check the field was ordinary, and
+#: ``TransportConfig(routes=("/api/pull",))`` was accepted — true of the
+#: default and of the provider, but not of the type.
+ALLOWED_ROUTES: frozenset[str] = frozenset(DEFAULT_ROUTES)
+
 
 class Outcome(str, Enum):
     """What became of one HTTP attempt."""
@@ -172,6 +182,13 @@ class TransportConfig:
         for route in self.routes:
             if not route.startswith("/") or ".." in route or "//" in route[1:]:
                 raise TransportError(f"route {route!r} must be an absolute path with no traversal")
+            if route not in ALLOWED_ROUTES:
+                raise TransportError(
+                    f"route {route!r} is not a route this library will post to; the frozen set is "
+                    f"{sorted(ALLOWED_ROUTES)}. Routes that install, replace or remove a model — pull, create, "
+                    "delete, push, copy — are excluded by construction, and this field narrows the set rather "
+                    "than widening it"
+                )
         for name in ("timeout_s", "max_request_bytes", "max_response_bytes"):
             if getattr(self, name) <= 0:
                 raise TransportError(f"{name} must be positive, got {getattr(self, name)!r}")
@@ -456,6 +473,7 @@ class StrictLocalTransport:
 
 
 __all__ = [
+    "ALLOWED_ROUTES",
     "DEFAULT_ENDPOINT",
     "DEFAULT_ROUTES",
     "LOOPBACK_NAMES",

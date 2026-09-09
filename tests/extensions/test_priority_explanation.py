@@ -481,33 +481,36 @@ def test_the_layer_frame_and_fact_frame_are_tables_of_the_same_numbers(p2p_resul
 BASE_COMMIT = "df5db50b839cc124b489a269894f5a2bfe7dc634"
 
 #: The equivalence claim, split into the two legs that make it up. Both are
-#: asserted below, and ``test_the_reported_equivalence_count_is_the_committed_one``
-#: checks that the number the documentation reports is this number and no other.
+#: asserted by the actual loops below; documentation is not a test dependency.
 RESULT_CONFIGURATIONS = 112
 FRAME_CONFIGURATIONS = 68
 BASE_COMMIT_CONFIGURATIONS = RESULT_CONFIGURATIONS + FRAME_CONFIGURATIONS
 
 
-def _base_prioritization(tmp_path):
-    """The unmodified ``prioritization`` module of the reviewed base commit.
-
-    Read with ``git show`` — no state-changing command, no checkout — and
-    skipped wherever the repository is not available (an installed wheel, an
-    unpacked sdist). Its relative imports are rewritten to absolute ones so
-    that the base module can run beside the current package.
-    """
-    import importlib.util
+def _base_prioritization_source():
+    """Require the immutable reference; absent history cannot prove parity."""
     import subprocess
-    import sys
     from pathlib import Path
 
     repo = Path(__file__).resolve().parents[2]
-    if not (repo / ".git").exists():
-        pytest.skip("not a git checkout: the base commit is not available here")
-    proc = subprocess.run(["git", "show", f"{BASE_COMMIT}:src/wise/prioritization.py"], cwd=repo, capture_output=True, text=True)
+    message = f"parity requires a full Git checkout containing {BASE_COMMIT}; use fetch-depth: 0 in CI"
+    try:
+        proc = subprocess.run(
+            ["git", "show", f"{BASE_COMMIT}:src/wise/prioritization.py"], cwd=repo, capture_output=True, text=True
+        )
+    except OSError as exc:
+        pytest.fail(f"{message}: {exc}", pytrace=False)
     if proc.returncode != 0:
-        pytest.skip(f"base commit {BASE_COMMIT[:12]} is not in this checkout")
-    source = proc.stdout.replace("\nfrom .constraints import", "\nfrom wise.constraints import")
+        pytest.fail(f"{message}: {proc.stderr.strip()}", pytrace=False)
+    return proc.stdout
+
+
+def _base_prioritization(tmp_path):
+    """Load the pinned reference beside the current package without a checkout."""
+    import importlib.util
+    import sys
+
+    source = _base_prioritization_source().replace("\nfrom .constraints import", "\nfrom wise.constraints import")
     source = source.replace("\nfrom .errors import", "\nfrom wise.errors import")
     source = source.replace("\nfrom .scoring import", "\nfrom wise.scoring import")
     path = tmp_path / "base_prioritization.py"
@@ -542,20 +545,49 @@ def test_the_default_path_is_byte_identical_to_the_base_commit(p2p_log, p2p_norm
     assert checked == RESULT_CONFIGURATIONS  # 2 modes x 2 views x 4 groupings x (3 gammas x 2 baselines + drivers)
 
 
+#: The only edits made below ``constraint_drivers`` since the base commit, as
+#: ``(base text, current text)``. Each is a rename with no arithmetic in it:
+#: ``ScoreResult.unit_table`` *is* ``ScoreResult.cases``, and
+#: ``NormConstraint.type`` *is* ``NormConstraint.constraint.type``. They exist
+#: so that the same helper can read an object run, whose per-unit table is not
+#: a case table and whose checks are not ``Constraint``\ s.
+DECLARED_EDITS = (
+    (
+        "(\n    result: ScoreResult,\n    view: str,\n    where:",
+        "(\n    result: ScoreResult | OCScoreResult,\n    view: str,\n    where:",
+    ),
+    (
+        "    mask = _where_mask(result.cases, where) & result.scores[view].notna()",
+        "    mask = _where_mask(result.unit_table, where) & result.scores[view].notna()",
+    ),
+    ('"type": nc.constraint.type,', '"type": nc.type,'),
+)
+
+
 def test_the_untouched_helpers_are_byte_identical_to_the_base_commit(tmp_path):
-    """Everything from ``constraint_drivers`` onward was not edited at all."""
-    import subprocess
+    """Everything from ``constraint_drivers`` onward is the base commit's, bar three declared renames.
+
+    The guard is unchanged in strength: the base text is rewritten by exactly
+    the substitutions listed in :data:`DECLARED_EDITS` and then compared byte
+    for byte, so a fourth edit — or a different one — still fails here.
+    """
     from pathlib import Path
 
     repo = Path(__file__).resolve().parents[2]
-    if not (repo / ".git").exists():
-        pytest.skip("not a git checkout: the base commit is not available here")
-    proc = subprocess.run(["git", "show", f"{BASE_COMMIT}:src/wise/prioritization.py"], cwd=repo, capture_output=True, text=True)
-    if proc.returncode != 0:
-        pytest.skip(f"base commit {BASE_COMMIT[:12]} is not in this checkout")
     marker = "def constraint_drivers"
     current = (repo / "src" / "wise" / "prioritization.py").read_text(encoding="utf-8")
-    assert proc.stdout.split(marker, 1)[1] == current.split(marker, 1)[1]
+    base = _base_prioritization_source().split(marker, 1)[1]
+    for was, now in DECLARED_EDITS:
+        assert base.count(was) == 1, f"the declared edit {was!r} no longer matches the base commit exactly once"
+        base = base.replace(was, now)
+    assert base == current.split(marker, 1)[1]
+
+
+def test_the_declared_renames_are_renames(p2p_result):
+    """The three edits above are aliases, not behaviour: pinned, not assumed."""
+    assert p2p_result.unit_table is p2p_result.cases
+    for nc in p2p_result.norm.constraints:
+        assert nc.type == nc.constraint.type
 
 
 def test_the_assessment_unit_is_declared_and_carried_through_every_number(p2p_result):
@@ -656,27 +688,25 @@ def test_the_bare_frame_path_is_byte_identical_to_the_base_commit(tmp_path):
     assert checked == FRAME_CONFIGURATIONS  # 48 + 16 prioritize legs + 4 layer_drivers legs
 
 
-def test_the_reported_equivalence_count_is_the_committed_one():
-    """The number in the documentation is the number the tests assert.
-
-    The review found "180 configurations byte-identical" reported while 112
-    were committed. The 68 bare-frame configurations are committed now, and
-    this test refuses to let the two drift apart again.
-    """
-    from pathlib import Path
-
+def test_the_equivalence_configuration_counts():
+    """Pin the two executed grids without depending on an operational report."""
+    assert RESULT_CONFIGURATIONS == 2 * 2 * 4 * (3 * 2 + 1) == 112
+    assert FRAME_CONFIGURATIONS == 3 * 2 * 2 * 2 * 2 + 2 * 2 * 2 * 2 + 2 * 2 == 68
     assert BASE_COMMIT_CONFIGURATIONS == 180
-    repo = Path(__file__).resolve().parents[2]
-    checkpoint = repo / "docs" / "development" / "extension-checkpoint.md"
-    if not checkpoint.exists():  # pragma: no cover - absent from a wheel
-        pytest.skip("development documentation is not shipped in this distribution")
-    text = checkpoint.read_text(encoding="utf-8")
-    assert f"**{BASE_COMMIT_CONFIGURATIONS} configurations byte-identical**" in text
-    assert f"{FRAME_CONFIGURATIONS} on a bare score frame" in text
-    assert f"{RESULT_CONFIGURATIONS} on `ScoreResult`s" in text
-    status = (repo / "docs" / "development" / "extension-status.json").read_text(encoding="utf-8")
-    assert f"{BASE_COMMIT_CONFIGURATIONS} configurations byte-identical" in status
-    assert f"{FRAME_CONFIGURATIONS} on a bare score frame" in status
+
+
+@pytest.mark.parametrize("missing_git", [False, True])
+def test_missing_parity_history_fails_instead_of_skipping(monkeypatch, missing_git):
+    import subprocess
+
+    def unavailable(*args, **kwargs):
+        if missing_git:
+            raise FileNotFoundError("git is unavailable")
+        return subprocess.CompletedProcess(args[0], 128, stdout="", stderr="missing base commit")
+
+    monkeypatch.setattr(subprocess, "run", unavailable)
+    with pytest.raises(pytest.fail.Exception, match="parity requires a full Git checkout"):
+        _base_prioritization_source()
 
 
 # ------------------------------- record qualifications reach the explanation

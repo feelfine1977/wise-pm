@@ -11,12 +11,20 @@ the instant the value became effective — and every use of it is an
 :class:`Allocation`: a named group taking a declared, non-negative *share*.
 :func:`allocate` then enforces the only rule that matters:
 
-    the shares of one record, over all groups, never exceed one.
+    the shares of one record, over all the groups of one :func:`allocate`
+    call, never exceed one.
+
+**One report is the unit of conservation**, and the qualifier above is not
+decoration: two separate :func:`allocate` calls can each grant a group the
+whole of the same record, because neither call can see the other's
+allocations. Reconcile in one call, or read the reports as the separate claims
+they are.
 
 A complete allocation has shares summing to one within a tolerance; an
 incomplete one is not an error, it is a **residual**, reported by record and in
 total. Negative shares, allocating one record twice inside one group and
-over-allocation are rejected outright.
+over-allocation are rejected outright, each carrying its
+:class:`AccountingIssueCode` on the raised :class:`~wise.errors.AccountingError`.
 
 What this contract is *not*
 ---------------------------
@@ -167,7 +175,15 @@ class Allocation:
 
 
 class AccountingIssueCode(str, Enum):
-    """What :func:`allocate` refused, or what it is telling you about."""
+    """What :func:`allocate` refused, or what it is telling you about.
+
+    Every member has a producer. The first six travel on a raised
+    :class:`~wise.errors.AccountingError` as its ``code``, because those six
+    conditions are refusals rather than findings; only
+    :attr:`INCOMPLETE_ALLOCATION` is reported, as an :class:`AccountingIssue`
+    on the returned report. A declared code that nothing builds is a promise
+    the module does not keep, so a member added here needs a producer with it.
+    """
 
     NEGATIVE_SHARE = "negative_share"
     DUPLICATE_CONSUMPTION = "duplicate_consumption"
@@ -248,7 +264,7 @@ class AllocationReport:
         try:
             return self._by_record[str(record_id)]
         except KeyError:
-            raise AccountingError(f"unknown record {record_id!r}") from None
+            raise AccountingError(f"unknown record {record_id!r}", code=AccountingIssueCode.UNKNOWN_RECORD) from None
 
     def records_of(self, group: str) -> tuple[str, ...]:
         """The distinct records one group draws on, sorted."""
@@ -316,14 +332,21 @@ class AllocationReport:
         evidence = float(sum(self.record(rid).amount for rid in touched))
         allocated = float(sum(self.allocated[g] for g in chosen))
         qualifications: list[Qualification] = []
-        if naive > evidence + self.tolerance:
+        difference = naive - evidence
+        # magnitude, not direction. A shared credit note makes the naive sum
+        # *smaller* than the evidence, so ``naive > evidence`` skipped the whole
+        # family of returns, reversals and credit notes — exactly where a double
+        # count is hardest to spot by eye.
+        if abs(difference) > self.tolerance:
+            direction = "overstating" if difference > 0 else "understating"
             qualifications.append(
                 Qualification(
                     QualificationCode.OVERLAPPING_GROUPS_NOT_SUMMED,
                     f"groups {list(chosen)} share evidence: if each of them claimed the full value of every record it "
                     f"touches, the pair would report {naive:,.2f} {self.unit} where the evidence is worth "
-                    f"{evidence:,.2f} {self.unit}. The difference of {naive - evidence:,.2f} is one amount counted "
-                    f"twice, not a second amount; the conserved figure is the allocated {allocated:,.2f} {self.unit}",
+                    f"{evidence:,.2f} {self.unit}. The difference of {difference:,.2f} {self.unit} is one amount "
+                    f"counted twice, not a second amount, {direction} the combined total; the conserved figure is "
+                    f"the allocated {allocated:,.2f} {self.unit}",
                     scope="group",
                 )
             )
@@ -422,7 +445,8 @@ def allocate(
             raise AccountingError(
                 f"record id {record.record_id!r} is claimed by two different values "
                 f"({previous.amount} {previous.unit} and {record.amount} {record.unit}); "
-                "a canonical identity is an identity, not a label"
+                "a canonical identity is an identity, not a label",
+                code=AccountingIssueCode.DUPLICATE_RECORD_ID,
             )
         seen[record.record_id] = record
     kept = tuple(seen.values())
@@ -438,18 +462,21 @@ def allocate(
         if entry.record_id not in known:
             raise AccountingError(
                 f"allocation {entry.group!r} names record {entry.record_id!r}, which is not among the "
-                f"{len(known)} record(s) supplied; an allocation cannot create the amount it consumes"
+                f"{len(known)} record(s) supplied; an allocation cannot create the amount it consumes",
+                code=AccountingIssueCode.UNKNOWN_RECORD,
             )
         if entry.share < 0:
             raise AccountingError(
                 f"allocation {entry.group!r} of {entry.record_id!r} has share {entry.share}; "
-                "a negative share is a credit note, and netting one needs a declared rule"
+                "a negative share is a credit note, and netting one needs a declared rule",
+                code=AccountingIssueCode.NEGATIVE_SHARE,
             )
         key = (entry.group, entry.record_id)
         if key in per_group_records:
             raise AccountingError(
                 f"group {entry.group!r} consumes record {entry.record_id!r} twice; "
-                "one source amount must not be repeatedly consumed in the same reconciliation"
+                "one source amount must not be repeatedly consumed in the same reconciliation",
+                code=AccountingIssueCode.DUPLICATE_CONSUMPTION,
             )
         per_group_records[key] = entry
         consumed[entry.record_id] = consumed.get(entry.record_id, 0.0) + entry.share
@@ -463,7 +490,8 @@ def allocate(
             raise AccountingError(
                 f"record {record.record_id!r} is allocated {taken:.6f} of itself across "
                 f"{sum(1 for (_, rid) in per_group_records if rid == record.record_id)} group(s); "
-                "over-allocation means the same amount is counted more than once"
+                "over-allocation means the same amount is counted more than once",
+                code=AccountingIssueCode.OVER_ALLOCATION,
             )
         if taken < 1.0 - tolerance:
             residual[record.record_id] = (1.0 - taken) * record.amount
@@ -479,7 +507,8 @@ def allocate(
         if require_complete:
             raise AccountingError(
                 f"a complete allocation was required but {len(residual)} record(s) are short by "
-                f"{sum(residual.values()):,.2f} {target_unit}; allocate the remainder or accept the residual"
+                f"{sum(residual.values()):,.2f} {target_unit}; allocate the remainder or accept the residual",
+                code=AccountingIssueCode.INCOMPLETE_ALLOCATION,
             )
     return AllocationReport(
         records=kept,
@@ -504,23 +533,36 @@ def _one_unit(
         if len(units) > 1:
             raise AccountingError(
                 f"records are in {units} and no conversion was declared; adding them would invent an exchange rate. "
-                "Pass rates={'USD': 0.92, ...} with a target unit, or reconcile each unit separately"
+                "Pass rates={'USD': 0.92, ...} with a target unit, or reconcile each unit separately",
+                code=AccountingIssueCode.MIXED_UNITS,
             )
         if unit is not None and unit != units[0]:
-            raise AccountingError(f"records are in {units[0]!r} but the target unit is {unit!r} and no rate was declared")
+            raise AccountingError(
+                f"records are in {units[0]!r} but the target unit is {unit!r} and no rate was declared",
+                code=AccountingIssueCode.MIXED_UNITS,
+            )
         return tuple(records), units[0]
     if unit is None:
-        raise AccountingError("a conversion rate table needs the unit it converts to; pass unit=...")
+        raise AccountingError(
+            "a conversion rate table needs the unit it converts to; pass unit=...",
+            code=AccountingIssueCode.MIXED_UNITS,
+        )
     converted: list[QuantityRecord] = []
     for record in records:
         if record.unit == unit:
             converted.append(record)
             continue
         if record.unit not in rates:
-            raise AccountingError(f"no declared rate from {record.unit!r} to {unit!r} for record {record.record_id!r}")
+            raise AccountingError(
+                f"no declared rate from {record.unit!r} to {unit!r} for record {record.record_id!r}",
+                code=AccountingIssueCode.MIXED_UNITS,
+            )
         rate = float(rates[record.unit])
         if not math.isfinite(rate) or rate <= 0:
-            raise AccountingError(f"the declared rate from {record.unit!r} to {unit!r} must be finite and positive")
+            raise AccountingError(
+                f"the declared rate from {record.unit!r} to {unit!r} must be finite and positive",
+                code=AccountingIssueCode.MIXED_UNITS,
+            )
         converted.append(
             QuantityRecord(
                 record_id=record.record_id,

@@ -25,9 +25,9 @@ interface, approve a rule, or make a report drop a mandatory qualification.
 Nothing here runs at import, and there is no optional dependency to install
 for the code in this package: the transport is :mod:`urllib.request` and the
 schema validator is written out, so ``import wise.llm`` contacts nothing,
-starts nothing and downloads nothing. The ``[llm]`` extra exists for
-applications that want a richer HTTP client or a JSON-Schema library of their
-own; the library never requires it.
+starts nothing and downloads nothing. There is no ``[llm]`` extra;
+applications needing another HTTP client or a general JSON-Schema library
+declare those dependencies themselves.
 
 Usage::
 

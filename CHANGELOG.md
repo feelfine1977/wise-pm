@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Development consolidation
+
+- Identify extension builds as `0.1.1.dev0` through the single version source;
+  the classic `0.1.0` release and default case workflow are preserved.
+- Run feature-branch CI with full history and offline boundary checks;
+  missing parity history now fails instead of skipping.
+- Remove the unused `llm` extra (`httpx`, `jsonschema`). The assistance
+  boundary uses the standard library; applications declare their own extras.
+- Consolidate native object evidence/manifests, evaluation budgets, shared
+  unit-aware helpers, accounting reason codes and the fixed transport route
+  allowlist, with regression tests.
+- Add recorded assistance scenarios and sampling, parameter and construction
+  rank sensitivity. These measure boundary behavior and specified variation;
+  they do not establish live-model quality or field-study outcomes.
+- Replace the stale status with a capability matrix and retain labelled
+  historical validation records. See `docs/capabilities.md` for remaining gaps.
+
 ### Added — evidence, run records and fitted references (experimental, opt-in)
 
 - `wise.evidence`: typed evaluation records, witnesses, qualifications and
@@ -253,7 +270,8 @@ All notable changes to this project are documented here. The format follows
   `UNSAFE_RECIPE_KINDS` as module constants — one maintained table that
   `validate_recipe`, `wise.schema` and the untrusted path all read. Trusted
   `eval` recipes are unchanged and still work.
-- An optional `[llm]` extra, `examples/local_review.py`,
+- An optional `[llm]` extra (subsequently removed in the development
+  consolidation above), `examples/local_review.py`,
   `examples/review_norm_draft.py`, `docs/security/local-assistant.md`, the
   `live_llm` pytest marker, and the opt-in `tests/extensions/test_live_ollama.py`
   (skipped unless `WISE_OLLAMA_LIVE=1`).

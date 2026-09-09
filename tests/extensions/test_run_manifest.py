@@ -280,3 +280,61 @@ def test_json_refuses_an_unsupported_type_rather_than_stringifying_it(log, norm)
     )
     with pytest.raises(EvidenceError, match="no conversion policy"):
         broken.to_json()
+
+
+# ------------------------------------------------- the object run's own unit type
+def object_run():
+    """The running example as an object log, scored natively (5 ``case_review`` units)."""
+    from _oc_fixtures import case_shaped, case_shaped_spec, legacy_object_norm
+
+    from wise import oc
+
+    oc_log = case_shaped()
+    spec = case_shaped_spec()
+    units = oc.build_units(oc_log, spec)
+    return oc.score_units(oc_log, legacy_object_norm("flat"), units, spec=spec)
+
+
+def test_an_object_run_records_its_own_unit_type():
+    """An object run joins the run-record contract instead of being refused by it.
+
+    ``RunManifest.unit_type`` was ``"case"`` by construction, and both
+    :func:`wise.evidence.capture_evidence` and :func:`wise.explain_priority`
+    refused an :class:`~wise.oc.evaluation.OCScoreResult` by type — so the one
+    kind of run that has a unit type other than ``case`` was the one kind that
+    could not say so.
+    """
+    from wise.evidence import capture_evidence
+
+    result = object_run()
+    manifest = result.manifest
+    assert manifest is not None
+    assert manifest.unit_type == "case_review"
+    assert manifest.stage == "score" and manifest.priority is None
+    assert manifest.run_id == result.run_id
+    assert manifest.norm_fingerprint == result.norm.fingerprint()
+    assert manifest.views == ("Finance", "Logistics")
+    assert manifest.preprocessing["input_model"] == "object_centric"
+    assert manifest.preprocessing["n_units"] == 5
+    assert manifest.input.n_cases is None, "an object log has no case table to count"
+    assert manifest.input.n_events == 21
+    assert manifest.input.n_objects == 5 + 8, "five case objects and the eight goods receipts"
+    assert json.loads(manifest.to_json())["unit_type"] == "case_review"
+
+    packet = capture_evidence(result)
+    assert packet.unit_type == "case_review"
+    assert packet.manifest.unit_type == "case_review"
+    assert packet.coverage.unit_type == "case_review"
+    assert {r.unit_type for r in packet.records} == {"case_review"}
+    assert packet.run_id == result.run_id
+
+    explanation = wise.explain_priority(result, "n_bound", 1, view="Finance", evidence=packet)
+    assert explanation.unit_type == "case_review"
+    assert explanation.run_id == result.run_id
+    assert explanation.priority.n_units == 4
+    assert explanation.run["unit_type"] == "case_review"
+
+    # the control: a case run still says exactly what it always said
+    case_manifest = wise.score(wise.datasets.running_p2p_log(), wise.datasets.running_p2p_norm()).manifest
+    assert case_manifest.unit_type == "case"
+    assert case_manifest.input.n_cases == 5 and case_manifest.input.n_objects is None

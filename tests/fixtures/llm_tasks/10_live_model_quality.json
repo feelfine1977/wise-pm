@@ -1,0 +1,11 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "10_live_model_quality",
+  "family": "live_model",
+  "policy": "whole_run",
+  "ask": "How well does an installed local model order the facts of this packet?",
+  "expected_outcome": "served",
+  "requires_env": "ALLOW_LIVE_LLM_TESTS",
+  "replies": [],
+  "notes": "Measured quality needs a model. This harness contacts nothing, so the scenario is skipped with its variable named; running it needs both ALLOW_LIVE_LLM_TESTS and a live_provider= the caller builds. A skipped scenario is neither a pass nor a failure and is counted on its own."
+}

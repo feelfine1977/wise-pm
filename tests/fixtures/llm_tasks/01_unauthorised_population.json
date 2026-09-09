@@ -1,0 +1,20 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "01_unauthorised_population",
+  "family": "unauthorised_population",
+  "policy": "other_slice",
+  "ask": "A principal who holds only company A's rows asks for the explanation of company B.",
+  "expected_outcome": "refused",
+  "replies": [
+    "{\"schema_version\": \"0.1-proposal\", \"calls\": [{\"tool\": \"explain_priority\", \"arguments\": {}}]}"
+  ],
+  "expected_markers": [
+    "AccessDenied",
+    "authorised for no unit"
+  ],
+  "forbidden_markers": [
+    "0.7098333333333334",
+    "PRI-population_mean"
+  ],
+  "notes": "The forbidden marker is the company-wide mean over all five scored cases. L3 served it to any principal holding the scope, the run and the view; L4's R1 closed that. A refusal that still leaked the number into the audit trail would fail here."
+}

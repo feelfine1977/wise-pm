@@ -32,16 +32,6 @@ dependencies = [
 [project.optional-dependencies]
 pm4py = ["pm4py>=2.7"]
 stats = ["scipy>=1.10"]
-# Local read-only assistance. `wise.llm` itself needs NONE of these: its
-# transport is urllib.request and its schema check is written out, so the base
-# install can already drive a local model and validate a draft. The extra
-# exists so an application that wants a richer HTTP client or a full
-# JSON-Schema implementation alongside the library pins reviewed, Python
-# 3.10-compatible ranges rather than choosing its own.
-llm = [
-  "httpx>=0.27,<1.0",
-  "jsonschema>=4.21,<5",
-]
 dev = [
   "pytest>=8",
   "pytest-cov",

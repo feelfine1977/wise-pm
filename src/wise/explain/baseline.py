@@ -47,6 +47,7 @@ from ..errors import NormError
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..norm import Norm
+    from ..oc.evaluation import OCScoreResult
     from ..scoring import ScoreResult
 
 #: Version of the comparator contract exported by :meth:`BaselineSpec.to_dict`.
@@ -133,7 +134,9 @@ class AssessmentContext:
         object.__setattr__(self, "calibrations", tuple(sorted(str(c) for c in self.calibrations)))
 
     @classmethod
-    def from_result(cls, result: ScoreResult, view: str | None = None, *, unit_type: str | None = None) -> AssessmentContext:
+    def from_result(
+        cls, result: ScoreResult | OCScoreResult, view: str | None = None, *, unit_type: str | None = None
+    ) -> AssessmentContext:
         """The context of a scored result under one view.
 
         ``unit_type`` is the unit the *caller* declares the scored rows to be.
@@ -143,8 +146,9 @@ class AssessmentContext:
         contradicted.
         """
         calibrations: tuple[str, ...] = ()
-        if result.manifest is not None:
-            calibrations = tuple(str(c.get("calibration_id", "")) for c in result.manifest.calibrations)
+        manifest = result.manifest
+        if manifest is not None:
+            calibrations = tuple(str(c.get("calibration_id", "")) for c in manifest.calibrations)
         return cls(
             view=view,
             scoring_mode=result.mode,
@@ -378,7 +382,7 @@ class BaselineSpec:
     @classmethod
     def from_result(
         cls,
-        result: ScoreResult,
+        result: ScoreResult | OCScoreResult,
         view: str | None = None,
         *,
         baseline_id: str | None = None,
@@ -425,6 +429,25 @@ class BaselineSpec:
     def scalar_only(self) -> bool:
         """True when no layer profile is available, so no additive attribution is."""
         return self.reference_layer_penalties is None
+
+    @property
+    def moves_with_the_population(self) -> bool:
+        """Whether resampling the assessed population moves this comparator too.
+
+        A current-population comparator is a statistic *of the very units being
+        resampled*, so a replicate that keeps it fixed understates the spread of
+        every gap measured against it. A historical or target comparator was
+        fixed by an earlier decision — last period's run, a board target — and
+        recomputing it inside a replicate would absorb uncertainty that
+        comparison does not have. The distinction is not a tuning knob; it is
+        which of two different questions the interval is about.
+
+        >>> BaselineSpec.current_population(baseline_id="c").moves_with_the_population
+        True
+        >>> BaselineSpec.target(0.95, baseline_id="board").moves_with_the_population
+        False
+        """
+        return self.kind is BaselineKind.CURRENT_POPULATION
 
     @property
     def layer_ids(self) -> tuple[str, ...]:
@@ -777,7 +800,7 @@ def resolve_baseline(
     )
 
 
-def _one_view(result: ScoreResult, view: str | None) -> str:
+def _one_view(result: ScoreResult | OCScoreResult, view: str | None) -> str:
     if view is not None:
         if view not in result.views:
             raise BaselineError(f"unknown view {view!r}; available: {result.views}")

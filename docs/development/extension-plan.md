@@ -1,4 +1,10 @@
-# Extension plan — evidence, explanation and optional local assistance
+# Historical foundation design and baseline contract
+
+This document preserves the original S0–S2 scope and baseline observations.
+Statements about future stages refer to that design point, not current support.
+See [capabilities and limitations](../capabilities.md) for the current library,
+including implemented S6 boundary evaluation and rank sensitivity. The pinned
+classic baseline facts and numerical tolerances below remain the reference.
 
 Status: **development branch only.** Nothing in this document describes a
 released capability, a published version or an evaluated research result. The

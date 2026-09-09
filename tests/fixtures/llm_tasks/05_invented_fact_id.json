@@ -1,0 +1,18 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "05_invented_fact_id",
+  "family": "invented_reference",
+  "policy": "whole_run",
+  "ask": "A well-formed draft orders a fact id this packet does not have.",
+  "expected_outcome": "refused",
+  "replies": [
+    "{\"schema_version\": \"0.1-proposal\", \"calls\": []}",
+    "{\"schema_version\": \"0.1-proposal\", \"packet_id\": \"ignored-by-the-reader\", \"fact_order\": [\"OBS-mean_score\", \"OBS-invented_by_the_model\"], \"hypotheses\": [], \"questions\": [], \"limitations\": []}"
+  ],
+  "expected_markers": [
+    "OBS-invented_by_the_model",
+    "are not facts of this packet"
+  ],
+  "forbidden_markers": [],
+  "notes": "Valid JSON with invented references. Structure is not truth: the draft parses and is then refused on reference, and the deterministic report is rendered regardless."
+}

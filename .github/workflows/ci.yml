@@ -2,14 +2,21 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "feat/**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
   PYTHONUTF8: "1"
+  # Runtime checks are offline. Dependency installation is a separate setup step.
+  WISE_OLLAMA_LIVE: "0"
+  WISE_OLLAMA_MODEL: ""
+  WISE_BPIC19_CSV: ""
+  WISE_OCEL2_JSON: ""
+  WISE_OCEL2_SQLITE: ""
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -31,6 +38,8 @@ jobs:
           - { os: windows-latest, python: "3.12", deps: "", experimental: false }
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
@@ -39,13 +48,22 @@ jobs:
       - run: python -m pip install -e ".[dev,stats]"
       - if: matrix.deps != ''
         run: python -m pip install ${{ matrix.deps }}
-      - run: python -m pytest --cov=wise --cov-report=term-missing
+      - name: Require immutable parity reference
+        run: |
+          git cat-file -e df5db50b839cc124b489a269894f5a2bfe7dc634:src/wise/prioritization.py
+          python -c "import hashlib, pathlib; p = pathlib.Path('tests/extensions/test_baseline_contract.py'); assert hashlib.sha256(p.read_bytes()).hexdigest() == 'a47445b232fe3b3626e7bf8c788a918dfd813aba4d978164060f1b1a975dda5b'"
+      - name: Offline suite, including contract and parity checks
+        run: python -m pytest -ra --cov=wise --cov-report=term-missing
+      - name: Recorded assistance scenarios (no live provider)
+        run: python -c "from wise.evaluation.llm import load_tasks, run_tasks; r = run_tasks(load_tasks('tests/fixtures/llm_tasks'), env={}); print(r.render()); assert r.ok; assert len(r.outcomes) == 10 and len(r.skipped()) == 1"
       - run: python examples/quickstart.py
 
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -58,6 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -65,5 +85,5 @@ jobs:
       - run: python -m build
       - run: twine check --strict dist/*
       - run: python -m pip install dist/*.whl
-      - run: python -c "import wise, pathlib; assert pathlib.Path(wise.__file__).with_name('py.typed').exists(); print(wise.__version__)"
+      - run: python -c "import wise, pathlib; from importlib.metadata import version; assert pathlib.Path(wise.__file__).with_name('py.typed').exists(); assert version('wise-pm') == wise.__version__; assert '.dev' in wise.__version__; print(wise.__version__)"
       - run: wise validate examples/bpic19_norm.json

@@ -100,6 +100,36 @@ identifiers show what was looked at and not that the claim follows.
 proposal. Authorisation, the actor who gave it, and the audit trail belong to
 the application.
 
+## Checking that the boundary holds, offline
+
+`wise.evaluation.llm` is a harness for the guarantees above. A scenario is
+recorded material — a reply a model once produced, a document somebody wrote, a
+stale fingerprint — plus the outcome this document declares for it. The runner
+puts each one through the real gateway, the real access policy, the real draft
+reader and the real evidence packet, and reports what was asked, what happened,
+and whether that is the declared behaviour:
+
+```python
+from wise.evaluation.llm import load_tasks, run_tasks
+
+report = run_tasks(load_tasks("tests/fixtures/llm_tasks"))
+print(report.render())
+assert report.ok
+```
+
+The shipped scenarios cover an unauthorised population, a re-derived
+comparator, an invented fact id, an unknown tool, a poisoned document, an
+oversize reply and a stale fingerprint in both places one exists — plus a
+**negative control** that is served whole, because a harness that refused
+everything would pass every refusal test.
+
+What it measures is the boundary, not a model, and the difference is the point:
+the answer does not change when the model does. It says nothing about quality,
+latency or whether a reviewer is better off. A scenario that would need a model
+declares `requires_env` and is skipped with that variable named; running it
+needs both the variable and a `live_provider=` the caller builds, because this
+module constructs no provider that can reach a network.
+
 ## The opt-in live path
 
 `tests/extensions/test_live_ollama.py` is the only file that can contact a

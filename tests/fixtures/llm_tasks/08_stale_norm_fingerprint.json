@@ -1,0 +1,14 @@
+{
+  "schema_version": "wise-llm-task/1",
+  "task_id": "08_stale_norm_fingerprint",
+  "family": "stale_norm_fingerprint",
+  "policy": "whole_run",
+  "ask": "A draft written against a different norm is offered for preview.",
+  "expected_outcome": "refused",
+  "parent_norm_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "expected_markers": [
+    "stale parent is a conflict"
+  ],
+  "forbidden_markers": [],
+  "notes": "A03: a stale parent is a conflict to resolve, never permission to patch a different norm."
+}
