@@ -6,7 +6,7 @@ Thanks for your interest in improving `wise`.
 
 ```bash
 git clone https://github.com/feelfine1977/wise-pm.git   # or your fork
-cd wise-lib
+cd wise-pm
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pre-commit install          # optional: runs ruff on every commit
