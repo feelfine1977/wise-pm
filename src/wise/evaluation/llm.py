@@ -68,7 +68,9 @@ Usage::
 from __future__ import annotations
 
 import json
+import math
 import os
+import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -128,8 +130,11 @@ class RecordedTask:
     ``documents`` are constructor arguments for
     :class:`~wise.llm.retrieval.ApprovedDocument`, and ``expected_markers`` /
     ``forbidden_markers`` are substrings that must, and must not, appear in the
-    serialised transcript of what happened — which is how a scenario asserts
-    that a population mean did *not* travel.
+    serialised transcript of what happened. Finite numeric markers match whole
+    number tokens with absolute tolerance 1e-12 (zero relative tolerance), in
+    both JSON values and rendered text. The same rule checks required and
+    forbidden numbers, so a platform-specific last bit cannot hide a leaked
+    population mean. Other markers remain literal substrings.
     """
 
     task_id: str
@@ -605,10 +610,26 @@ HANDLERS: dict[str, Handler] = {
 
 
 # --------------------------------------------------------------------- runner
+_NUMBER_TOKEN = re.compile(r"(?<![\w.])[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![\w.])")
+
+
+def _marker_present(marker: str, transcript: str) -> bool:
+    """Compare numbers as numbers, including when a report renders them as text."""
+    if _NUMBER_TOKEN.fullmatch(marker):
+        expected = float(marker)
+        if math.isfinite(expected):
+            return any(
+                math.isclose(float(match.group()), expected, rel_tol=0.0, abs_tol=1e-12)
+                for match in _NUMBER_TOKEN.finditer(transcript)
+            )
+    return marker in transcript
+
+
 def _markers(task: RecordedTask, transcript: str) -> str:
     """Which declared markers are missing, and which forbidden ones appeared."""
-    missing = [m for m in task.expected_markers if m not in transcript]
-    leaked = [m for m in task.forbidden_markers if m in transcript]
+    missing = [m for m in task.expected_markers if not _marker_present(m, transcript)]
+    # Retain every literal leak the original check caught; also catch numeric variants.
+    leaked = [m for m in task.forbidden_markers if m in transcript or _marker_present(m, transcript)]
     parts = []
     if missing:
         parts.append(f"expected marker(s) absent from what happened: {missing}")

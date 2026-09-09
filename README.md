@@ -157,7 +157,7 @@ Examples may write local output files; `quickstart.py` writes the shipped norm.
 
 Keep `WISE_BPIC19_CSV`, `WISE_OCEL2_JSON`, `WISE_OCEL2_SQLITE`,
 `WISE_OLLAMA_LIVE` and `WISE_OLLAMA_MODEL` unset for offline source tests.
-CI fetches full history, checks the immutable baseline contract, runs the offline
+CI fetches full history, checks the [pinned baseline contract](docs/development/baseline-contract.md), runs the offline
 suite and recorded scenarios, and checks lint, types and wheel metadata.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development commands.
 

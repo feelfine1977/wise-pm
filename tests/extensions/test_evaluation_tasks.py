@@ -33,6 +33,7 @@ from wise.evaluation.llm import (
     Outcome,
     RecordedTask,
     Status,
+    _markers,
     load_tasks,
     run_tasks,
 )
@@ -149,6 +150,32 @@ def test_a_leaked_forbidden_marker_fails_even_when_the_outcome_matches(tasks, ma
     assert not broken.ok
     detail = broken.of("03_authorised_population").detail
     assert "forbidden marker(s) present" in detail and "0.7098333333333334" in detail
+
+
+@pytest.mark.parametrize("value", ["0.7098333333333334", "0.7098333333333333", "7.098333333333333e-1"])
+@pytest.mark.parametrize("template", ['{"baseline": %s}', '{"report": "baseline is %s"}'])
+def test_numeric_markers_detect_both_required_and_forbidden_platform_representations(tasks, value, template):
+    task = next(t for t in tasks if t.task_id.startswith("03_"))
+    marker = "0.7098333333333334"
+    transcript = template % value
+    required = dataclasses.replace(task, expected_markers=(marker,), forbidden_markers=())
+    assert _markers(required, transcript) == ""
+    forbidden = dataclasses.replace(task, expected_markers=(), forbidden_markers=(marker,))
+    assert "forbidden marker(s) present" in _markers(forbidden, transcript)
+
+
+@pytest.mark.parametrize("value", ["0.64", "0.7098333333", "10.7098333333333334", "id0.7098333333333334", "null", "NaN"])
+def test_a_missing_or_different_number_cannot_satisfy_a_numeric_marker(tasks, value):
+    task = next(t for t in tasks if t.task_id.startswith("03_"))
+    required = dataclasses.replace(task, expected_markers=("0.7098333333333334",), forbidden_markers=())
+    assert "expected marker(s) absent" in _markers(required, value)
+
+
+@pytest.mark.parametrize("transcript", ["id0.7098333333333334", "10.7098333333333334"])
+def test_literal_forbidden_markers_remain_detectable_even_inside_larger_tokens(tasks, transcript):
+    task = next(t for t in tasks if t.task_id.startswith("03_"))
+    forbidden = dataclasses.replace(task, expected_markers=(), forbidden_markers=("0.7098333333333334",))
+    assert "forbidden marker(s) present" in _markers(forbidden, transcript)
 
 
 def test_a_missing_expected_marker_fails_too(tasks, material):

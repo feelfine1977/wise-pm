@@ -1,0 +1,2 @@
+# Keep text checkout bytes stable, including the immutable parity contract.
+* text=auto eol=lf

@@ -63,6 +63,13 @@
       ]
     }
   },
+  "current_contract": {
+    "path": "tests/extensions/test_baseline_contract.py",
+    "revision": 2,
+    "sha256": "f66d8dd3827871462e21176a52ef9b959876d83d73ca54f7e57a0972c204e243",
+    "tests": 44,
+    "revision_record": "baseline-contract.md"
+  },
   "historical_baseline": {
     "base_commit": "df5db50b839cc124b489a269894f5a2bfe7dc634",
     "captured_identities": {

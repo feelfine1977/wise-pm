@@ -456,7 +456,7 @@ class CrossObjectLag(ObjectCheck):
             raise OCConstraintError("cross-object lag: censoring an open item needs a delta to censor against")
 
     def roles(self) -> tuple[str, ...]:
-        return tuple(dict.fromkeys(r for r in (self.activation.role, self.response.role) if r not in (None, ANCHOR)))
+        return tuple(dict.fromkeys(r for r in (self.activation.role, self.response.role) if r is not None and r != ANCHOR))
 
     def params(self) -> dict[str, Any]:
         out = super().params()
@@ -759,7 +759,7 @@ class RelationalBalance(ObjectCheck):
             raise OCConstraintError("relational balance: on_missing must be 'skip' or 'violate'")
 
     def roles(self) -> tuple[str, ...]:
-        return tuple(dict.fromkeys(r for r in (self.left.role, self.right.role) if r not in (None, ANCHOR)))
+        return tuple(dict.fromkeys(r for r in (self.left.role, self.right.role) if r is not None and r != ANCHOR))
 
     def params(self) -> dict[str, Any]:
         out = super().params()

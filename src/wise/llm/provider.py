@@ -174,7 +174,9 @@ class ProviderResult:
 
     @property
     def ok(self) -> bool:
-        """>>> ProviderResult(ProviderStatus.UNAVAILABLE).ok
+        """Whether the request completed successfully.
+
+        >>> ProviderResult(ProviderStatus.UNAVAILABLE).ok
         False
         """
         return self.status is ProviderStatus.OK

@@ -4,6 +4,9 @@ This is the preserved validation record from the foundation, object-centric and
 local-assistance implementation cycles, before the evaluation harness and rank
 sensitivity work. Counts, environments, fingerprints and timings below describe
 those runs; they are not current test totals or release certification.
+The original contract bytes and digest recorded below describe v1. See
+[the current contract revision](baseline-contract.md) for the documented portability
+correction; the historical results below are preserved.
 
 The reference is classic commit `df5db50b839cc124b489a269894f5a2bfe7dc634`.
 The immutable 44-test contract is

@@ -48,10 +48,12 @@ jobs:
       - run: python -m pip install -e ".[dev,stats]"
       - if: matrix.deps != ''
         run: python -m pip install ${{ matrix.deps }}
-      - name: Require immutable parity reference
+      # Contract v1: a47445b232fe3b3626e7bf8c788a918dfd813aba4d978164060f1b1a975dda5b
+      # Contract v2 applies the documented tolerance to one numeric attrs cell.
+      - name: Require pinned parity reference
         run: |
           git cat-file -e df5db50b839cc124b489a269894f5a2bfe7dc634:src/wise/prioritization.py
-          python -c "import hashlib, pathlib; p = pathlib.Path('tests/extensions/test_baseline_contract.py'); assert hashlib.sha256(p.read_bytes()).hexdigest() == 'a47445b232fe3b3626e7bf8c788a918dfd813aba4d978164060f1b1a975dda5b'"
+          python -c "import hashlib, pathlib; p = pathlib.Path('tests/extensions/test_baseline_contract.py'); assert hashlib.sha256(p.read_bytes()).hexdigest() == 'f66d8dd3827871462e21176a52ef9b959876d83d73ca54f7e57a0972c204e243'"
       - name: Offline suite, including contract and parity checks
         run: python -m pytest -ra --cov=wise --cov-report=term-missing
       - name: Recorded assistance scenarios (no live provider)

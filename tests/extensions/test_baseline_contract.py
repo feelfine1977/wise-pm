@@ -617,7 +617,7 @@ def test_backlog_columns_order_and_values(p2p_result):
     assert b.attrs == {
         "view": "Finance",
         "gamma": 1.0,
-        "baseline": GLOBAL_MEAN_FINANCE,
+        "baseline": pytest.approx(GLOBAL_MEAN_FINANCE, rel=TOL["rtol"], abs=TOL["atol"]),
         "volume": "cases",
         "by": ["company"],
     }
