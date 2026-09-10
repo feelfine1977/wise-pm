@@ -211,7 +211,8 @@ def _run(args: argparse.Namespace) -> int:
             min_cases=args.min_cases,
             baseline_spec=spec,
         )
-        text = backlog.reset_index().to_csv(index=False)
+        # Let the destination text stream translate newlines exactly once.
+        text = backlog.reset_index().to_csv(index=False, lineterminator="\n")
         if args.out == "-":
             sys.stdout.write(text)
         else:

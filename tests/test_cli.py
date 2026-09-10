@@ -1,6 +1,12 @@
 """Command-line interface."""
 
+import contextlib
+import csv
+import io
+import os
+
 import pandas as pd
+import pytest
 
 import wise
 from wise.cli import main
@@ -57,3 +63,77 @@ def test_check_and_score(tmp_path, capsys):
         == 1
     )
     assert "error:" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["posix", "windows"])
+@pytest.mark.parametrize("destination", ["stdout", "file"])
+@pytest.mark.parametrize("company", ["B", 'B,\n"branch"'], ids=["plain", "quoted-multiline"])
+def test_score_csv_has_no_double_translation(tmp_path, monkeypatch, newline, destination, company):
+    events = wise.running_p2p_events()
+    events.loc[events["company"] == "B", "company"] = company
+    log, norm = _files(tmp_path)
+    events.to_csv(log, index=False, lineterminator="\n")
+    output = tmp_path / "backlog.csv"
+    original_open = open
+
+    def output_stream():
+        return io.TextIOWrapper(original_open(output, "wb"), encoding="utf-8", newline=newline)
+
+    def translated_open(path, mode="r", *args, **kwargs):
+        if path == str(output) and mode == "w":
+            return output_stream()
+        return original_open(path, mode, *args, **kwargs)
+
+    args = [
+        "score",
+        str(norm),
+        str(log),
+        "--case",
+        "case",
+        "--activity",
+        "activity",
+        "--timestamp",
+        "time",
+        "--attr",
+        "company",
+        "--attr",
+        "flow_type",
+        "--by",
+        "company",
+        "--view",
+        "Finance",
+        "--gamma",
+        "1",
+    ]
+    # Exercise the real CLI with both Windows newline defaults: pandas' CSV
+    # terminator and a translating TextIOWrapper. No CSV/scoring function is mocked.
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "linesep", newline)
+        if destination == "stdout":
+            with output_stream() as stream, contextlib.redirect_stdout(stream):
+                assert main(args) == 0
+        else:
+            patch.setattr("builtins.open", translated_open)
+            assert main([*args, "--out", str(output)]) == 0
+
+    payload = output.read_bytes()
+    assert b"\r\r\n" not in payload
+    # newline='' preserves the bytes' newline forms inside quoted fields;
+    # csv.reader must see exactly a header and two records, without filtering blanks.
+    rows = list(csv.reader(io.StringIO(payload.decode("utf-8"), newline="")))
+    assert len(rows) == 3
+    assert rows[0] == [
+        "company",
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean",
+    ]
+    assert rows[1][:2] == [company.replace("\n", newline), "3"]
+    assert rows[2][:2] == ["A", "2"]
+    assert all(len(row) == len(rows[0]) for row in rows)
