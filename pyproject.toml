@@ -7,8 +7,8 @@ name = "wise-pm"
 dynamic = ["version"]
 description = "WISE: norm-based, slice-first prioritisation of process deviations from event logs"
 readme = "README.md"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "MIT AND PolyForm-Noncommercial-1.0.0"
+license-files = ["LICENSE", "LICENSE-MIT", "NOTICE", "COMMERCIAL_LICENSING.md"]
 requires-python = ">=3.10"
 authors = [{ name = "Urszula Jessen" }]
 keywords = ["process mining", "conformance checking", "prioritisation", "event log", "decision support", "BPIC"]

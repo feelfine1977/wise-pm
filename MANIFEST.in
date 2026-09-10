@@ -1,4 +1,4 @@
-include LICENSE README.md CHANGELOG.md CITATION.cff
+include LICENSE LICENSE-MIT NOTICE COMMERCIAL_LICENSING.md README.md CHANGELOG.md CITATION.cff
 recursive-include docs *.md *.json
 recursive-include examples *.py *.json
 recursive-include tests *.py

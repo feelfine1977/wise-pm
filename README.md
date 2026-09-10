@@ -173,4 +173,8 @@ Read the [evidence semantics](docs/semantics/evidence.md),
 [explanation semantics](docs/semantics/explanation.md),
 [object-centric semantics](docs/semantics/object_centric.md) and
 [assistance boundary](docs/security/local-assistant.md).
-WISE is MIT licensed; see [LICENSE](LICENSE) and [CITATION.cff](CITATION.cff).
+Prospective rights-controlled additions use [PolyForm Noncommercial 1.0.0](LICENSE).
+Pre-policy material, including the publicly offered actionability baseline,
+remains available under [MIT](LICENSE-MIT). See
+[prospective scope and commercial permission](COMMERCIAL_LICENSING.md)
+and [CITATION.cff](CITATION.cff).
