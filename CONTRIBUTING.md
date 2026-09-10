@@ -27,3 +27,19 @@ pytest
 ## Releasing
 
 See `docs/PUBLISHING.md`.
+
+## Licensing of prospective contributions
+
+Read [COMMERCIAL_LICENSING.md](COMMERCIAL_LICENSING.md) before submitting.
+Rights-controlled additions from adoption of that policy use PolyForm
+Noncommercial 1.0.0; pre-existing MIT material keeps its original permissions.
+Identify pre-existing or third-party material and retain its licences and
+attributions. Disclose any employer, university or other approval required for
+the proposed grant; do not assume that authorship alone establishes authority.
+
+Submission under the repository policy does not transfer ownership or grant a
+separate commercial exception. Before accepting work intended for a separately
+licensed commercial offering, the maintainer must establish and document the
+necessary permissions from the relevant rights holder(s), using a separate
+agreement where needed. This contribution guide is not a CLA and makes no
+claim that commercial relicensing rights have already been secured.

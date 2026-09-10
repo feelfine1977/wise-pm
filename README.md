@@ -132,6 +132,10 @@ or optimise an action roadmap. Applications own data preparation, norm approval,
 workflow and deployment. This classic runtime contains no object-centric or
 local-assistant API.
 
-MIT licensed: [LICENSE](LICENSE). Please cite the method using
-[CITATION.cff](CITATION.cff). See [CHANGELOG.md](CHANGELOG.md) and the
-[publishing guide](docs/PUBLISHING.md) for release history and procedure.
+Prospective rights-controlled additions use [PolyForm Noncommercial 1.0.0](LICENSE).
+Pre-policy material remains available under [MIT](LICENSE-MIT), including the
+pinned classic installation above. The new policy does not change that release.
+See [prospective scope and commercial permission](COMMERCIAL_LICENSING.md).
+Please cite the method using [CITATION.cff](CITATION.cff). See
+[CHANGELOG.md](CHANGELOG.md) and the [publishing guide](docs/PUBLISHING.md)
+for release history and procedure.
