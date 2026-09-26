@@ -4,6 +4,7 @@ Runs only when the environment variable ``WISE_BPIC19_CSV`` points to the
 challenge log; the file is not distributed with the package.
 """
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -31,6 +32,18 @@ def result():
     log = load(CSV)
     norm = wise.Norm.load(EXAMPLES / "bpic19_norm.json")
     return wise.score(log, norm)
+
+
+def test_content_hashes_match_the_recorded_oracle(result):
+    """Bit-level reproduction against tests/data/bpic19_oracle.json (recorded by scripts/record_bpic19_oracle.py)."""
+    oracle_path = Path(__file__).resolve().parent / "data" / "bpic19_oracle.json"
+    if not oracle_path.exists():
+        pytest.skip("no recorded oracle; run packages/wise-pm/scripts/record_bpic19_oracle.py with the CSV")
+    sys.path.insert(0, str(EXAMPLES.parent / "scripts"))
+    from record_bpic19_oracle import digests
+
+    oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+    assert digests(result) == oracle["digests"]
 
 
 def test_section_v_scores(result):

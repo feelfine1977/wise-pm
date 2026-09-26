@@ -24,8 +24,10 @@ is in the root `pyproject.toml`.
   an entry in `CHANGELOG.md` under *Unreleased*, and, when a public signature or
   output column changes, a refreshed contract snapshot (`make contract`).
 - Write the failing test first. Confirmed defects are pinned by tests under
-  `tests/regression/` marked `xfail(strict=True)`; fixing one turns its test green
-  and the strict marker forces you to remove the `xfail`.
+  `tests/regression/` marked `xfail(strict=True)`. Fixing one is not done when the
+  marker comes off: replace it with a positive assertion of the intended
+  behaviour citing the paper section or decision record, and attach the delta
+  report on the golden dataset to the CHANGELOG entry (`docs/semantics/parity.md`).
 - The golden pipeline snapshot (`tests/golden/`, regenerated with `make golden`)
   must not change unless the CHANGELOG explains why; review its diff.
 - Keep the core dependency-light: `numpy` and `pandas` only. Integrations go

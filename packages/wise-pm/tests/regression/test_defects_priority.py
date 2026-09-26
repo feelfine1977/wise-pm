@@ -30,7 +30,7 @@ def _scalar_where(companies):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C9: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
 @COMPANY_MEMBERSHIP
 def test_worst_cases_where_list_selects_cases_of_member_companies(p2p_result, companies, expected_cases):
     worst = p2p_result.worst_cases("Finance", where={"company": companies})
@@ -39,7 +39,7 @@ def test_worst_cases_where_list_selects_cases_of_member_companies(p2p_result, co
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C9: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
 @COMPANY_MEMBERSHIP
 def test_constraint_drivers_where_list_equals_union_of_member_companies(p2p_result, companies, expected_cases):
     drivers = wise.constraint_drivers(p2p_result, "Finance", {"company": companies})
@@ -50,7 +50,7 @@ def test_constraint_drivers_where_list_equals_union_of_member_companies(p2p_resu
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C9: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
 @COMPANY_MEMBERSHIP
 def test_penalty_mass_where_list_equals_union_of_member_companies(p2p_result, companies, expected_cases):
     pm = wise.penalty_mass(p2p_result, "Finance", "vendor", where={"company": companies})
@@ -191,3 +191,76 @@ def test_compare_periods_of_backlog_with_itself_reports_no_change(p2p_result):
 def test_estimate_gamma_is_infinite_when_slice_means_coincide(per_slice_scores):
     df = pd.DataFrame({"slice": ["a"] * 4 + ["b"] * 4 + ["c"] * 4, "score": per_slice_scores * 3})
     assert wise.estimate_gamma(df, "slice") == float("inf")
+
+
+# ---------------------------------------------------------------- C24: period comparison invents zeros
+
+
+@pytest.mark.regression
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="C24: compare_periods zero-fills slices absent from one period")
+def test_compare_periods_keeps_absent_slices_unknown():
+    previous = pd.DataFrame(
+        {"n_cases": [10, 5], "stable_gap": [0.2, 0.1], "stable_PI": [2.0, 0.5]}, index=pd.Index(["a", "b"], name="slice")
+    )
+    current = pd.DataFrame({"n_cases": [12], "stable_gap": [0.1], "stable_PI": [1.2]}, index=pd.Index(["a"], name="slice"))
+    out = wise.compare_periods(previous, current)
+    assert pd.isna(out.loc["b", "gap_change"]), (
+        "a slice that disappeared has no measurable change; it must not read as an improvement of 0.1"
+    )
+    assert pd.isna(out.loc["b", "PI_change"])
+
+
+# ---------------------------------------------------------------- C25: negation admits unknown attributes
+
+
+@pytest.mark.regression
+@pytest.mark.xfail(
+    strict=True, raises=AssertionError, reason="C25: the 'not' combinator brings a case with a missing attribute into scope"
+)
+def test_negated_rule_keeps_missing_attribute_out_of_scope():
+    df = pd.DataFrame(
+        {
+            "case": [1, 1, 2, 2],
+            "activity": ["A", "B", "A", "B"],
+            "time": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-01", "2024-01-03"]),
+            "ft": ["X", None, None, None],
+        }
+    )
+    log = wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["ft"])
+    rule = {"not": {"attr": "ft", "eq": "X"}}
+    applies = wise.NormConstraint("c", "L", wise.Presence("B"), applicability=rule).applies_to(log.cases).tolist()
+    assert applies == [False, False], "case 2 has no ft value; negating eq must not make it eligible"
+
+
+# ---------------------------------------------------------------- C26–C28: ranking parameters accepted unchecked
+
+
+def _two_slices() -> pd.DataFrame:
+    return pd.DataFrame({"slice": ["a"] * 3 + ["b"] * 2, "score": [0.5, 0.6, 0.7, 0.2, 0.3]})
+
+
+@pytest.mark.regression
+@pytest.mark.xfail(
+    strict=True, raises=pytest.fail.Exception, reason="C26: prioritize accepts baseline=NaN and returns undefined priorities"
+)
+def test_nan_baseline_is_rejected():
+    with pytest.raises(WiseError):
+        wise.prioritize(_two_slices(), "slice", baseline=float("nan"))
+
+
+@pytest.mark.regression
+@pytest.mark.xfail(
+    strict=True, raises=pytest.fail.Exception, reason="C27: a negative uncertainty multiplier z inflates PI_lower above stable_PI"
+)
+def test_negative_z_is_rejected():
+    with pytest.raises(WiseError):
+        wise.prioritize(_two_slices(), "slice", z=-2)
+
+
+@pytest.mark.regression
+@pytest.mark.xfail(
+    strict=True, raises=pytest.fail.Exception, reason="C28: min_cases=2.9 is truncated to 2 and admits two-case slices"
+)
+def test_fractional_min_cases_is_rejected():
+    with pytest.raises(WiseError):
+        wise.prioritize(_two_slices(), "slice", min_cases=2.9)  # type: ignore[arg-type]  # C28: deliberate wrong type

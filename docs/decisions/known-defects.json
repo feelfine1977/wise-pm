@@ -1,0 +1,297 @@
+{
+  "schema": 1,
+  "policy": "Every strict expected failure under tests/regression cites an id from this ledger. kind = defect (behaviour is wrong) or policy (a proposed API change). Severity S1 = silently wrong numbers or scope; S2 = wrong or leaking error contract, silent data loss; S3 = rough edge. release_blocking marks entries that must be closed before any release candidate, independent of severity (all S1 entries, security items). Closing an entry means: the expected-failure marker is replaced by a positive assertion citing the paper section or decision record, the entry status becomes fixed, and the CHANGELOG carries 'Fixed: C<n>' with the delta on the golden dataset.",
+  "entries": [
+    {
+      "id": "C1",
+      "title": "constraint_from_dict truncates non-integer m/k before validation",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C2",
+      "title": "Lag defaults delta=0,width=0 make any delay a full violation",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C3",
+      "title": "score() mutates the input log and overwrites a same-named user attribute",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C4",
+      "title": "ne/not_in applicability puts cases with a missing attribute in scope",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C5",
+      "title": "recipe options (activation, response, agg, exposure_agg, unknown keys) unvalidated",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C6",
+      "title": "null lifecycle transitions dropped silently; empty logs build silently",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C7",
+      "title": "public mutable state: events frame, frozen objects with mutable containers",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C8",
+      "title": "count recipe and Presence disagree on kept NaT events",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C9",
+      "title": "non-WiseError exceptions escape the public API (boundary wrapping)",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C10",
+      "title": "check_decomposition raises AssertionError",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C11",
+      "title": "LogSchemaError inherits from KeyError",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C12",
+      "title": "fingerprint includes free-form metadata",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C13",
+      "title": "ScoreResult.mode default differs from the norm default",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C14",
+      "title": "schema_version accepted without migration semantics",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C15",
+      "title": "quantile_scale depends on the scored population",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C16",
+      "title": "eval recipes execute pandas expressions from norm files",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C17",
+      "title": "within-case attribute variation resolved silently to first non-null",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C18",
+      "title": "CLI main reconfigures process-wide stream encoding",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C19",
+      "title": "parameters carried in DataFrame.attrs",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C20",
+      "title": "duplicated evaluation and validation logic",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M2",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C21",
+      "title": "cross-module use of private members",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C22",
+      "title": "missing-timestamp rules differ per primitive and are undocumented",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C23",
+      "title": "NaN slice keys become NaN index labels",
+      "severity": "S3",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C24",
+      "title": "compare_periods zero-fills slices absent from one period",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C25",
+      "title": "the not combinator brings cases with a missing attribute into scope",
+      "severity": "S1",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M3",
+      "kind": "defect",
+      "release_blocking": true
+    },
+    {
+      "id": "C26",
+      "title": "prioritize accepts baseline=NaN",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C27",
+      "title": "negative z inflates PI_lower above stable_PI",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false,
+      "note": "S2 while no consumer ranks or gates on PI_lower; re-grade to S1 if one does."
+    },
+    {
+      "id": "C28",
+      "title": "min_cases is truncated to int, admitting smaller slices",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M1",
+      "kind": "defect",
+      "release_blocking": false
+    },
+    {
+      "id": "C29",
+      "title": "where= filters accept a list as membership (policy: shared selection semantics, wise.selection)",
+      "kind": "policy",
+      "severity": "S2",
+      "status": "open",
+      "owner": "maintainer",
+      "milestone": "M4",
+      "release_blocking": false
+    }
+  ]
+}

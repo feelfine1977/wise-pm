@@ -38,6 +38,22 @@ All notable changes to this project are documented here. The format follows
   a benchmark on a synthetic 1.6 M-event log; `scripts/compat_gate.sh` running
   the downstream application suites against a source tree.
 
+- `docs/decisions/0001-canonical-library-and-migration-map.md` and
+  `docs/semantics/parity.md` record the ownership map, the recipe, calibration
+  and missingness decisions, and the exact-parity policy for unchanged classic
+  arithmetic (the golden tier compares parquet records exactly).
+- Regression ledger: C24 (`compare_periods` zero-fills slices absent from one
+  period), C25 (a negated applicability rule brings cases with a missing
+  attribute into scope), C26 (`prioritize` accepts `baseline=NaN`), C27 (a
+  negative `z` inflates `PI_lower` above `stable_PI`) and C28 (`min_cases` is
+  truncated to an integer), all strict expected failures until fixed.
+- `docs/decisions/known-defects.json`: every expected failure under
+  `tests/regression` must cite an open ledger entry (checked at collection
+  time); a release candidate with an open S1 entry is refused by
+  `scripts/check_release.py`.
+- The release workflow now runs the full CI gate for the release commit
+  before building.
+
 ### Fixed
 
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.

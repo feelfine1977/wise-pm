@@ -7,17 +7,28 @@ only on purpose and review the diff::
 
     python scripts/make_golden.py --write
 
-``--check`` proves determinism: the script runs twice into temporary
-directories, every file must be byte-identical and every frame equal, and
-the committed files are compared with the fresh run (exit status 1 when
-``--write`` would change them: bytes first, then the golden test's own
-tolerance for frames whose bytes differ; stale committed files that the
-generator no longer produces are reported too).
+Every golden frame is written as a parquet file at full precision: that is
+the artefact of record. The summary frames (backlogs, drivers, penalty mass,
+view agreement, hotspots, validation table) additionally get a human-readable
+CSV rounded to ``CSV_DECIMALS`` decimals with LF line endings, so that
+reviewers can read the diff; the manifest lists both files per frame
+(``record`` and ``readable``). The golden test compares the recomputed frame
+with the parquet record exactly (``assert_frame_equal(check_exact=True)``, no
+tolerance) and each CSV with the record rounded to ``CSV_DECIMALS``.
 
-Everything is derived from ``numpy.random.default_rng(SEED)``; nothing here
-reads the clock. Floating point may differ in the last ulp across platforms,
-which is why the golden test compares with an absolute tolerance while this
-script's own check demands exact equality within one environment.
+Exact-parity policy: unchanged classic arithmetic must stay bit-identical with
+the record under the pinned environments (verified across Python 3.13 / 3.10
+and the floor pins of numpy and pandas); only a new numerical method may
+declare a tolerance, next to its own golden. Everything is derived from
+``numpy.random.default_rng(SEED)``; nothing here reads the clock.
+
+``--check`` proves determinism: the script runs twice into temporary
+directories, every file (parquet records included) must be byte-identical
+and every frame equal, and the committed files are compared with the fresh
+run (exit status 1 when ``--write`` would change them: bytes first, then the
+golden test's own exact comparison for records whose bytes differ, as when
+the parquet metadata names other library versions; stale committed files
+that the generator no longer produces are reported too).
 
 Planted ground truth (``tests/data/p2p_synthetic_2k.ground_truth.json``):
 
@@ -144,8 +155,7 @@ CORRELATION: Final[Literal["pearson", "spearman", "kendall"]] = "pearson"
 AGREEMENT_BY = "vendor"
 CENSORING: dict[str, Any] = {"closure": CLR, "opened_by": INV, "window": "60D"}
 VALIDATION_MODE = "layer_balanced"
-CSV_DECIMALS = 12
-FLOAT_ATOL = 1e-9  # absolute tolerance of the golden test (rtol=0); ``--check`` uses the same for the committed files
+CSV_DECIMALS = 12  # rounding of the human-readable CSV companions; the parquet records keep full precision
 
 DATASET_FILE = "p2p_synthetic_2k.parquet"
 GROUND_TRUTH_FILE = "p2p_synthetic_2k.ground_truth.json"
@@ -153,25 +163,36 @@ GOLDEN_SUBDIR = "golden"
 NORM_FILE = "norm.json"
 MANIFEST_FILE = "manifest.json"
 QUALITY_FILE = "quality_report.json"
+RECORD_FORMAT = "parquet"  # every golden frame: the artefact of record, compared exactly
+READABLE_FORMAT = "csv"  # summary frames only: rounded to CSV_DECIMALS so that reviewers can read the diff
 
-MODE_OUTPUTS: dict[str, str] = {
-    "violations": "parquet",
-    "in_scope": "parquet",
-    "scores": "parquet",
-    **{f"contributions_{v}": "parquet" for v in VIEW_NAMES},
-    "backlog_company": "csv",
-    "backlog_company_vendor": "csv",
-    "layer_drivers_company": "csv",
-    "constraint_drivers_all": "csv",
-    "penalty_mass_vendor": "csv",
-    "view_agreement": "csv",
-    "hotspot_company": "csv",
-}
-COMMON_OUTPUTS: dict[str, str] = {
-    "event_replication": "parquet",
-    "right_censored": "parquet",
-    "validation_table_company": "csv",
-}
+MODE_OUTPUTS: tuple[str, ...] = (
+    "violations",
+    "in_scope",
+    "scores",
+    *(f"contributions_{v}" for v in VIEW_NAMES),
+    "backlog_company",
+    "backlog_company_vendor",
+    "layer_drivers_company",
+    "constraint_drivers_all",
+    "penalty_mass_vendor",
+    "view_agreement",
+    "hotspot_company",
+)
+COMMON_OUTPUTS: tuple[str, ...] = ("event_replication", "right_censored", "validation_table_company")
+READABLE_OUTPUTS: frozenset[str] = frozenset(
+    {
+        "backlog_company",
+        "backlog_company_vendor",
+        "layer_drivers_company",
+        "constraint_drivers_all",
+        "penalty_mass_vendor",
+        "view_agreement",
+        "hotspot_company",
+        "validation_table_company",
+    }
+)
+assert READABLE_OUTPUTS.issubset({*MODE_OUTPUTS, *COMMON_OUTPUTS})
 
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = REPO / "tests" / "data"
@@ -714,26 +735,82 @@ def quality_report(log: wise.EventLog) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- files
-def golden_file(name: str, mode: str | None) -> str:
-    fmt = MODE_OUTPUTS[name] if mode is not None else COMMON_OUTPUTS[name]
-    stem = f"{name}_{mode}" if mode is not None else name
-    return f"{stem}.{fmt}"
+def golden_stem(name: str, mode: str | None) -> str:
+    """File stem of a golden frame: ``<name>_<mode>`` for mode-dependent outputs, ``<name>`` otherwise."""
+    return f"{name}_{mode}" if mode is not None else name
 
 
-def write_frame(frame: pd.DataFrame, path: Path) -> None:
-    if path.suffix == ".parquet":
-        frame.to_parquet(path, engine="pyarrow")
-    else:
-        frame.round(CSV_DECIMALS).to_csv(path, lineterminator="\n")
+def record_file(name: str, mode: str | None) -> str:
+    """The parquet record of a golden frame (every frame has one)."""
+    return f"{golden_stem(name, mode)}.{RECORD_FORMAT}"
 
 
-def read_frame(path: Path, like: pd.DataFrame) -> pd.DataFrame:
-    """Read a golden frame back; ``like`` supplies the index depth and string dtypes a CSV cannot carry."""
-    if path.suffix == ".parquet":
-        return pd.read_parquet(path)
+def readable_file(name: str, mode: str | None) -> str | None:
+    """The human-readable CSV of a golden frame, or ``None`` for frames that have none."""
+    return f"{golden_stem(name, mode)}.{READABLE_FORMAT}" if name in READABLE_OUTPUTS else None
+
+
+def write_record(frame: pd.DataFrame, path: Path) -> None:
+    frame.to_parquet(path, engine="pyarrow")
+
+
+def write_readable(frame: pd.DataFrame, path: Path) -> None:
+    frame.round(CSV_DECIMALS).to_csv(path, lineterminator="\n")
+
+
+def read_record(path: Path) -> pd.DataFrame:
+    return pd.read_parquet(path)
+
+
+def read_readable(path: Path, like: pd.DataFrame) -> pd.DataFrame:
+    """Read a CSV back; ``like`` (the record) supplies the index depth and string dtypes a CSV cannot carry."""
     df = pd.read_csv(path, index_col=list(range(like.index.nlevels)), float_precision="round_trip")
     strings = {c: like[c].dtype for c in df.columns if c in like.columns and not pd.api.types.is_numeric_dtype(like[c])}
     return df.astype(strings) if strings else df
+
+
+def uniform_nulls(frame: pd.DataFrame) -> pd.DataFrame:
+    """Represent every missing value of an object column as NaN.
+
+    ``layer_drivers`` writes ``None`` into ``dominant_layer`` while a file round trip yields NaN; pandas 2.3 warns
+    about comparing the two and ``filterwarnings = error`` would turn that warning into a failure.
+    """
+    out = frame.copy()
+    for col in [c for c, dtype in out.dtypes.items() if pd.api.types.is_object_dtype(dtype)]:
+        out[col] = out[col].where(out[col].notna(), np.nan)
+    return out
+
+
+def assert_frames_exact(actual: pd.DataFrame, expected: pd.DataFrame, *, obj: str) -> None:
+    """The golden comparison, shared by the golden test and ``--check``: exact values, no tolerance.
+
+    Index and column order, dtypes and every value must agree (``check_exact=True``, no ``rtol``/``atol``; NaN
+    equals NaN). Unchanged classic arithmetic keeps bit-for-bit parity with the record; only a new numerical method
+    may declare a tolerance, and it does so next to its own golden rather than here.
+    """
+    pd.testing.assert_frame_equal(uniform_nulls(actual), uniform_nulls(expected), check_exact=True, obj=obj)
+
+
+REPORT_ATOL = 1e-9
+
+
+def assert_frames_report(actual: pd.DataFrame, expected: pd.DataFrame, *, obj: str) -> str:
+    """Portability comparison for environments that are not the record environment.
+
+    Values must agree within ``REPORT_ATOL`` (structure exactly); the returned text summarises the largest
+    absolute difference so a CI log shows environment-induced drift (BLAS, SIMD reduction order) without
+    labelling it a semantic change. The record environment (see the golden manifest) uses ``assert_frames_exact``.
+    """
+    a, e = uniform_nulls(actual), uniform_nulls(expected)
+    pd.testing.assert_frame_equal(a, e, check_exact=False, rtol=0, atol=REPORT_ATOL, obj=obj)
+    worst = 0.0
+    for col in a.columns:
+        if pd.api.types.is_float_dtype(a[col]):
+            diff = a[col].to_numpy(dtype=float) - e[col].to_numpy(dtype=float)
+            diff = diff[np.isfinite(diff)]
+            if diff.size:
+                worst = max(worst, float(np.abs(diff).max()))
+    return f"{obj}: max |actual - record| = {worst:.3e} (report mode, atol {REPORT_ATOL:g})"
 
 
 def _jsonable(v: Any) -> Any:
@@ -777,16 +854,29 @@ def run(base: Path) -> dict[str, pd.DataFrame]:
     log = load_event_log(base / DATASET_FILE)
     assert norm.check(log) == [], norm.check(log)
 
-    frames: dict[str, pd.DataFrame] = {}
+    outputs: list[tuple[str, str | None, pd.DataFrame]] = []  # name, mode, frame
     results = {mode: wise.score(log, norm, mode=mode) for mode in MODES}
     for mode, result in results.items():
         result.check_decomposition()
-        for name, frame in mode_outputs(result).items():
-            frames[f"{GOLDEN_SUBDIR}/{golden_file(name, mode)}"] = frame
-    for name, frame in common_outputs(log, results[VALIDATION_MODE]).items():
-        frames[f"{GOLDEN_SUBDIR}/{golden_file(name, None)}"] = frame
-    for rel, frame in frames.items():
-        write_frame(frame, base / rel)
+        outputs.extend((name, mode, frame) for name, frame in mode_outputs(result).items())
+    outputs.extend((name, None, frame) for name, frame in common_outputs(log, results[VALIDATION_MODE]).items())
+
+    frames: dict[str, pd.DataFrame] = {}  # keyed by the record's path relative to ``base``
+    listing: dict[str, dict[str, Any]] = {}
+    for name, frame_mode, frame in outputs:
+        record_rel = f"{GOLDEN_SUBDIR}/{record_file(name, frame_mode)}"
+        readable = readable_file(name, frame_mode)
+        readable_rel = f"{GOLDEN_SUBDIR}/{readable}" if readable else None
+        write_record(frame, base / record_rel)
+        if readable_rel:
+            write_readable(frame, base / readable_rel)
+        frames[record_rel] = frame
+        listing[golden_stem(name, frame_mode)] = {
+            "record": record_rel,
+            "readable": readable_rel,
+            "rows": len(frame),
+            "columns": [str(c) for c in frame.columns],
+        }
     write_json(quality_report(log), golden / QUALITY_FILE)
 
     manifest = {
@@ -814,6 +904,8 @@ def run(base: Path) -> dict[str, pd.DataFrame]:
             "agreement_by": AGREEMENT_BY,
             "censoring": CENSORING,
             "validation_table_mode": VALIDATION_MODE,
+            "record_format": RECORD_FORMAT,
+            "readable_format": READABLE_FORMAT,
             "csv_float_decimals": CSV_DECIMALS,
         },
         "versions": {
@@ -823,7 +915,7 @@ def run(base: Path) -> dict[str, pd.DataFrame]:
             "pyarrow": _pyarrow_version(),
             "python": ".".join(str(x) for x in sys.version_info[:2]),
         },
-        "files": {rel: {"rows": len(f), "columns": [str(c) for c in f.columns]} for rel, f in sorted(frames.items())},
+        "frames": listing,
     }
     write_json(manifest, golden / MANIFEST_FILE)
     return frames
@@ -844,14 +936,16 @@ def _files_under(base: Path) -> list[Path]:
 def _report(base: Path, frames: Mapping[str, pd.DataFrame]) -> None:
     size = (base / DATASET_FILE).stat().st_size
     print(f"dataset: {base / DATASET_FILE} ({size / 1024:.1f} KB)")
-    total = sum((base / rel).stat().st_size for rel in _files_under(base))
-    print(f"golden files: {len(frames)} frames, {total / 1024:.1f} KB in total under {base}")
+    files = _files_under(base)
+    total = sum((base / rel).stat().st_size for rel in files)
+    n_readable = sum(1 for rel in files if rel.suffix == f".{READABLE_FORMAT}")
+    print(f"golden files: {len(frames)} parquet records, {n_readable} readable CSVs, {total / 1024:.1f} KB in total under {base}")
 
 
-def _frames_equal_within_tolerance(fresh: Path, old: Path, like: pd.DataFrame) -> bool:
-    """Whether two golden files hold the same frame under the golden test's comparison (rtol=0, atol=FLOAT_ATOL)."""
+def _records_equal(fresh: Path, old: Path) -> bool:
+    """Whether two parquet records hold the same frame under the golden test's exact comparison."""
     try:
-        pd.testing.assert_frame_equal(read_frame(fresh, like), read_frame(old, like), check_exact=False, rtol=0, atol=FLOAT_ATOL)
+        assert_frames_exact(read_record(fresh), read_record(old), obj=fresh.name)
     except AssertionError:
         return False
     return True
@@ -860,10 +954,11 @@ def _frames_equal_within_tolerance(fresh: Path, old: Path, like: pd.DataFrame) -
 def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.DataFrame]) -> list[str]:
     """Committed files that ``--write`` would change, and committed files the generator no longer produces.
 
-    Files are compared byte for byte first. When the bytes differ, a golden frame counts as changed only if it
-    differs under the golden test's tolerance, a JSON file only if its content differs (the manifest's recorded
-    library versions are reported but tolerated), and anything else (the dataset parquet, whose sha256 the
-    manifest pins) is changed as soon as its bytes are.
+    Files are compared byte for byte first. When the bytes differ, a parquet record counts as changed only if its
+    frame differs under the golden test's exact comparison (the parquet metadata names the writing libraries, so
+    another environment changes the bytes but not the frame), a JSON file only if its content differs (the
+    manifest's recorded library versions are reported but tolerated), and anything else (a readable CSV, the
+    dataset parquet whose sha256 the manifest pins) is changed as soon as its bytes are.
     """
     fresh_files = _files_under(fresh)
     changed: list[str] = []
@@ -875,7 +970,7 @@ def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.Dat
         elif new_file.read_bytes() == old_file.read_bytes():
             continue
         elif rel in frames:
-            if not _frames_equal_within_tolerance(new_file, old_file, frames[rel]):
+            if not _records_equal(new_file, old_file):
                 changed.append(rel)
         elif path_rel.suffix == ".json":
             new_obj, old_obj = read_json(new_file), read_json(old_file)
@@ -902,9 +997,9 @@ def check(committed: Path) -> int:
             if (a / path_rel).read_bytes() != (b / path_rel).read_bytes():
                 raise AssertionError(f"{path_rel} differs between two runs: generation is not deterministic")
         for rel, frame in frames_a.items():
-            pd.testing.assert_frame_equal(frame, frames_b[rel], check_exact=True, obj=rel)
-            pd.testing.assert_frame_equal(read_frame(a / rel, frame), read_frame(b / rel, frame), check_exact=True, obj=rel)
-        print(f"determinism: {len(files_a)} files byte-identical and {len(frames_a)} frames equal across two runs")
+            assert_frames_exact(frame, frames_b[rel], obj=rel)
+            assert_frames_exact(read_record(a / rel), read_record(b / rel), obj=rel)
+        print(f"determinism: {len(files_a)} files byte-identical and {len(frames_a)} frames exactly equal across two runs")
         _report(a, frames_a)
 
         if not (committed / GOLDEN_SUBDIR / MANIFEST_FILE).exists():

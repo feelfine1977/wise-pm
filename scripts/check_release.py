@@ -7,6 +7,7 @@ per problem otherwise. Standard library only, so it runs before any sync.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -62,6 +63,24 @@ def main(argv: list[str]) -> int:
         problems.append("CITATION.cff has no version line")
     elif m.group(1).strip() != version:
         problems.append(f"CITATION.cff has {m.group(1).strip()}, tag says {version}")
+
+    ledger = ROOT / "docs" / "decisions" / "known-defects.json"
+    if ledger.exists():
+        entries = json.loads(ledger.read_text(encoding="utf-8"))["entries"]
+        blocking = sorted(
+            (e["id"] for e in entries if e.get("release_blocking") and e["status"] == "open"), key=lambda i: int(i[1:])
+        )
+        if blocking:
+            problems.append(
+                f"release candidate carries open release-blocking defects: {', '.join(blocking)} (docs/decisions/known-defects.json)"
+            )
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        for e in entries:
+            token = f"Fixed: {e['id']}"
+            if e["status"] == "fixed" and token not in changelog:
+                problems.append(f"{e['id']} is recorded as fixed but CHANGELOG.md has no '{token}' entry")
+            if e["status"] == "open" and token in changelog:
+                problems.append(f"CHANGELOG.md claims '{token}' but the ledger still lists {e['id']} as open")
 
     first_release, unreleased_empty = changelog_versions((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
     if first_release != version:

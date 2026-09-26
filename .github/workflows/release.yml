@@ -31,8 +31,12 @@ jobs:
       - run: uv sync --frozen --all-packages --group dev
       - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" -q
 
+  gate:
+    # The full CI gate (lint, matrix, build and smoke) for the exact release SHA.
+    uses: ./.github/workflows/ci.yml
+
   build:
-    needs: verify
+    needs: [verify, gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

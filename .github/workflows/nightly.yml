@@ -26,6 +26,8 @@ jobs:
       - run: uv pip install --prerelease=allow --upgrade numpy pandas
       - run: uv run --frozen --no-sync python -c "import numpy, pandas; print('numpy', numpy.__version__, 'pandas', pandas.__version__)"
       - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" -q
+        env:
+          WISE_GOLDEN_MODE: report   # pre-release dependencies may move reductions; drift is reported, not a defect
 
   property-long:
     name: long Hypothesis profile

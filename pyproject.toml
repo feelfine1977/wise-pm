@@ -79,7 +79,7 @@ known-first-party = ["wise", "_support"]
 
 [tool.mypy]
 strict = true
-files = ["packages/wise-pm/src/wise", "packages/wise-pm/tests"]
+files = ["packages/wise-pm/src/wise", "packages/wise-pm/tests", "packages/wise-pm/scripts", "packages/wise-pm/benchmarks", "scripts"]
 mypy_path = ["packages/wise-pm/src", "packages/wise-pm/tests"]
 explicit_package_bases = true
 namespace_packages = true

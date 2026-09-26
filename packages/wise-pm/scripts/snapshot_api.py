@@ -247,7 +247,8 @@ def dumps(snapshot: Mapping[str, Any]) -> str:
 
 
 def load_snapshot(path: Path = SNAPSHOT_PATH) -> Snapshot:
-    return json.loads(path.read_text(encoding="utf-8"))
+    loaded: Snapshot = json.loads(path.read_text(encoding="utf-8"))
+    return loaded
 
 
 def count_columns(snapshot: Mapping[str, Any]) -> int:

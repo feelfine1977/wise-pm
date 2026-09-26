@@ -6,8 +6,8 @@
     "seed": 20260926,
     "sha256": "203a11160ee621ee7775cbf39a11bd3b989844c282e10876204cd93256b2436b"
   },
-  "files": {
-    "golden/backlog_company_flat.csv": {
+  "frames": {
+    "backlog_company_flat": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -19,9 +19,11 @@
         "stable_PI",
         "global_mean"
       ],
+      "readable": "golden/backlog_company_flat.csv",
+      "record": "golden/backlog_company_flat.parquet",
       "rows": 8
     },
-    "golden/backlog_company_layer_balanced.csv": {
+    "backlog_company_layer_balanced": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -33,9 +35,11 @@
         "stable_PI",
         "global_mean"
       ],
+      "readable": "golden/backlog_company_layer_balanced.csv",
+      "record": "golden/backlog_company_layer_balanced.parquet",
       "rows": 8
     },
-    "golden/backlog_company_vendor_flat.csv": {
+    "backlog_company_vendor_flat": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -47,9 +51,11 @@
         "stable_PI",
         "global_mean"
       ],
+      "readable": "golden/backlog_company_vendor_flat.csv",
+      "record": "golden/backlog_company_vendor_flat.parquet",
       "rows": 399
     },
-    "golden/backlog_company_vendor_layer_balanced.csv": {
+    "backlog_company_vendor_layer_balanced": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -61,9 +67,11 @@
         "stable_PI",
         "global_mean"
       ],
+      "readable": "golden/backlog_company_vendor_layer_balanced.csv",
+      "record": "golden/backlog_company_vendor_layer_balanced.parquet",
       "rows": 399
     },
-    "golden/constraint_drivers_all_flat.csv": {
+    "constraint_drivers_all_flat": {
       "columns": [
         "layer",
         "type",
@@ -74,9 +82,11 @@
         "share_evaluated",
         "description"
       ],
+      "readable": "golden/constraint_drivers_all_flat.csv",
+      "record": "golden/constraint_drivers_all_flat.parquet",
       "rows": 11
     },
-    "golden/constraint_drivers_all_layer_balanced.csv": {
+    "constraint_drivers_all_layer_balanced": {
       "columns": [
         "layer",
         "type",
@@ -87,9 +97,11 @@
         "share_evaluated",
         "description"
       ],
+      "readable": "golden/constraint_drivers_all_layer_balanced.csv",
+      "record": "golden/constraint_drivers_all_layer_balanced.parquet",
       "rows": 11
     },
-    "golden/contributions_Compliance_flat.parquet": {
+    "contributions_Compliance_flat": {
       "columns": [
         "completeness",
         "lead_times",
@@ -98,9 +110,11 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Compliance_flat.parquet",
       "rows": 2000
     },
-    "golden/contributions_Compliance_layer_balanced.parquet": {
+    "contributions_Compliance_layer_balanced": {
       "columns": [
         "completeness",
         "lead_times",
@@ -109,9 +123,11 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Compliance_layer_balanced.parquet",
       "rows": 2000
     },
-    "golden/contributions_Finance_flat.parquet": {
+    "contributions_Finance_flat": {
       "columns": [
         "completeness",
         "lead_times",
@@ -120,9 +136,11 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Finance_flat.parquet",
       "rows": 2000
     },
-    "golden/contributions_Finance_layer_balanced.parquet": {
+    "contributions_Finance_layer_balanced": {
       "columns": [
         "completeness",
         "lead_times",
@@ -131,9 +149,11 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Finance_layer_balanced.parquet",
       "rows": 2000
     },
-    "golden/contributions_Operations_flat.parquet": {
+    "contributions_Operations_flat": {
       "columns": [
         "completeness",
         "lead_times",
@@ -142,9 +162,11 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Operations_flat.parquet",
       "rows": 2000
     },
-    "golden/contributions_Operations_layer_balanced.parquet": {
+    "contributions_Operations_layer_balanced": {
       "columns": [
         "completeness",
         "lead_times",
@@ -153,18 +175,22 @@
         "exceptions",
         "effort"
       ],
+      "readable": null,
+      "record": "golden/contributions_Operations_layer_balanced.parquet",
       "rows": 2000
     },
-    "golden/event_replication.parquet": {
+    "event_replication": {
       "columns": [
         "n_events",
         "n_distinct_ts",
         "replication_ratio",
         "replicated_share"
       ],
+      "readable": null,
+      "record": "golden/event_replication.parquet",
       "rows": 2000
     },
-    "golden/hotspot_company_flat.csv": {
+    "hotspot_company_flat": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -178,9 +204,11 @@
         "hotspot",
         "dominant_layer"
       ],
+      "readable": "golden/hotspot_company_flat.csv",
+      "record": "golden/hotspot_company_flat.parquet",
       "rows": 2
     },
-    "golden/hotspot_company_layer_balanced.csv": {
+    "hotspot_company_layer_balanced": {
       "columns": [
         "n_cases",
         "mean_score",
@@ -194,9 +222,11 @@
         "hotspot",
         "dominant_layer"
       ],
+      "readable": "golden/hotspot_company_layer_balanced.csv",
+      "record": "golden/hotspot_company_layer_balanced.parquet",
       "rows": 2
     },
-    "golden/in_scope_flat.parquet": {
+    "in_scope_flat": {
       "columns": [
         "inv_present",
         "clr_present",
@@ -210,9 +240,11 @@
         "no_price_change_after_gr",
         "manual_effort"
       ],
+      "readable": null,
+      "record": "golden/in_scope_flat.parquet",
       "rows": 2000
     },
-    "golden/in_scope_layer_balanced.parquet": {
+    "in_scope_layer_balanced": {
       "columns": [
         "inv_present",
         "clr_present",
@@ -226,9 +258,11 @@
         "no_price_change_after_gr",
         "manual_effort"
       ],
+      "readable": null,
+      "record": "golden/in_scope_layer_balanced.parquet",
       "rows": 2000
     },
-    "golden/layer_drivers_company_flat.csv": {
+    "layer_drivers_company_flat": {
       "columns": [
         "n_cases",
         "completeness",
@@ -245,9 +279,11 @@
         "effort__delta",
         "dominant_layer"
       ],
+      "readable": "golden/layer_drivers_company_flat.csv",
+      "record": "golden/layer_drivers_company_flat.parquet",
       "rows": 8
     },
-    "golden/layer_drivers_company_layer_balanced.csv": {
+    "layer_drivers_company_layer_balanced": {
       "columns": [
         "n_cases",
         "completeness",
@@ -264,9 +300,11 @@
         "effort__delta",
         "dominant_layer"
       ],
+      "readable": "golden/layer_drivers_company_layer_balanced.csv",
+      "record": "golden/layer_drivers_company_layer_balanced.parquet",
       "rows": 8
     },
-    "golden/penalty_mass_vendor_flat.csv": {
+    "penalty_mass_vendor_flat": {
       "columns": [
         "n_cases",
         "penalty_mass",
@@ -275,9 +313,11 @@
         "cum_share",
         "rank"
       ],
+      "readable": "golden/penalty_mass_vendor_flat.csv",
+      "record": "golden/penalty_mass_vendor_flat.parquet",
       "rows": 60
     },
-    "golden/penalty_mass_vendor_layer_balanced.csv": {
+    "penalty_mass_vendor_layer_balanced": {
       "columns": [
         "n_cases",
         "penalty_mass",
@@ -286,31 +326,39 @@
         "cum_share",
         "rank"
       ],
+      "readable": "golden/penalty_mass_vendor_layer_balanced.csv",
+      "record": "golden/penalty_mass_vendor_layer_balanced.parquet",
       "rows": 60
     },
-    "golden/right_censored.parquet": {
+    "right_censored": {
       "columns": [
         "right_censored"
       ],
+      "readable": null,
+      "record": "golden/right_censored.parquet",
       "rows": 2000
     },
-    "golden/scores_flat.parquet": {
+    "scores_flat": {
       "columns": [
         "Finance",
         "Operations",
         "Compliance"
       ],
+      "readable": null,
+      "record": "golden/scores_flat.parquet",
       "rows": 2000
     },
-    "golden/scores_layer_balanced.parquet": {
+    "scores_layer_balanced": {
       "columns": [
         "Finance",
         "Operations",
         "Compliance"
       ],
+      "readable": null,
+      "record": "golden/scores_layer_balanced.parquet",
       "rows": 2000
     },
-    "golden/validation_table_company.csv": {
+    "validation_table_company": {
       "columns": [
         "n_cases",
         "stable_gap",
@@ -321,23 +369,29 @@
         "replicated_share",
         "reading"
       ],
+      "readable": "golden/validation_table_company.csv",
+      "record": "golden/validation_table_company.parquet",
       "rows": 8
     },
-    "golden/view_agreement_flat.csv": {
+    "view_agreement_flat": {
       "columns": [
         "top20_overlap",
         "score_correlation"
       ],
+      "readable": "golden/view_agreement_flat.csv",
+      "record": "golden/view_agreement_flat.parquet",
       "rows": 3
     },
-    "golden/view_agreement_layer_balanced.csv": {
+    "view_agreement_layer_balanced": {
       "columns": [
         "top20_overlap",
         "score_correlation"
       ],
+      "readable": "golden/view_agreement_layer_balanced.csv",
+      "record": "golden/view_agreement_layer_balanced.parquet",
       "rows": 3
     },
-    "golden/violations_flat.parquet": {
+    "violations_flat": {
       "columns": [
         "inv_present",
         "clr_present",
@@ -351,9 +405,11 @@
         "no_price_change_after_gr",
         "manual_effort"
       ],
+      "readable": null,
+      "record": "golden/violations_flat.parquet",
       "rows": 2000
     },
-    "golden/violations_layer_balanced.parquet": {
+    "violations_layer_balanced": {
       "columns": [
         "inv_present",
         "clr_present",
@@ -367,6 +423,8 @@
         "no_price_change_after_gr",
         "manual_effort"
       ],
+      "readable": null,
+      "record": "golden/violations_layer_balanced.parquet",
       "rows": 2000
     }
   },
@@ -408,6 +466,8 @@
       "flat",
       "layer_balanced"
     ],
+    "readable_format": "csv",
+    "record_format": "parquet",
     "top_k": 20,
     "validation_table_mode": "layer_balanced",
     "view": "Finance"

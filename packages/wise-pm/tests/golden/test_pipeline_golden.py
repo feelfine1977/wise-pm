@@ -2,10 +2,13 @@
 
 Every output that ``scripts/make_golden.py`` writes under ``tests/data/golden``
 is recomputed here from the committed dataset and norm and compared with the
-committed file (floats to an absolute tolerance of 1e-9, everything else
-exactly, index and column order included). A failure means the library's
-numbers moved: decide whether the change is a listed fix, then regenerate
-only with
+committed parquet record exactly (``pandas.testing.assert_frame_equal`` with
+``check_exact=True``, no ``rtol``/``atol``; index and column order included),
+and every human-readable CSV must equal its record rounded to 12 decimals.
+Exact parity is the policy for unchanged classic arithmetic; only a new
+numerical method may declare a tolerance, next to its own golden. A failure
+means the library's numbers moved: decide whether the change is a listed fix,
+then regenerate only with
 
     /Users/ula/code/PhD/WISE/wise-next/.venv/bin/python scripts/make_golden.py --write
 
@@ -15,12 +18,12 @@ and review the diff. Never edit golden files by hand.
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -43,10 +46,15 @@ def _load_generator() -> ModuleType:
 
 
 mg = _load_generator()
+#: "exact" (default, the record environment: the lockfile on the CI reference runner) or "report" (other CI cells:
+#: differences within REPORT_ATOL are logged, not failed, until exactness is confirmed on that runner).
+GOLDEN_MODE = os.environ.get("WISE_GOLDEN_MODE", "exact")
 GOLDEN = DATA / mg.GOLDEN_SUBDIR
-FLOAT_ATOL = 1e-9
-assert FLOAT_ATOL == mg.FLOAT_ATOL, "the generator's --check must use the tolerance of this test"
 PLACEHOLDER_FROM = pd.Timestamp("2099-01-01")
+# Every frame that has a readable CSV next to its parquet record, as (name, mode) pairs.
+READABLE = [(n, m) for m in mg.MODES for n in mg.MODE_OUTPUTS if n in mg.READABLE_OUTPUTS] + [
+    (n, None) for n in mg.COMMON_OUTPUTS if n in mg.READABLE_OUTPUTS
+]
 
 pytestmark = pytest.mark.spec("golden")
 
@@ -94,24 +102,17 @@ def manifest() -> dict[str, Any]:
 
 
 def _assert_golden(actual: pd.DataFrame, name: str, mode: str | None) -> None:
-    path = GOLDEN / mg.golden_file(name, mode)
-    assert path.exists(), f"{path} is missing; regenerate with scripts/make_golden.py --write"
-    expected = mg.read_frame(path, like=actual)
-    pd.testing.assert_frame_equal(
-        _uniform_nulls(actual), _uniform_nulls(expected), check_exact=False, rtol=0, atol=FLOAT_ATOL, obj=path.name
-    )
+    """The recomputed frame must equal the parquet record exactly.
 
-
-def _uniform_nulls(frame: pd.DataFrame) -> pd.DataFrame:
-    """Represent every missing value of an object column as NaN.
-
-    ``layer_drivers`` writes ``None`` into ``dominant_layer`` while a CSV round trip yields NaN; pandas 2.3 warns
-    about comparing the two and ``filterwarnings = error`` would turn that warning into a failure.
+    ``mg.assert_frames_exact`` is ``assert_frame_equal(check_exact=True)`` after the null normalisation of object
+    columns; ``--check`` uses the very same function, so the script and this test cannot drift apart.
     """
-    out = frame.copy()
-    for col in out.columns[out.dtypes == object]:
-        out[col] = out[col].where(out[col].notna(), np.nan)
-    return out
+    path = GOLDEN / mg.record_file(name, mode)
+    assert path.exists(), f"{path} is missing; regenerate with scripts/make_golden.py --write"
+    if GOLDEN_MODE == "report":
+        print(mg.assert_frames_report(actual, mg.read_record(path), obj=path.name))  # drift summary for CI logs
+        return
+    mg.assert_frames_exact(actual, mg.read_record(path), obj=path.name)
 
 
 # ------------------------------------------------------------------ provenance
@@ -129,18 +130,24 @@ def test_dataset_and_norm_match_manifest(log: wise.EventLog, norm: wise.Norm, ma
 def test_manifest_lists_every_output(
     mode_frames: dict[str, dict[str, pd.DataFrame]], common_frames: dict[str, pd.DataFrame], manifest: dict[str, Any]
 ) -> None:
-    listed = manifest["files"]
-    computed = {
-        **{f"{mg.GOLDEN_SUBDIR}/{mg.golden_file(n, m)}": f for m, frames in mode_frames.items() for n, f in frames.items()},
-        **{f"{mg.GOLDEN_SUBDIR}/{mg.golden_file(n, None)}": f for n, f in common_frames.items()},
+    listed = manifest["frames"]
+    computed: dict[tuple[str, str | None], pd.DataFrame] = {
+        **{(n, m): f for m, frames in mode_frames.items() for n, f in frames.items()},
+        **{(n, None): f for n, f in common_frames.items()},
     }
-    assert set(listed) == set(computed)
-    for rel, frame in computed.items():
-        assert listed[rel] == {"rows": len(frame), "columns": [str(c) for c in frame.columns]}, rel
-        assert (DATA / rel).exists(), rel
-    # ... and nothing else lies under tests/data/golden: a stale file left behind by a rename would go unnoticed otherwise.
+    assert set(listed) == {mg.golden_stem(n, m) for n, m in computed}
     prefix = f"{mg.GOLDEN_SUBDIR}/"
-    expected_files = {rel.removeprefix(prefix) for rel in listed} | {mg.NORM_FILE, mg.MANIFEST_FILE, mg.QUALITY_FILE}
+    for (name, mode), frame in computed.items():
+        record_rel = f"{prefix}{mg.record_file(name, mode)}"
+        readable = mg.readable_file(name, mode)
+        readable_rel = f"{prefix}{readable}" if readable else None
+        entry = {"record": record_rel, "readable": readable_rel, "rows": len(frame), "columns": [str(c) for c in frame.columns]}
+        assert listed[mg.golden_stem(name, mode)] == entry, (name, mode)
+        assert (DATA / record_rel).exists(), record_rel
+        assert readable_rel is None or (DATA / readable_rel).exists(), readable_rel
+    # ... and nothing else lies under tests/data/golden: a stale file left behind by a rename would go unnoticed otherwise.
+    expected_files = {e[k].removeprefix(prefix) for e in listed.values() for k in ("record", "readable") if e[k]}
+    expected_files |= {mg.NORM_FILE, mg.MANIFEST_FILE, mg.QUALITY_FILE}
     on_disk = {p.name for p in GOLDEN.iterdir() if p.is_file() and not p.name.startswith(".")}
     assert on_disk == expected_files
     assert not [p for p in GOLDEN.iterdir() if p.is_dir()], "no subdirectories are expected under tests/data/golden"
@@ -217,14 +224,20 @@ def test_validation_table_company(common_frames: dict[str, pd.DataFrame]) -> Non
 
 
 def test_quality_report(log: wise.EventLog) -> None:
-    actual = mg.quality_report(log)
-    expected = mg.read_json(GOLDEN / mg.QUALITY_FILE)
-    assert set(actual) == set(expected)  # the JSON file is written with sorted keys
-    for key, value in expected.items():
-        if isinstance(value, float):
-            assert abs(actual[key] - value) <= FLOAT_ATOL, key
-        else:
-            assert actual[key] == value, key
+    """``log.validate()`` equals the committed JSON exactly (both sides round floats to ``CSV_DECIMALS``)."""
+    assert mg.quality_report(log) == mg.read_json(GOLDEN / mg.QUALITY_FILE)
+
+
+# ------------------------------------------------------------------ readable CSV companions
+@pytest.mark.parametrize(("name", "mode"), READABLE, ids=[mg.golden_stem(n, m) for n, m in READABLE])
+def test_readable_csv_equals_record_rounded(name: str, mode: str | None) -> None:
+    """Each CSV is its parquet record rounded to ``CSV_DECIMALS`` with LF line endings; a stale CSV fails here."""
+    record = mg.read_record(GOLDEN / mg.record_file(name, mode))
+    readable = mg.readable_file(name, mode)
+    assert readable is not None
+    csv = GOLDEN / readable
+    assert b"\r" not in csv.read_bytes(), f"{csv.name} must use LF line endings"
+    mg.assert_frames_exact(mg.read_readable(csv, like=record), record.round(mg.CSV_DECIMALS), obj=csv.name)
 
 
 # ------------------------------------------------------------------ planted ground truth (known answers)
