@@ -1,78 +1,61 @@
-[build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
-
+# Workspace root: not a distribution itself. Shared tool configuration lives here;
+# each distribution under packages/ has its own pyproject.toml.
 [project]
-name = "wise-pm"
-dynamic = ["version"]
-description = "WISE: norm-based, slice-first prioritisation of process deviations from event logs"
-readme = "README.md"
-license = "MIT AND PolyForm-Noncommercial-1.0.0"
-license-files = ["LICENSE", "LICENSE-MIT", "NOTICE", "COMMERCIAL_LICENSING.md"]
+name = "wise-pm-workspace"
+version = "0.0.0"
+description = "Workspace for the wise-pm distributions"
 requires-python = ">=3.10"
-authors = [{ name = "Urszula Jessen" }]
-keywords = ["process mining", "conformance checking", "prioritisation", "event log", "decision support", "BPIC"]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Science/Research",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Topic :: Scientific/Engineering :: Information Analysis",
-  "Typing :: Typed",
-]
-dependencies = [
-  "numpy>=1.24",
-  "pandas>=2.0",
-]
+dependencies = []
 
-[project.optional-dependencies]
-pm4py = ["pm4py>=2.7"]
-stats = ["scipy>=1.10"]
+[tool.uv]
+package = false
+required-version = ">=0.7"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+wise-pm = { workspace = true }
+
+[dependency-groups]
 dev = [
+  "wise-pm[stats]",
   "pytest>=8",
   "pytest-cov",
-  "ruff>=0.5",
-  "mypy>=1.10",
+  "hypothesis>=6",
+  "pyarrow",
+  "ruff",
+  "mypy",
   "pandas-stubs",
+  "import-linter",
   "pre-commit",
-  "build",
   "twine",
 ]
 docs = ["mkdocs-material", "mkdocstrings[python]"]
 
-[project.scripts]
-wise = "wise.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/feelfine1977/wise-pm"
-Repository = "https://github.com/feelfine1977/wise-pm"
-Issues = "https://github.com/feelfine1977/wise-pm/issues"
-Changelog = "https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-wise = ["py.typed"]
-
-[tool.setuptools.dynamic]
-version = { attr = "wise._version.__version__" }
-
 [tool.pytest.ini_options]
-testpaths = ["tests", "src/wise"]
-addopts = "--doctest-modules"
+testpaths = ["packages/wise-pm/tests", "packages/wise-pm/src/wise"]
+pythonpath = ["packages/wise-pm/tests"]
+addopts = "--doctest-modules --strict-markers"
 filterwarnings = ["error"]
+# Mirrored in packages/wise-pm/tests/conftest.py so the packaged tests (sdist) register them too.
+markers = [
+  "spec(id): the paper section or decision record the test implements, e.g. spec('IV-B.lag')",
+  "paper: a worked example taken verbatim from the paper",
+  "regression: pins a confirmed defect (xfail strict until the fix lands)",
+  "property: property-based test (Hypothesis)",
+  "bpic19: needs the BPI Challenge 2019 CSV via WISE_BPIC19_CSV",
+  "bench: benchmark; skipped unless WISE_RUN_BENCH=1",
+]
 
 [tool.coverage.run]
 source = ["wise"]
+branch = true
 
 [tool.coverage.report]
-fail_under = 85
+fail_under = 92
 show_missing = true
+exclude_also = ["if TYPE_CHECKING:", "@overload", "raise NotImplementedError"]
 
 [tool.ruff]
 line-length = 130
@@ -80,15 +63,66 @@ target-version = "py310"
 extend-exclude = ["docs"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "UP", "B", "SIM", "NPY", "RUF"]
-ignore = ["E501", "RUF001", "RUF002", "RUF003", "SIM108", "B905"]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "NPY", "RUF", "PT", "PERF", "PLE", "PLW", "RET", "C4", "T20"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "SIM108", "B905", "PLW2901", "RET504", "RET505", "RET506", "PERF401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["wise", "_support"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["E402"]
-"examples/*" = ["E402"]
+"packages/*/tests/*" = ["E402", "T20", "PLW0603"]
+"packages/*/examples/*" = ["E402", "T20"]
+"packages/*/scripts/*" = ["T20"]
+"packages/*/benchmarks/*" = ["T20"]
+"scripts/*" = ["T20"]
+"packages/wise-pm/src/wise/cli.py" = ["T20"]
 
 [tool.mypy]
-check_untyped_defs = true
+strict = true
+files = ["packages/wise-pm/src/wise", "packages/wise-pm/tests"]
+mypy_path = ["packages/wise-pm/src", "packages/wise-pm/tests"]
+explicit_package_bases = true
+namespace_packages = true
 warn_unused_ignores = false
 ignore_missing_imports = true
-files = ["src/wise"]
+# Temporary relaxations for the unchanged 0.1.0 modules; each milestone removes its entries.
+[[tool.mypy.overrides]]
+module = ["wise.log", "wise.norm", "wise.constraints", "wise.derive", "wise.scoring", "wise.prioritization", "wise.diagnostics", "wise.cli", "wise.datasets"]
+disallow_any_generics = false
+disallow_untyped_calls = false
+warn_return_any = false
+[[tool.mypy.overrides]]
+module = ["conftest", "_support.*", "property.*", "regression.*", "golden.*", "contract.*", "perf.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_any_generics = false
+warn_return_any = false
+check_untyped_defs = true
+
+# The 0.1.0 test modules predate type checking; pandas-stubs reports hundreds of union-type
+# operator errors on their `.loc[...] == approx(...)` assertions. Each entry is removed when
+# the module is rewritten (M1-M4); no new module may be added here.
+[[tool.mypy.overrides]]
+module = ["test_bpic19", "test_cli", "test_constraints", "test_diagnostics", "test_invariants", "test_log", "test_norm", "test_prioritization", "test_scoring"]
+ignore_errors = true
+
+[tool.importlinter]
+root_packages = ["wise"]
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "core layers (0.1.0 layout; tightened per milestone)"
+type = "layers"
+layers = [
+  "wise.cli | wise.datasets",
+  "wise.diagnostics",
+  "wise.prioritization",
+  "wise.scoring",
+  "wise.norm",
+  "wise.log",
+  "wise.derive",
+  "wise.constraints",
+  "wise.errors | wise._version",
+]

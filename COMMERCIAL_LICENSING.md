@@ -17,7 +17,7 @@ or impose PolyForm restrictions on use of the retained MIT material alone.
 ## Historical MIT material
 
 The original MIT text and copyright attribution are preserved verbatim in
-[LICENSE-MIT](LICENSE-MIT). These known pre-policy public snapshots remain
+[packages/wise-pm/LICENSE](packages/wise-pm/LICENSE). These known pre-policy public snapshots remain
 available under MIT, including commercial reuse subject to its notice terms:
 
 - Classic: [`fe76298b7bf3186bb8b781808c6b383bd5f4f3b2`](https://github.com/feelfine1977/wise-pm/tree/fe76298b7bf3186bb8b781808c6b383bd5f4f3b2).

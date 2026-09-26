@@ -1,0 +1,12 @@
+constraint,layer,type,mean_penalty,mean_violation,share_violated,share_in_scope,share_evaluated,description
+gr_inv_lag,lead_times,lag,0.04322739316,0.360228276331,0.5985,1.0,1.0,First GR to first INV within 10 days
+gr_inv_lag_each,lead_times,lag,0.020133854251,0.335564237524,0.601,1.0,1.0,Every GR followed by an INV within 10 days
+inv_clr_lag,lead_times,lag,0.018059315417,0.150494295139,0.2735,1.0,1.0,INV to CLR within 30 days; open invoices are scored by their age
+inv_gr_balance,match,balance,0.01410194454,0.112004237275,0.174,1.0,1.0,Invoiced vs received amount
+manual_effort,effort,metric,0.012966666667,0.259333333333,0.418,1.0,1.0,At most three manual touches per item
+gr_singular,handling,singularity,0.009941666667,0.198833333333,0.328,1.0,1.0,Limit delivery fragmentation
+no_price_change_after_gr,exceptions,exclusion,0.0066,0.088264794383,0.088264794383,1.0,0.997,No price change after the goods receipt
+clr_present,completeness,presence,0.0055625,0.058784676354,0.058784676354,0.757,0.757,Three-way-match items must be cleared
+inv_present,completeness,presence,0.0054375,0.035,0.035,1.0,1.0,Require an invoice receipt
+no_cancel,exceptions,exclusion,0.0042,0.056,0.056,1.0,1.0,Avoid invoice cancellations
+gr_before_inv,match,precedence,0.0024,0.031809145129,0.031809145129,0.757,0.7545,No invoice before the first GR in a three-way match

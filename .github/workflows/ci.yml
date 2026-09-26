@@ -1,69 +1,114 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  push:
+    branches: [main, next]
 
 permissions:
   contents: read
-
-env:
-  PYTHONUTF8: "1"
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONUTF8: "1"
+  # The uv version that produced uv.lock; bump it deliberately together with the lockfile.
+  UV_VERSION: "0.7.16"
+
 jobs:
+  lint:
+    name: lint, types, layering
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          python-version: "3.13"   # the type-check interpreter; pandas-stubs differ per Python fork of the lockfile
+      - run: uv sync --frozen --all-packages --group dev
+      - run: uv run --frozen pre-commit run --all-files --show-diff-on-failure
+      - run: uv run --frozen mypy
+      - run: uv run --frozen lint-imports
+
   test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }}, ${{ matrix.deps }})
+    needs: lint
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+        deps: [locked]
         include:
-          - { os: ubuntu-latest, python: "3.10", deps: "numpy==1.24.* pandas==2.0.*", experimental: false }
-          - { os: ubuntu-latest, python: "3.12", deps: "", experimental: false }
-          - { os: ubuntu-latest, python: "3.13", deps: "", experimental: false }
-          - { os: ubuntu-latest, python: "3.13", deps: "--pre --upgrade numpy pandas", experimental: true }
-          - { os: macos-latest, python: "3.12", deps: "", experimental: false }
-          - { os: windows-latest, python: "3.12", deps: "", experimental: false }
+          # Floor pins from pyproject (numpy 1.24 / pandas 2.0) on the oldest interpreter.
+          - { os: ubuntu-latest, python: "3.10", deps: floor }
+          - { os: macos-latest, python: "3.12", deps: locked }
+          - { os: windows-latest, python: "3.12", deps: locked }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
           python-version: ${{ matrix.python }}
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e ".[dev,stats]"
-      - if: matrix.deps != ''
-        run: python -m pip install ${{ matrix.deps }}
-      - run: python -m pytest --cov=wise --cov-report=term-missing
-      - run: python examples/quickstart.py
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - run: uv sync --frozen --all-packages --group dev
+      - if: matrix.deps == 'floor'
+        run: uv pip install "numpy==1.24.*" "pandas==2.0.*"
+      - run: uv run --frozen --no-sync python -c "import sys, numpy, pandas, wise; print(sys.version); print('numpy', numpy.__version__, 'pandas', pandas.__version__, 'wise', wise.__version__)"
+      - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" --cov --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered --junitxml=junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          python-version: "3.12"
-      - run: python -m pip install -e . "ruff==0.12.0" "mypy==1.17.1" pandas-stubs
-      - run: ruff check .
-      - run: ruff format --check .
-      - run: mypy
+          name: test-results-${{ matrix.os }}-py${{ matrix.python }}-${{ matrix.deps }}
+          path: |
+            junit.xml
+            coverage.xml
+          if-no-files-found: ignore
 
   build:
-    runs-on: ubuntu-latest
+    name: build and smoke (${{ matrix.os }})
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
           python-version: "3.12"
-      - run: python -m pip install build twine
-      - run: python -m build
-      - run: twine check --strict dist/*
-      - run: python -m pip install dist/*.whl
-      - run: python -c "import wise, pathlib; assert pathlib.Path(wise.__file__).with_name('py.typed').exists(); print(wise.__version__)"
-      - run: wise validate examples/bpic19_norm.json
+      - run: uv sync --frozen --all-packages --group dev
+      - run: uv build --all-packages
+      - run: uv run --frozen --no-sync twine check --strict dist/*
+      - name: install the wheel into a clean environment and exercise it
+        run: |
+          uv venv smoke --python 3.12
+          if [ -x smoke/bin/python ]; then SMOKE=smoke/bin/python; else SMOKE=smoke/Scripts/python.exe; fi
+          uv pip install --python "$SMOKE" dist/wise_pm-*.whl
+          "$SMOKE" -c "import pathlib, wise; assert pathlib.Path(wise.__file__).with_name('py.typed').exists(); print(wise.__version__)"
+          "$SMOKE" -m wise.cli validate packages/wise-pm/examples/bpic19_norm.json
+          "$SMOKE" -m wise.cli validate packages/wise-pm/examples/running_p2p_norm.json
+          "$SMOKE" packages/wise-pm/examples/quickstart.py
+      - name: install the sdist and run the packaged tests
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          uv venv sdist-check --python 3.12
+          uv pip install --python sdist-check/bin/python dist/wise_pm-*.tar.gz pytest hypothesis pyarrow scipy
+          tar -xzf dist/wise_pm-*.tar.gz -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"/wise_pm-*/
+          "$GITHUB_WORKSPACE"/sdist-check/bin/python -m pytest -q -p no:cacheprovider --strict-markers -W error -m "not bench and not bpic19" tests
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: dist
+          path: dist/

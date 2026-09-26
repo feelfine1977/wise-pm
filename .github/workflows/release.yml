@@ -1,0 +1,79 @@
+# Release on a tag v<version>: verify that tag, package versions, CITATION.cff and
+# CHANGELOG agree, build every distribution of the workspace (wise-pm today), publish
+# through PyPI trusted publishing, then create the GitHub release from the CHANGELOG section.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  UV_VERSION: "0.7.16"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv lock --check
+      - id: check
+        run: uv run --frozen --no-sync python scripts/check_release.py "${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+      - run: uv sync --frozen --all-packages --group dev
+      - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" -q
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv build --all-packages
+      - run: uv sync --frozen --all-packages --group dev
+      - run: uv run --frozen --no-sync twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+
+  github-release:
+    needs: [verify, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: python3 scripts/changelog_section.py "${{ needs.verify.outputs.version }}" > release-notes.md
+      - run: gh release create "${GITHUB_REF_NAME}" dist/* --title "wise-pm ${{ needs.verify.outputs.version }}" --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}

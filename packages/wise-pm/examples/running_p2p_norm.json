@@ -1,0 +1,181 @@
+{
+  "schema_version": 2,
+  "name": "Running P2P example (paper Table V)",
+  "version": "1",
+  "description": "",
+  "scoring_mode": "flat",
+  "metadata": {},
+  "layers": [
+    {
+      "id": "completeness",
+      "name": "Core completeness",
+      "description": ""
+    },
+    {
+      "id": "lead_times",
+      "name": "Working-capital lead times",
+      "description": ""
+    },
+    {
+      "id": "match",
+      "name": "Match consistency",
+      "description": ""
+    },
+    {
+      "id": "handling",
+      "name": "Handling discipline",
+      "description": ""
+    },
+    {
+      "id": "exceptions",
+      "name": "Exception discipline",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Finance",
+      "description": "",
+      "constraint_weights": {
+        "c1": 0.2,
+        "c2": 0.45,
+        "c3": 0.2,
+        "c4": 0.05,
+        "c5": 0.05,
+        "c6": 0.1
+      }
+    },
+    {
+      "name": "Logistics",
+      "description": "",
+      "constraint_weights": {
+        "c1": 0.25,
+        "c2": 0.15,
+        "c3": 0.05,
+        "c4": 0.25,
+        "c5": 0.45,
+        "c6": 0.1
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "c1",
+      "layer": "completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Record Invoice Receipt"
+        ],
+        "m": 1
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Require an invoice receipt"
+    },
+    {
+      "id": "c2",
+      "layer": "lead_times",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Goods Receipt"
+        ],
+        "b": [
+          "Record Invoice Receipt"
+        ],
+        "delta": 10.0,
+        "width": 20.0,
+        "unit": "D",
+        "missing_a": "violate",
+        "missing_b": "violate",
+        "activation": "first",
+        "response": "first_after"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "GR → INV within 10 days"
+    },
+    {
+      "id": "c3",
+      "layer": "match",
+      "type": "balance",
+      "params": {
+        "attr_x": "amount",
+        "activities_x": [
+          "Record Invoice Receipt"
+        ],
+        "attr_y": "amount",
+        "activities_y": [
+          "Record Goods Receipt"
+        ],
+        "tau": 0.05,
+        "width": 0.2,
+        "eps": 1e-09,
+        "agg": "sum"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Invoiced vs received amount"
+    },
+    {
+      "id": "c4",
+      "layer": "match",
+      "type": "balance",
+      "params": {
+        "attr_x": "amount",
+        "activities_x": [
+          "Create Purchase Order Item"
+        ],
+        "attr_y": "amount",
+        "activities_y": [
+          "Record Goods Receipt"
+        ],
+        "tau": 0.01,
+        "width": 0.02,
+        "eps": 1e-09,
+        "agg": "sum"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1"
+        ]
+      },
+      "description": "Ordered vs received amount"
+    },
+    {
+      "id": "c5",
+      "layer": "handling",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Record Goods Receipt"
+        ],
+        "k": 2,
+        "K": 3.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Limit delivery fragmentation"
+    },
+    {
+      "id": "c6",
+      "layer": "exceptions",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Cancel Invoice Receipt"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Avoid invoice cancellations"
+    }
+  ]
+}

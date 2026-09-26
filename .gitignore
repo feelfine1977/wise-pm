@@ -13,3 +13,12 @@ data/*.csv
 data/*.parquet
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
+.compat-results/
+smoke/
+sdist-check/
+junit.xml
+coverage.xml
+bench.json
+requirements.lock.txt
+.import_linter_cache/

@@ -1,0 +1,72 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  UV_VERSION: "0.7.16"
+
+jobs:
+  prerelease-deps:
+    name: pre-release numpy and pandas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.13"
+      - run: uv sync --frozen --all-packages --group dev
+      - run: uv pip install --prerelease=allow --upgrade numpy pandas
+      - run: uv run --frozen --no-sync python -c "import numpy, pandas; print('numpy', numpy.__version__, 'pandas', pandas.__version__)"
+      - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" -q
+
+  property-long:
+    name: long Hypothesis profile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv sync --frozen --all-packages --group dev
+      - run: HYPOTHESIS_PROFILE=ci-long uv run --frozen --no-sync pytest -m property -q
+
+  bench:
+    name: benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv sync --frozen --all-packages --group dev
+      # Budgets were calibrated on a laptop; the factor gives hosted runners headroom until nightly artifacts allow tightening.
+      - run: WISE_RUN_BENCH=1 WISE_BENCH_BUDGET_FACTOR=2.0 uv run --frozen --no-sync pytest -m bench -q
+      - run: uv run --frozen --no-sync python packages/wise-pm/benchmarks/bench_synthetic.py > bench.json && cat bench.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ github.run_id }}
+          path: bench.json
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv export --frozen --all-packages --no-emit-workspace --format requirements-txt > requirements.lock.txt
+      - run: uvx pip-audit --strict -r requirements.lock.txt
+      - name: workflow audit (advisory until zizmor is calibrated)
+        run: uvx zizmor --min-severity medium .github/workflows
+        continue-on-error: true

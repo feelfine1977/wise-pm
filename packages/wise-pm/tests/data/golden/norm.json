@@ -1,0 +1,307 @@
+{
+  "schema_version": 2,
+  "name": "Golden P2P norm",
+  "version": "1",
+  "description": "Norm of the golden pipeline snapshot on the synthetic 2k-case purchase-to-pay log",
+  "scoring_mode": "layer_balanced",
+  "metadata": {
+    "dataset": "p2p_synthetic_2k.parquet",
+    "seed": 20260926
+  },
+  "layers": [
+    {
+      "id": "completeness",
+      "name": "Core completeness",
+      "description": ""
+    },
+    {
+      "id": "lead_times",
+      "name": "Working-capital lead times",
+      "description": ""
+    },
+    {
+      "id": "match",
+      "name": "Match consistency",
+      "description": ""
+    },
+    {
+      "id": "handling",
+      "name": "Handling discipline",
+      "description": ""
+    },
+    {
+      "id": "exceptions",
+      "name": "Exception discipline",
+      "description": ""
+    },
+    {
+      "id": "effort",
+      "name": "Manual effort",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Finance",
+      "description": "",
+      "layer_weights": {
+        "completeness": 0.25,
+        "lead_times": 0.3,
+        "match": 0.2,
+        "handling": 0.05,
+        "exceptions": 0.15,
+        "effort": 0.05
+      }
+    },
+    {
+      "name": "Operations",
+      "description": "",
+      "layer_weights": {
+        "completeness": 0.15,
+        "lead_times": 0.15,
+        "match": 0.1,
+        "handling": 0.3,
+        "exceptions": 0.1,
+        "effort": 0.2
+      }
+    },
+    {
+      "name": "Compliance",
+      "description": "Constraint weights; manual effort deliberately carries no weight",
+      "constraint_weights": {
+        "inv_present": 0.1,
+        "clr_present": 0.1,
+        "gr_inv_lag": 0.05,
+        "gr_inv_lag_each": 0.05,
+        "inv_clr_lag": 0.05,
+        "inv_gr_balance": 0.2,
+        "gr_before_inv": 0.2,
+        "gr_singular": 0.05,
+        "no_cancel": 0.1,
+        "no_price_change_after_gr": 0.1
+      }
+    }
+  ],
+  "derived_attributes": [
+    {
+      "name": "manual_touches",
+      "kind": "count_events",
+      "where": {
+        "column": "org:resource",
+        "regex": "^user"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "inv_present",
+      "layer": "completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Record Invoice Receipt"
+        ],
+        "m": 1
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Require an invoice receipt"
+    },
+    {
+      "id": "clr_present",
+      "layer": "completeness",
+      "type": "presence",
+      "params": {
+        "activity": [
+          "Clear Invoice"
+        ],
+        "m": 1
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1"
+        ]
+      },
+      "description": "Three-way-match items must be cleared"
+    },
+    {
+      "id": "gr_inv_lag",
+      "layer": "lead_times",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Goods Receipt"
+        ],
+        "b": [
+          "Record Invoice Receipt"
+        ],
+        "delta": 10.0,
+        "width": 20.0,
+        "unit": "D",
+        "missing_a": "violate",
+        "missing_b": "violate",
+        "activation": "first",
+        "response": "first_after"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "First GR to first INV within 10 days"
+    },
+    {
+      "id": "gr_inv_lag_each",
+      "layer": "lead_times",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Goods Receipt"
+        ],
+        "b": [
+          "Record Invoice Receipt"
+        ],
+        "delta": 10.0,
+        "width": 20.0,
+        "unit": "D",
+        "missing_a": "violate",
+        "missing_b": "violate",
+        "activation": "each",
+        "response": "first_after"
+      },
+      "weight": 0.5,
+      "applicability": {},
+      "description": "Every GR followed by an INV within 10 days"
+    },
+    {
+      "id": "inv_clr_lag",
+      "layer": "lead_times",
+      "type": "lag",
+      "params": {
+        "a": [
+          "Record Invoice Receipt"
+        ],
+        "b": [
+          "Clear Invoice"
+        ],
+        "delta": 30.0,
+        "width": 30.0,
+        "unit": "D",
+        "missing_a": "violate",
+        "missing_b": "censor",
+        "activation": "first",
+        "response": "first_after"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "INV to CLR within 30 days; open invoices are scored by their age"
+    },
+    {
+      "id": "inv_gr_balance",
+      "layer": "match",
+      "type": "balance",
+      "params": {
+        "attr_x": "amount",
+        "activities_x": [
+          "Record Invoice Receipt"
+        ],
+        "attr_y": "amount",
+        "activities_y": [
+          "Record Goods Receipt"
+        ],
+        "tau": 0.05,
+        "width": 0.2,
+        "eps": 1e-09,
+        "agg": "sum"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Invoiced vs received amount"
+    },
+    {
+      "id": "gr_before_inv",
+      "layer": "match",
+      "type": "precedence",
+      "params": {
+        "a": [
+          "Record Goods Receipt"
+        ],
+        "b": [
+          "Record Invoice Receipt"
+        ],
+        "k": 0,
+        "K": 1.0,
+        "missing_a": "skip",
+        "missing_b": "satisfy"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "flow_type": [
+          "DF1"
+        ]
+      },
+      "description": "No invoice before the first GR in a three-way match"
+    },
+    {
+      "id": "gr_singular",
+      "layer": "handling",
+      "type": "singularity",
+      "params": {
+        "activity": [
+          "Record Goods Receipt"
+        ],
+        "k": 2,
+        "K": 3.0,
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Limit delivery fragmentation"
+    },
+    {
+      "id": "no_cancel",
+      "layer": "exceptions",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Cancel Invoice Receipt"
+        ],
+        "after": null,
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "Avoid invoice cancellations"
+    },
+    {
+      "id": "no_price_change_after_gr",
+      "layer": "exceptions",
+      "type": "exclusion",
+      "params": {
+        "activity": [
+          "Change Price"
+        ],
+        "after": [
+          "Record Goods Receipt"
+        ],
+        "before": null
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "No price change after the goods receipt"
+    },
+    {
+      "id": "manual_effort",
+      "layer": "effort",
+      "type": "metric",
+      "params": {
+        "attribute": "manual_touches",
+        "threshold": 3.0,
+        "width": 3.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {},
+      "description": "At most three manual touches per item"
+    }
+  ]
+}

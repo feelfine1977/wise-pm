@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wise-pm"
+dynamic = ["version"]
+description = "WISE: norm-based, slice-first prioritisation of process deviations from event logs"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Urszula Jessen" }]
+keywords = ["process mining", "conformance checking", "prioritisation", "event log", "decision support", "BPIC"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Typing :: Typed",
+]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+pm4py = ["pm4py>=2.7"]
+stats = ["scipy>=1.10"]
+io = ["pyarrow>=14"]
+
+[project.scripts]
+wise = "wise.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/feelfine1977/wise-pm"
+Repository = "https://github.com/feelfine1977/wise-pm"
+Issues = "https://github.com/feelfine1977/wise-pm/issues"
+Changelog = "https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/wise/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wise"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/wise", "tests", "scripts", "benchmarks", "/README.md", "LICENSE"]

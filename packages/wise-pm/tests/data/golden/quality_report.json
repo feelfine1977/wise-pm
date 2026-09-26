@@ -1,0 +1,13 @@
+{
+  "cases_with_ties_share": 0.3975,
+  "missing_timestamps": 126,
+  "n_activities": 7,
+  "n_cases": 2000,
+  "n_events": 12588,
+  "null_activity_labels": 0,
+  "raw_max_timestamp": "2099-12-31T00:00:00",
+  "tied_events_share": 0.21838258659,
+  "timestamp_outliers": 7,
+  "window_end": "2024-12-31T00:00:00",
+  "window_start": "2024-01-01T00:00:00"
+}

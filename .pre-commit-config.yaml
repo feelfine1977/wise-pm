@@ -1,10 +1,6 @@
+# Hooks run the tools from the project lockfile through uv, so pre-commit and CI
+# always use the same versions.
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.0
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -12,3 +8,36 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=700"]
+        exclude: ^uv\.lock$
+      - id: check-merge-conflict
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.7.16
+    hooks:
+      - id: uv-lock
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen --no-sync ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen --no-sync ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy
+        entry: uv run --frozen --no-sync mypy
+        language: system
+        pass_filenames: false
+        files: \.(py|pyi|toml)$
+      - id: lint-imports
+        name: import-linter
+        entry: uv run --frozen --no-sync lint-imports
+        language: system
+        pass_filenames: false
+        files: \.(py|toml)$

@@ -1,0 +1,4 @@
+view_a,view_b,top20_overlap,score_correlation
+Finance,Operations,0.428571428571,0.64164138562
+Finance,Compliance,0.666666666667,0.940163187637
+Operations,Compliance,0.379310344828,0.562468051502

@@ -21,20 +21,23 @@ curl -s -o /dev/null -w "%{http_code}\n" https://pypi.org/pypi/wise-pm/json   # 
 ## 1. Build and check locally (every release)
 
 ```bash
-python -m pip install --upgrade build twine
-rm -rf dist/
-python -m build                      # creates dist/wise_pm-X.Y.Z.tar.gz and .whl
-twine check dist/*                   # validates metadata and README rendering
+make build                           # uv build --all-packages && twine check --strict dist/*
 ```
+
+`uv build --all-packages` builds every distribution of the workspace
+(`packages/wise-pm` today) into `dist/`.
 
 Install the wheel into a *fresh* virtual environment and run the quickstart,
 so you catch files missing from the wheel or an undeclared dependency:
 
 ```bash
-python -m venv /tmp/wise-check && /tmp/wise-check/bin/pip install dist/*.whl
+uv venv /tmp/wise-check && uv pip install --python /tmp/wise-check/bin/python dist/wise_pm-*.whl
 /tmp/wise-check/bin/python -c "import wise; print(wise.__version__)"
-/tmp/wise-check/bin/python examples/quickstart.py
+/tmp/wise-check/bin/python packages/wise-pm/examples/quickstart.py
 ```
+
+The CI `build` job does the same on Linux, macOS and Windows; on Linux it
+additionally installs the sdist and runs the packaged tests.
 
 ## 2. First upload: TestPyPI, then PyPI
 
@@ -42,7 +45,7 @@ TestPyPI is a sandbox with separate accounts; use it once to see the
 project page rendered.
 
 ```bash
-twine upload --repository testpypi dist/*
+uv run twine upload --repository testpypi dist/*
 python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ wise-pm
 ```
 
@@ -51,7 +54,7 @@ settings → API tokens → scope "Entire account", because the project does not
 exist yet). Put it in `~/.pypirc` or pass it interactively:
 
 ```bash
-twine upload dist/*         # username: __token__ ; password: pypi-...
+uv run twine upload dist/*  # username: __token__ ; password: pypi-...
 ```
 
 After the project exists, delete that token and switch to trusted publishing
@@ -59,25 +62,28 @@ After the project exists, delete that token and switch to trusted publishing
 
 ## 3. Automated releases with trusted publishing (recommended)
 
-`.github/workflows/publish.yml` builds and uploads on every GitHub Release.
+`.github/workflows/release.yml` builds and uploads when a tag `v*` is pushed.
 One-time setup on PyPI:
 
 1. Open <https://pypi.org/manage/project/wise-pm/settings/publishing/>.
 2. Add a GitHub publisher: owner = your GitHub user/org, repository = the
-   repo name, workflow name = `publish.yml`, environment name = `pypi`.
+   repo name, workflow name = `release.yml`, environment name = `pypi`.
 3. In the GitHub repository: Settings → Environments → create `pypi`
    (optionally require a reviewer, which gives you a manual approval step).
 
 Release procedure from then on:
 
 ```bash
-# 1. bump the version in src/wise/_version.py (the single source) and CITATION.cff
+# 1. bump the version in packages/wise-pm/src/wise/_version.py (the single source) and CITATION.cff
 # 2. move CHANGELOG "Unreleased" items under the new version with today's date
+# 3. check locally that everything agrees (the release workflow runs the same script):
+uv run python scripts/check_release.py v0.2.0
 git commit -am "Release 0.2.0"
-git tag -a v0.2.0 -m "wise 0.2.0"
-git push && git push --tags
-# 3. GitHub → Releases → "Draft a new release" → choose tag v0.2.0 → publish
-#    The workflow builds, then uploads to PyPI. Watch the Actions tab.
+git tag -a v0.2.0 -m "wise-pm 0.2.0"
+git push && git push origin v0.2.0
+# 4. .github/workflows/release.yml verifies tag == versions == CHANGELOG, runs the
+#    suite, builds, publishes through trusted publishing (environment "pypi"), and
+#    creates the GitHub release from the CHANGELOG section. Watch the Actions tab.
 ```
 
 Versioning: semantic versioning. While the API is settling, stay on
@@ -92,7 +98,7 @@ pip install wise-pm                      # PyPI
 pip install "wise-pm[pm4py]"             # with the pm4py extra (XES import, pm4py objects)
 pip install "wise-pm[stats]"             # SciPy, for Spearman / Kendall view agreement
 uv add wise-pm                           # uv / pyproject-based projects
-pip install git+https://github.com/feelfine1977/wise-pm.git@main   # straight from GitHub, no PyPI needed
+pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"   # straight from GitHub, no PyPI needed
 ```
 
 `pipx install wise-pm` gives the `wise` command-line tool in an isolated environment.
@@ -126,8 +132,8 @@ accepted within days.
 `mkdocs` with `mkdocstrings` renders the docstrings as an API reference:
 
 ```bash
-pip install mkdocs mkdocs-material mkdocstrings[python]
-mkdocs new . && mkdocs serve
+uv sync --group docs
+uv run mkdocs new . && uv run mkdocs serve
 ```
 
 Host on Read the Docs (free for open source, builds on every push) or GitHub
@@ -135,10 +141,10 @@ Pages (`mkdocs gh-deploy`).
 
 ## 8. Pre-release checklist
 
-- [ ] `pytest` green on the CI matrix (Linux/macOS/Windows × 3.10–3.13)
-- [ ] `ruff check . && ruff format --check . && mypy src/wise` clean
-- [ ] `python -m build && twine check dist/*` clean; wheel installs in a fresh venv
+- [ ] `make test` and `make check` green locally; CI green on the matrix (Linux 3.10–3.13 incl. floor pins, macOS, Windows)
+- [ ] `make build` clean; wheel installs in a fresh venv (the CI build job does this on three OSes)
+- [ ] `scripts/compat_gate.sh` green against the workbench, and the BPIC'19 reproduction run locally
 - [ ] version bumped; `CHANGELOG.md` updated; `CITATION.cff` version updated
 - [ ] README renders on PyPI (check on TestPyPI the first time)
-- [ ] no data files or notebooks in the sdist (`tar tzf dist/*.tar.gz`)
-- [ ] tag `vX.Y.Z` matches the package version
+- [ ] the sdist holds `src`, `scripts`, `benchmarks`, `tests` (with its golden data), README and LICENSE (`tar tzf dist/*.tar.gz`)
+- [ ] `uv run python scripts/check_release.py vX.Y.Z` prints the version (tag, package, CITATION.cff and CHANGELOG agree)

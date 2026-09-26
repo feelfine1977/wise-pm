@@ -1,0 +1,422 @@
+{
+  "dataset": {
+    "file": "p2p_synthetic_2k.parquet",
+    "n_cases": 2000,
+    "n_events": 12588,
+    "seed": 20260926,
+    "sha256": "203a11160ee621ee7775cbf39a11bd3b989844c282e10876204cd93256b2436b"
+  },
+  "files": {
+    "golden/backlog_company_flat.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean"
+      ],
+      "rows": 8
+    },
+    "golden/backlog_company_layer_balanced.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean"
+      ],
+      "rows": 8
+    },
+    "golden/backlog_company_vendor_flat.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean"
+      ],
+      "rows": 399
+    },
+    "golden/backlog_company_vendor_layer_balanced.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean"
+      ],
+      "rows": 399
+    },
+    "golden/constraint_drivers_all_flat.csv": {
+      "columns": [
+        "layer",
+        "type",
+        "mean_penalty",
+        "mean_violation",
+        "share_violated",
+        "share_in_scope",
+        "share_evaluated",
+        "description"
+      ],
+      "rows": 11
+    },
+    "golden/constraint_drivers_all_layer_balanced.csv": {
+      "columns": [
+        "layer",
+        "type",
+        "mean_penalty",
+        "mean_violation",
+        "share_violated",
+        "share_in_scope",
+        "share_evaluated",
+        "description"
+      ],
+      "rows": 11
+    },
+    "golden/contributions_Compliance_flat.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/contributions_Compliance_layer_balanced.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/contributions_Finance_flat.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/contributions_Finance_layer_balanced.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/contributions_Operations_flat.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/contributions_Operations_layer_balanced.parquet": {
+      "columns": [
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort"
+      ],
+      "rows": 2000
+    },
+    "golden/event_replication.parquet": {
+      "columns": [
+        "n_events",
+        "n_distinct_ts",
+        "replication_ratio",
+        "replicated_share"
+      ],
+      "rows": 2000
+    },
+    "golden/hotspot_company_flat.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean",
+        "hotspot",
+        "dominant_layer"
+      ],
+      "rows": 2
+    },
+    "golden/hotspot_company_layer_balanced.csv": {
+      "columns": [
+        "n_cases",
+        "mean_score",
+        "volume",
+        "gap",
+        "PI",
+        "stable_mean",
+        "stable_gap",
+        "stable_PI",
+        "global_mean",
+        "hotspot",
+        "dominant_layer"
+      ],
+      "rows": 2
+    },
+    "golden/in_scope_flat.parquet": {
+      "columns": [
+        "inv_present",
+        "clr_present",
+        "gr_inv_lag",
+        "gr_inv_lag_each",
+        "inv_clr_lag",
+        "inv_gr_balance",
+        "gr_before_inv",
+        "gr_singular",
+        "no_cancel",
+        "no_price_change_after_gr",
+        "manual_effort"
+      ],
+      "rows": 2000
+    },
+    "golden/in_scope_layer_balanced.parquet": {
+      "columns": [
+        "inv_present",
+        "clr_present",
+        "gr_inv_lag",
+        "gr_inv_lag_each",
+        "inv_clr_lag",
+        "inv_gr_balance",
+        "gr_before_inv",
+        "gr_singular",
+        "no_cancel",
+        "no_price_change_after_gr",
+        "manual_effort"
+      ],
+      "rows": 2000
+    },
+    "golden/layer_drivers_company_flat.csv": {
+      "columns": [
+        "n_cases",
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort",
+        "completeness__delta",
+        "lead_times__delta",
+        "match__delta",
+        "handling__delta",
+        "exceptions__delta",
+        "effort__delta",
+        "dominant_layer"
+      ],
+      "rows": 8
+    },
+    "golden/layer_drivers_company_layer_balanced.csv": {
+      "columns": [
+        "n_cases",
+        "completeness",
+        "lead_times",
+        "match",
+        "handling",
+        "exceptions",
+        "effort",
+        "completeness__delta",
+        "lead_times__delta",
+        "match__delta",
+        "handling__delta",
+        "exceptions__delta",
+        "effort__delta",
+        "dominant_layer"
+      ],
+      "rows": 8
+    },
+    "golden/penalty_mass_vendor_flat.csv": {
+      "columns": [
+        "n_cases",
+        "penalty_mass",
+        "mean_penalty",
+        "share",
+        "cum_share",
+        "rank"
+      ],
+      "rows": 60
+    },
+    "golden/penalty_mass_vendor_layer_balanced.csv": {
+      "columns": [
+        "n_cases",
+        "penalty_mass",
+        "mean_penalty",
+        "share",
+        "cum_share",
+        "rank"
+      ],
+      "rows": 60
+    },
+    "golden/right_censored.parquet": {
+      "columns": [
+        "right_censored"
+      ],
+      "rows": 2000
+    },
+    "golden/scores_flat.parquet": {
+      "columns": [
+        "Finance",
+        "Operations",
+        "Compliance"
+      ],
+      "rows": 2000
+    },
+    "golden/scores_layer_balanced.parquet": {
+      "columns": [
+        "Finance",
+        "Operations",
+        "Compliance"
+      ],
+      "rows": 2000
+    },
+    "golden/validation_table_company.csv": {
+      "columns": [
+        "n_cases",
+        "stable_gap",
+        "stable_PI",
+        "censored_share",
+        "stable_gap_kept",
+        "retained",
+        "replicated_share",
+        "reading"
+      ],
+      "rows": 8
+    },
+    "golden/view_agreement_flat.csv": {
+      "columns": [
+        "top20_overlap",
+        "score_correlation"
+      ],
+      "rows": 3
+    },
+    "golden/view_agreement_layer_balanced.csv": {
+      "columns": [
+        "top20_overlap",
+        "score_correlation"
+      ],
+      "rows": 3
+    },
+    "golden/violations_flat.parquet": {
+      "columns": [
+        "inv_present",
+        "clr_present",
+        "gr_inv_lag",
+        "gr_inv_lag_each",
+        "inv_clr_lag",
+        "inv_gr_balance",
+        "gr_before_inv",
+        "gr_singular",
+        "no_cancel",
+        "no_price_change_after_gr",
+        "manual_effort"
+      ],
+      "rows": 2000
+    },
+    "golden/violations_layer_balanced.parquet": {
+      "columns": [
+        "inv_present",
+        "clr_present",
+        "gr_inv_lag",
+        "gr_inv_lag_each",
+        "inv_clr_lag",
+        "inv_gr_balance",
+        "gr_before_inv",
+        "gr_singular",
+        "no_cancel",
+        "no_price_change_after_gr",
+        "manual_effort"
+      ],
+      "rows": 2000
+    }
+  },
+  "log_kwargs": {
+    "activity_col": "activity",
+    "case_attributes": [
+      "company",
+      "vendor",
+      "flow_type"
+    ],
+    "case_col": "case",
+    "event_id_col": "eventID",
+    "missing_timestamps": "keep",
+    "order_col": "eventID",
+    "timestamp_col": "time",
+    "window": [
+      "2024-01-01",
+      "2024-12-31"
+    ]
+  },
+  "norm": {
+    "file": "golden/norm.json",
+    "fingerprint": "d97dd1b4d93a0d328b841087063c16fcaa82ca064deca25409208113c6bffb1b",
+    "name": "Golden P2P norm",
+    "scoring_mode": "layer_balanced",
+    "version": "1"
+  },
+  "parameters": {
+    "agreement_by": "vendor",
+    "censoring": {
+      "closure": "Clear Invoice",
+      "opened_by": "Record Invoice Receipt",
+      "window": "60D"
+    },
+    "correlation": "pearson",
+    "csv_float_decimals": 12,
+    "gamma": 20.0,
+    "modes": [
+      "flat",
+      "layer_balanced"
+    ],
+    "top_k": 20,
+    "validation_table_mode": "layer_balanced",
+    "view": "Finance"
+  },
+  "versions": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "pyarrow": "25.0.1",
+    "python": "3.13",
+    "wise": "0.1.0"
+  }
+}

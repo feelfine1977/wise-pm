@@ -6,6 +6,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Repository layout: the library moved to `packages/wise-pm` inside a uv
+  workspace with a committed `uv.lock`; the build backend is hatchling and
+  `MANIFEST.in` is gone. Install from a checkout with
+  `pip install ./packages/wise-pm` or `pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"`.
+  The public API, the norm file format and every number are unchanged.
+- The `wise-pm` distribution declares the `MIT` licence expression and ships
+  only the MIT licence file; rights-controlled additions will live in a
+  separate distribution.
+- Development tooling: `make setup|test|check|golden|contract|bench|compat|build`,
+  pre-commit hooks that run the locked tool versions, `ruff` with an extended
+  rule set, `mypy --strict` (the 0.1.0 test modules are temporarily excluded
+  and re-enter one by one as they are rewritten), `import-linter` enforcing
+  the module layering, CI on Python 3.10–3.13 with floor-pin, macOS and
+  Windows jobs plus wheel/sdist smoke tests, a nightly workflow for
+  pre-release dependencies, benchmarks, the long Hypothesis profile and a
+  dependency audit, and a tag-driven release workflow that refuses a tag whose
+  version disagrees with the package, `CITATION.cff` or this changelog.
+- New optional extra `io` (pyarrow) for parquet input.
+
+### Added
+
+- Test tiers: regression tests pinning the 16 behavioural defects of the
+  2026-09-26 review (C1–C13, C15, C16, C18) as strict `xfail`s, the structural
+  findings being tracked in the plan; Hypothesis property tests for the scoring,
+  priority and JSON invariants; a golden pipeline snapshot on a committed
+  synthetic 2 000-case purchase-to-pay log with planted hotspots; a public-API
+  contract snapshot (names, signatures, dataclass fields, output columns);
+  a benchmark on a synthetic 1.6 M-event log; `scripts/compat_gate.sh` running
+  the downstream application suites against a source tree.
+
+### Fixed
+
+- `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
+- Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
+  the current pandas-stubs reject; no behavioural change.
+
 ## [0.1.0] — 2026-09-05
 
 First release.
