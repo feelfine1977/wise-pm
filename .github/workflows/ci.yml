@@ -60,10 +60,14 @@ jobs:
       - if: matrix.deps == 'floor'
         run: uv pip install "numpy==1.24.*" "pandas==2.0.*"
       - run: uv run --frozen --no-sync python -c "import sys, numpy, pandas, wise; print(sys.version); print('numpy', numpy.__version__, 'pandas', pandas.__version__, 'wise', wise.__version__)"
-      # Exact golden parity is gated on the reference cell (ubuntu, Python 3.13, lockfile); other cells report drift.
+      # The golden tier resolves its mode from the manifest's environment block: exact on the record host, within
+      # 1e-9 elsewhere. CI runners are never the record host (docs/semantics/parity.md).
       - run: uv run --frozen --no-sync pytest -m "not bench and not bpic19" --cov --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered --junitxml=junit.xml
         env:
-          WISE_GOLDEN_MODE: ${{ (matrix.os == 'ubuntu-latest' && matrix.python == '3.13' && matrix.deps == 'locked') && 'exact' || 'report' }}
+          WISE_GOLDEN_MODE: auto
+      - if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13' && matrix.deps == 'locked'
+        name: golden determinism on this runner and drift against the committed record
+        run: uv run --frozen --no-sync python packages/wise-pm/scripts/make_golden.py --check --mode report
       - uses: actions/upload-artifact@v4
         if: always()
         with:

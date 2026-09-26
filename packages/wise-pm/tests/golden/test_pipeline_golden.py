@@ -46,10 +46,16 @@ def _load_generator() -> ModuleType:
 
 
 mg = _load_generator()
-#: "exact" (default, the record environment: the lockfile on the CI reference runner) or "report" (other CI cells:
-#: differences within REPORT_ATOL are logged, not failed, until exactness is confirmed on that runner).
-GOLDEN_MODE = os.environ.get("WISE_GOLDEN_MODE", "exact")
 GOLDEN = DATA / mg.GOLDEN_SUBDIR
+#: WISE_GOLDEN_MODE: "auto" (default) compares exactly when this environment matches the record host named in the
+#: golden manifest and within mg.REPORT_ATOL otherwise; "exact" and "report" force either. Exactness across hosts is
+#: not a property of IEEE arithmetic (SIMD reduction order, fused multiply-add, BLAS kernels move the last bit);
+#: differences beyond REPORT_ATOL fail in every mode.
+GOLDEN_MODE_REQUESTED = os.environ.get("WISE_GOLDEN_MODE", "auto")
+ENVIRONMENT_DIFFERENCES = mg.environment_differences(mg.read_json(GOLDEN / mg.MANIFEST_FILE).get("environment"))
+GOLDEN_MODE = (
+    GOLDEN_MODE_REQUESTED if GOLDEN_MODE_REQUESTED in {"exact", "report"} else ("report" if ENVIRONMENT_DIFFERENCES else "exact")
+)
 PLACEHOLDER_FROM = pd.Timestamp("2099-01-01")
 # Every frame that has a readable CSV next to its parquet record, as (name, mode) pairs.
 READABLE = [(n, m) for m in mg.MODES for n in mg.MODE_OUTPUTS if n in mg.READABLE_OUTPUTS] + [
@@ -99,6 +105,15 @@ def truth() -> dict[str, Any]:
 @pytest.fixture(scope="module")
 def manifest() -> dict[str, Any]:
     return mg.read_json(GOLDEN / mg.MANIFEST_FILE)
+
+
+def test_golden_mode_is_recorded(request: pytest.FixtureRequest) -> None:
+    """The resolved comparison mode and the environment differences go into the junit report of every CI cell."""
+    request.node.user_properties.append(("golden_mode", GOLDEN_MODE))
+    request.node.user_properties.append(("environment_differences", "; ".join(ENVIRONMENT_DIFFERENCES) or "record host"))
+    assert GOLDEN_MODE in {"exact", "report"}
+    if GOLDEN_MODE_REQUESTED == "auto" and not ENVIRONMENT_DIFFERENCES:
+        assert GOLDEN_MODE == "exact"
 
 
 def _assert_golden(actual: pd.DataFrame, name: str, mode: str | None) -> None:

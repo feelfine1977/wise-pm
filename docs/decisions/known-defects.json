@@ -88,7 +88,7 @@
       "severity": "S2",
       "status": "open",
       "owner": "maintainer",
-      "milestone": "M4",
+      "milestone": "M1",
       "kind": "defect",
       "release_blocking": false
     },

@@ -6,6 +6,18 @@
     "seed": 20260926,
     "sha256": "203a11160ee621ee7775cbf39a11bd3b989844c282e10876204cd93256b2436b"
   },
+  "environment": {
+    "blas": "accelerate",
+    "machine": "arm64",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "python": "3.13",
+    "simd": [
+      "ASIMDDP",
+      "ASIMDHP"
+    ],
+    "system": "Darwin"
+  },
   "frames": {
     "backlog_company_flat": {
       "columns": [

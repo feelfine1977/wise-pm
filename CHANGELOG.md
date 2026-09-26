@@ -41,7 +41,18 @@ All notable changes to this project are documented here. The format follows
 - `docs/decisions/0001-canonical-library-and-migration-map.md` and
   `docs/semantics/parity.md` record the ownership map, the recipe, calibration
   and missingness decisions, and the exact-parity policy for unchanged classic
-  arithmetic (the golden tier compares parquet records exactly).
+  arithmetic (the golden tier compares parquet records exactly). The decision
+  record also names the capability set, the contracts the application
+  consumers wait for, the executed parity baseline, the packaging fallback and
+  the disposition of the workbench analytics package between the MIT core and
+  the noncommercial extension.
+- Golden tier: the manifest records the environment that produced the record
+  (system, machine, Python, numpy, pandas, BLAS, SIMD set); the golden test's
+  default `auto` mode compares exactly on that host and within 1e-9 elsewhere,
+  after CI run 10 showed last-bit drift on the ubuntu runner (seven frames,
+  reduction order and fused multiply-add). `make_golden.py --check --mode
+  report` gives CI a same-runner determinism proof and a drift report; the
+  release check reproduces the goldens exactly on the maintainer's host.
 - Regression ledger: C24 (`compare_periods` zero-fills slices absent from one
   period), C25 (a negated applicability rule brings cases with a missing
   attribute into scope), C26 (`prioritize` accepts `baseline=NaN`), C27 (a

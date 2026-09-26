@@ -2,11 +2,16 @@
 
 Usage: python scripts/check_release.py v0.2.0
 Prints ``version=0.2.0`` on success (for GITHUB_OUTPUT) and exits 1 with one line
-per problem otherwise. Standard library only, so it runs before any sync.
+per problem otherwise. Standard library only for the version, changelog and
+ledger checks, so it runs before any sync; when the library is importable it
+also reproduces the golden records exactly (a release is cut on the record host).
 """
 
 from __future__ import annotations
 
+import contextlib
+import importlib.util
+import io
 import json
 import re
 import sys
@@ -18,6 +23,32 @@ VERSION_FILES = [
     ROOT / "packages" / "wise-pm-actionability" / "src" / "wise_actionability" / "_version.py",
 ]
 SEMVER = r"\d+\.\d+\.\d+(?:[-.]?(?:a|b|rc|dev)\d+)?"
+
+
+def golden_exact_problem() -> str | None:
+    """Reproduce the golden records exactly on this host; None when they match or the library is not importable."""
+    if importlib.util.find_spec("wise") is None or importlib.util.find_spec("pyarrow") is None:
+        print(
+            "release check: golden exactness not verified here (library not importable); the CI gate reports drift",
+            file=sys.stderr,
+        )
+        return None
+    spec = importlib.util.spec_from_file_location("make_golden", ROOT / "packages" / "wise-pm" / "scripts" / "make_golden.py")
+    if spec is None or spec.loader is None:
+        return "packages/wise-pm/scripts/make_golden.py cannot be loaded"
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = int(module.check(module.DEFAULT_OUT, "exact"))
+    if rc == 0:
+        print("release check: golden records reproduced exactly on this host", file=sys.stderr)
+        return None
+    detail = (out.getvalue().strip().splitlines() or ["no detail"])[-1]
+    return (
+        f"golden records are not reproduced exactly on this host ({detail}); cut the release on the record host "
+        "named in the golden manifest, or re-baseline with an `environment` entry in CHANGELOG.md"
+    )
 
 
 def read_version_file(path: Path) -> str | None:
@@ -87,6 +118,10 @@ def main(argv: list[str]) -> int:
         problems.append(f"CHANGELOG.md first release heading is {first_release}, tag says {version}")
     if not unreleased_empty:
         problems.append("CHANGELOG.md still has entries under [Unreleased]")
+
+    golden_problem = golden_exact_problem()
+    if golden_problem:
+        problems.append(golden_problem)
 
     for p in problems:
         print(f"release check: {p}", file=sys.stderr)

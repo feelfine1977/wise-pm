@@ -17,9 +17,13 @@ with the parquet record exactly (``assert_frame_equal(check_exact=True)``, no
 tolerance) and each CSV with the record rounded to ``CSV_DECIMALS``.
 
 Exact-parity policy: unchanged classic arithmetic must stay bit-identical with
-the record under the pinned environments (verified across Python 3.13 / 3.10
-and the floor pins of numpy and pandas); only a new numerical method may
-declare a tolerance, next to its own golden. Everything is derived from
+the record on the record host, the environment named in the manifest's
+``environment`` block (verified there across Python 3.13 / 3.10 and the floor
+pins of numpy and pandas), and within ``REPORT_ATOL`` on every other host,
+where SIMD reduction order, fused multiply-add and BLAS kernels move the last
+bit (measured 2026-09-27: a Linux x86_64 runner differed from the macOS arm64
+record in the last bit on seven frames). Only a new numerical method may
+declare a wider tolerance, next to its own golden. Everything is derived from
 ``numpy.random.default_rng(SEED)``; nothing here reads the clock.
 
 ``--check`` proves determinism: the script runs twice into temporary
@@ -28,7 +32,9 @@ and every frame equal, and the committed files are compared with the fresh
 run (exit status 1 when ``--write`` would change them: bytes first, then the
 golden test's own exact comparison for records whose bytes differ, as when
 the parquet metadata names other library versions; stale committed files
-that the generator no longer produces are reported too).
+that the generator no longer produces are reported too). ``--check --mode report``
+compares the committed files within ``REPORT_ATOL`` instead, for hosts that are
+not the record host (CI runners); the determinism proof stays exact everywhere.
 
 Planted ground truth (``tests/data/p2p_synthetic_2k.ground_truth.json``):
 
@@ -58,6 +64,7 @@ import argparse
 import hashlib
 import json
 import math
+import platform
 import sys
 import tempfile
 from collections.abc import Mapping
@@ -908,6 +915,7 @@ def run(base: Path) -> dict[str, pd.DataFrame]:
             "readable_format": READABLE_FORMAT,
             "csv_float_decimals": CSV_DECIMALS,
         },
+        "environment": environment(),
         "versions": {
             "wise": wise.__version__,
             "pandas": pd.__version__,
@@ -927,6 +935,41 @@ def _pyarrow_version() -> str:
     return str(pyarrow.__version__)
 
 
+def environment() -> dict[str, Any]:
+    """The platform and numerical stack that produced the record.
+
+    Exact equality is a property of one environment: SIMD reduction order, fused multiply-add and the BLAS kernels
+    behind the two matrix products of the scoring kernel move the last bit between hosts. The golden test compares
+    exactly only where this block matches the manifest and within ``REPORT_ATOL`` elsewhere.
+    """
+    blas, simd = "unknown", []
+    try:
+        cfg = np.show_config(mode="dicts")  # numpy >= 1.25; the floor pin raises TypeError
+    except TypeError:
+        cfg = None
+    if isinstance(cfg, dict):
+        dep = cfg.get("Build Dependencies", {}).get("blas", {})
+        blas = " ".join(str(x) for x in (dep.get("name", "unknown"), dep.get("version", "")) if x and x != "unknown") or "unknown"
+        simd = sorted(cfg.get("SIMD Extensions", {}).get("found", []) or [])
+    return {
+        "system": platform.system(),
+        "machine": platform.machine(),
+        "python": ".".join(str(x) for x in sys.version_info[:2]),
+        "numpy": np.__version__,
+        "pandas": pd.__version__,
+        "blas": blas,
+        "simd": simd,
+    }
+
+
+def environment_differences(recorded: Mapping[str, Any] | None) -> list[str]:
+    """Fields in which the current environment differs from the recorded one; empty means this is the record host."""
+    if not recorded:
+        return ["environment not recorded in the manifest"]
+    now = environment()
+    return [f"{k}: {recorded.get(k)!r} -> {now[k]!r}" for k in now if now[k] != recorded.get(k)]
+
+
 # --------------------------------------------------------------------------- CLI
 def _files_under(base: Path) -> list[Path]:
     """Every regular file below ``base`` (relative paths, sorted); dotfiles such as ``.DS_Store`` are ignored."""
@@ -942,23 +985,27 @@ def _report(base: Path, frames: Mapping[str, pd.DataFrame]) -> None:
     print(f"golden files: {len(frames)} parquet records, {n_readable} readable CSVs, {total / 1024:.1f} KB in total under {base}")
 
 
-def _records_equal(fresh: Path, old: Path) -> bool:
-    """Whether two parquet records hold the same frame under the golden test's exact comparison."""
+def _records_equal(fresh: Path, old: Path, mode: str = "exact") -> bool:
+    """Whether two parquet records hold the same frame: exactly, or within ``REPORT_ATOL`` in report mode."""
     try:
-        assert_frames_exact(read_record(fresh), read_record(old), obj=fresh.name)
+        if mode == "report":
+            print(assert_frames_report(read_record(fresh), read_record(old), obj=fresh.name))
+        else:
+            assert_frames_exact(read_record(fresh), read_record(old), obj=fresh.name)
     except AssertionError:
         return False
     return True
 
 
-def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.DataFrame]) -> list[str]:
+def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.DataFrame], mode: str = "exact") -> list[str]:
     """Committed files that ``--write`` would change, and committed files the generator no longer produces.
 
     Files are compared byte for byte first. When the bytes differ, a parquet record counts as changed only if its
     frame differs under the golden test's exact comparison (the parquet metadata names the writing libraries, so
     another environment changes the bytes but not the frame), a JSON file only if its content differs (the
     manifest's recorded library versions are reported but tolerated), and anything else (a readable CSV, the
-    dataset parquet whose sha256 the manifest pins) is changed as soon as its bytes are.
+    dataset parquet whose sha256 the manifest pins) is changed as soon as its bytes are. In report mode (a host
+    other than the record host) records and readable CSVs count as changed only beyond ``REPORT_ATOL``.
     """
     fresh_files = _files_under(fresh)
     changed: list[str] = []
@@ -970,13 +1017,24 @@ def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.Dat
         elif new_file.read_bytes() == old_file.read_bytes():
             continue
         elif rel in frames:
-            if not _records_equal(new_file, old_file):
+            if not _records_equal(new_file, old_file, mode):
                 changed.append(rel)
         elif path_rel.suffix == ".json":
             new_obj, old_obj = read_json(new_file), read_json(old_file)
-            if path_rel.name == MANIFEST_FILE and new_obj.pop("versions") != old_obj.pop("versions"):
-                print(f"note: {rel} was written with other library versions")
+            if path_rel.name == MANIFEST_FILE:
+                if new_obj.pop("versions") != old_obj.pop("versions"):
+                    print(f"note: {rel} was written with other library versions")
+                if "environment" not in old_obj:
+                    changed.append(f"{rel} (no environment block; run --write on the record host)")
+                if new_obj.pop("environment", None) != old_obj.pop("environment", None):
+                    print(f"note: {rel} was recorded in another environment")
             if new_obj != old_obj:
+                changed.append(rel)
+        elif mode == "report" and str(path_rel.with_suffix(f".{RECORD_FORMAT}")) in frames:
+            like = frames[str(path_rel.with_suffix(f".{RECORD_FORMAT}"))]
+            try:
+                print(assert_frames_report(read_readable(new_file, like=like), read_readable(old_file, like=like), obj=rel))
+            except AssertionError:
                 changed.append(rel)
         else:
             changed.append(rel)
@@ -985,8 +1043,9 @@ def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.Dat
     return changed
 
 
-def check(committed: Path) -> int:
-    """Two runs must be byte-identical; report whether the committed files would change."""
+def check(committed: Path, mode: str = "exact") -> int:
+    """Two runs must be byte-identical; report whether the committed files would change (exactly, or within
+    ``REPORT_ATOL`` in report mode)."""
     with tempfile.TemporaryDirectory() as tmp:
         a, b = Path(tmp) / "run1", Path(tmp) / "run2"
         frames_a, frames_b = run(a), run(b)
@@ -1005,9 +1064,14 @@ def check(committed: Path) -> int:
         if not (committed / GOLDEN_SUBDIR / MANIFEST_FILE).exists():
             print(f"no committed golden files under {committed}; run with --write first")
             return 0
-        changed = _committed_changes(committed, a, frames_a)
+        differences = environment_differences(read_json(committed / GOLDEN_SUBDIR / MANIFEST_FILE).get("environment"))
+        print(
+            f"comparison mode: {mode}; "
+            + ("this is the record host" if not differences else "not the record host: " + "; ".join(differences))
+        )
+        changed = _committed_changes(committed, a, frames_a, mode)
         if changed:
-            print("committed golden files that --write would change:")
+            print(f"committed golden files that --write would change ({mode} comparison):")
             for line in changed:
                 print(f"  {line}")
             return 1
@@ -1021,9 +1085,15 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument("--write", action="store_true", help="write the dataset and golden files")
     group.add_argument("--check", action="store_true", help="prove determinism and compare with the committed files")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"target directory (default {DEFAULT_OUT})")
+    parser.add_argument(
+        "--mode",
+        choices=("exact", "report"),
+        default="exact",
+        help="how --check compares with the committed files: exact (record host) or within REPORT_ATOL (report)",
+    )
     args = parser.parse_args(argv)
     if args.check:
-        return check(args.out)
+        return check(args.out, args.mode)
     frames = run(args.out)
     _report(args.out, frames)
     return 0
