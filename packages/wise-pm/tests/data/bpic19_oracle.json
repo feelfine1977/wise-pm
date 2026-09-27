@@ -1,0 +1,16 @@
+{
+  "digests": {
+    "backlog_automation_gamma20": "ff51fdf939e3d9accc7db93e51d04d54790243c13ced2eb7cd5be8c4fd53e3b1",
+    "contributions_Automation": "7825670fd43618f27ab4c0bf35acf80d1a746ea947ec427370f9384e8dac4e6f",
+    "contributions_Compliance": "4abd64319e8be77a632b0702ed1d1d01e674d253cf8ec9835958ae83a290d7c7",
+    "contributions_Finance": "7db3efb5d115252ac402f8d0bd13114f34f08432c7ed911cb462646ccd616e8e",
+    "contributions_Logistics": "fd85ddca65a8501a98e6934aa7dac113ad61bed3e31d72bdd8fde550c032f5f3",
+    "scores": "4fce457140becccf8d6fbdc0cf24a498266377f97e20c12d0e3cee9226415a5a",
+    "violations": "e10544abd739808922bb589f875b194df3156bca604e565bae93d4843cc70aa8"
+  },
+  "n_cases": 251734,
+  "norm_fingerprint": "e17ca18ed3c1a30114694c29455b86def27480bb34000e797e1e06a82dc644b0",
+  "numpy": "2.5.3",
+  "pandas": "3.0.6",
+  "wise": "0.1.0"
+}
