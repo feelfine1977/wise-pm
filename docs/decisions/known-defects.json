@@ -86,11 +86,12 @@
       "id": "C9",
       "title": "non-WiseError exceptions escape the public API (boundary wrapping)",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-09-27"
     },
     {
       "id": "C10",
@@ -106,11 +107,12 @@
       "id": "C11",
       "title": "LogSchemaError inherits from KeyError",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-09-27"
     },
     {
       "id": "C12",
@@ -256,32 +258,35 @@
       "id": "C26",
       "title": "prioritize accepts baseline=NaN",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-09-27"
     },
     {
       "id": "C27",
       "title": "negative z inflates PI_lower above stable_PI",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
       "release_blocking": false,
-      "note": "S2 while no consumer ranks or gates on PI_lower; re-grade to S1 if one does."
+      "note": "S2 while no consumer ranks or gates on PI_lower; re-grade to S1 if one does.",
+      "fixed_on": "2026-09-27"
     },
     {
       "id": "C28",
       "title": "min_cases is truncated to int, admitting smaller slices",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-09-27"
     },
     {
       "id": "C29",

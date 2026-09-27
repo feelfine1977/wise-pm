@@ -59,6 +59,55 @@ def _frame(data: ScoreResult | pd.DataFrame, view: str | None, score_col: str, b
     return df, score_col
 
 
+BACKLOG_COLUMNS: tuple[str, ...] = ("n_cases", "stable_gap", "stable_PI")
+"""Columns every backlog frame carries; helpers that take a backlog refuse frames without them (C9)."""
+
+
+def _check_min_cases(min_cases: Any) -> int:
+    """``min_cases`` is a non-negative integer; a fractional value is refused instead of truncated (C28)."""
+    if isinstance(min_cases, bool) or not isinstance(min_cases, int | float | np.integer | np.floating):
+        raise NormError(f"min_cases must be a non-negative integer, got {min_cases!r}")
+    value = float(min_cases)
+    if not np.isfinite(value) or value < 0 or value != int(value):
+        raise NormError(f"min_cases must be a non-negative integer, got {min_cases!r}")
+    return int(value)
+
+
+def _check_z(z: Any) -> float | None:
+    """``z`` is a finite multiplier >= 0; a negative value would turn ``PI_lower`` into an upper bound (C27)."""
+    if z is None:
+        return None
+    try:
+        value = float(z)
+    except (TypeError, ValueError) as exc:
+        raise NormError(f"z must be a finite number >= 0, got {z!r}") from exc
+    if not np.isfinite(value) or value < 0:
+        raise NormError(f"z must be a finite number >= 0, got {z!r}")
+    return value
+
+
+def _check_baseline(baseline: Any) -> float | None:
+    """``baseline`` is a finite reference score; NaN would make every gap and priority undefined (C26)."""
+    if baseline is None:
+        return None
+    try:
+        value = float(baseline)
+    except (TypeError, ValueError) as exc:
+        raise NormError(f"baseline must be a finite number, got {baseline!r}") from exc
+    if not np.isfinite(value):
+        raise NormError(f"baseline must be a finite number, got {baseline!r}")
+    return value
+
+
+def _check_backlog(frame: pd.DataFrame, what: str) -> None:
+    """Refuse a frame that is not a backlog from :func:`prioritize` with a :class:`NormError` (C9)."""
+    if not isinstance(frame, pd.DataFrame):
+        raise NormError(f"{what} must be a backlog DataFrame from prioritize(), got {type(frame).__name__}")
+    missing = [c for c in BACKLOG_COLUMNS if c not in frame.columns]
+    if missing:
+        raise NormError(f"{what} is not a backlog from prioritize(): missing columns {missing}")
+
+
 def prioritize(
     data: ScoreResult | pd.DataFrame,
     by: str | Sequence[str],
@@ -114,11 +163,14 @@ def prioritize(
         raise NormError(f"gamma must be a finite number >= 0, got {gamma!r}") from exc
     if not np.isfinite(gamma) or gamma < 0:
         raise NormError(f"gamma must be a finite number >= 0, got {gamma!r}")
+    min_cases = _check_min_cases(min_cases)
+    z_value = _check_z(z)
+    baseline_value = _check_baseline(baseline)
     df, score_col = _frame(data, view, score_col, by)
     d = df.dropna(subset=[score_col])
     if d.empty:
         raise NotScoredError("no scored cases to aggregate")
-    mu_bar = float(d[score_col].mean()) if baseline is None else float(baseline)
+    mu_bar = float(d[score_col].mean()) if baseline_value is None else baseline_value
 
     vol_col = None if volume == "cases" else ("exposure" if volume == "exposure" else volume)
     if vol_col is not None and vol_col not in d.columns:
@@ -139,15 +191,15 @@ def prioritize(
     agg["stable_mean"] = shrink * agg["mean_score"] + (1.0 - shrink) * mu_bar
     agg["stable_gap"] = (mu_bar - agg["stable_mean"]).clip(lower=0.0)
     agg["stable_PI"] = agg["volume"] * agg["stable_gap"]
-    if z is not None:
+    if z_value is not None:
         se = agg["sd"] / np.sqrt(n)
         agg["se"] = se
-        agg["gap_lower"] = (agg["stable_gap"] - float(z) * se.fillna(np.inf)).clip(lower=0.0)
+        agg["gap_lower"] = (agg["stable_gap"] - z_value * se.fillna(np.inf)).clip(lower=0.0)
         agg["PI_lower"] = agg["volume"] * agg["gap_lower"]
     agg = agg.drop(columns=["sd"])
     agg["global_mean"] = mu_bar
 
-    agg = agg[agg["n_cases"] >= int(min_cases)]
+    agg = agg[agg["n_cases"] >= min_cases]
     agg = agg.sort_index().sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
     agg.attrs.update({"view": view, "gamma": float(gamma), "baseline": mu_bar, "volume": volume, "by": by})
     return agg if as_index else agg.reset_index()
@@ -347,6 +399,7 @@ def hotspot_table(backlog: pd.DataFrame, top: int = 12, drivers: pd.DataFrame | 
     *mechanism* hotspots. If ``drivers`` (from :func:`layer_drivers`, same
     index) is given, ``dominant_layer`` is joined in.
     """
+    _check_backlog(backlog, "backlog")
     pos = backlog[backlog["stable_PI"] > 0].head(top).copy()
     pos["hotspot"] = "mechanism"
     if len(pos) >= 2:
@@ -367,7 +420,9 @@ def hotspot_table(backlog: pd.DataFrame, top: int = 12, drivers: pd.DataFrame | 
 def compare_periods(previous: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
     """Join two backlogs (same ``by``) and report the change in gap and PI per
     slice. Use a common ``baseline`` in :func:`prioritize` for comparability."""
-    cols = ["n_cases", "stable_gap", "stable_PI"]
+    _check_backlog(previous, "previous")
+    _check_backlog(current, "current")
+    cols = list(BACKLOG_COLUMNS)
     p = previous[cols].add_suffix("_prev")
     c = current[cols].add_suffix("_now")
     out = p.join(c, how="outer")

@@ -114,6 +114,10 @@ def _plain(value: Any) -> Any:
 
 
 def _num(name: str, value: Any) -> float:
+    """Coerce a constructor parameter once; strings and booleans are refused (JSON documents are converted by
+    :func:`constraint_from_dict` before construction) so a mistyped value cannot pass as a number (C9)."""
+    if value is None or isinstance(value, bool | str | bytes):
+        raise NormError(f"{name} must be a number, got {value!r}")
     try:
         return float(value)
     except (TypeError, ValueError) as exc:
@@ -162,9 +166,10 @@ class Presence(Constraint):
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "activity", as_labels(self.activity, what="activity"))
-        if _num("presence: m", self.m) != int(_num("presence: m", self.m)) or self.m < 1:
+        m = _num("presence: m", self.m)
+        if not np.isfinite(m) or m != int(m) or m < 1:
             raise NormError(f"presence: m must be an integer >= 1, got {self.m!r}")
-        object.__setattr__(self, "m", int(self.m))
+        object.__setattr__(self, "m", int(m))
 
     def activities(self) -> Labels:
         return as_labels(self.activity)
@@ -213,9 +218,10 @@ class Singularity(Constraint):
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "activity", as_labels(self.activity, what="activity"))
-        if _num("singularity: k", self.k) != int(_num("singularity: k", self.k)) or self.k < 0:
+        k = _num("singularity: k", self.k)
+        if not np.isfinite(k) or k != int(k) or k < 0:
             raise NormError(f"singularity: k must be an integer >= 0, got {self.k!r}")
-        object.__setattr__(self, "k", int(self.k))
+        object.__setattr__(self, "k", int(k))
         _check_pos("singularity: K", self.K)
         object.__setattr__(self, "K", float(self.K))
         for f in ("after", "before"):
@@ -340,9 +346,10 @@ class Precedence(Constraint):
     def __post_init__(self) -> None:
         object.__setattr__(self, "a", as_labels(self.a, what="a"))
         object.__setattr__(self, "b", as_labels(self.b, what="b"))
-        if _num("precedence: k", self.k) != int(_num("precedence: k", self.k)) or self.k < 0:
+        k = _num("precedence: k", self.k)
+        if not np.isfinite(k) or k != int(k) or k < 0:
             raise NormError(f"precedence: k must be an integer >= 0, got {self.k!r}")
-        object.__setattr__(self, "k", int(self.k))
+        object.__setattr__(self, "k", int(k))
         _check_pos("precedence: K", self.K)
         object.__setattr__(self, "K", float(self.K))
         if self.missing_a not in ("skip", "violate"):
@@ -382,9 +389,10 @@ class Balance(Constraint):
     def __post_init__(self) -> None:
         object.__setattr__(self, "activities_x", as_labels(self.activities_x, what="activities_x"))
         object.__setattr__(self, "activities_y", as_labels(self.activities_y, what="activities_y"))
-        if not (0.0 <= float(self.tau) <= 1.0):
+        tau = _num("balance: tau", self.tau)
+        if not (0.0 <= tau <= 1.0):
             raise NormError(f"balance: tau must be in [0, 1], got {self.tau!r}")
-        object.__setattr__(self, "tau", float(self.tau))
+        object.__setattr__(self, "tau", tau)
         _check_nonneg("balance: width", self.width)
         object.__setattr__(self, "width", float(self.width))
         _check_pos("balance: eps", self.eps)

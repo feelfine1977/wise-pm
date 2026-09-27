@@ -57,7 +57,8 @@ All notable changes to this project are documented here. The format follows
   period), C25 (a negated applicability rule brings cases with a missing
   attribute into scope), C26 (`prioritize` accepts `baseline=NaN`), C27 (a
   negative `z` inflates `PI_lower` above `stable_PI`) and C28 (`min_cases` is
-  truncated to an integer), all strict expected failures until fixed.
+  truncated to an integer) and the policy entry C29 (list-valued `where=`
+  as a membership), all strict expected failures until fixed.
 - `docs/decisions/known-defects.json`: every expected failure under
   `tests/regression` must cite an open ledger entry (checked at collection
   time); a release candidate with an open S1 entry is refused by
@@ -70,6 +71,11 @@ All notable changes to this project are documented here. The format follows
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.
+- Fixed: C26 — `prioritize()` refuses `baseline=NaN` (and any non-finite baseline) with a `NormError` instead of returning null gaps and priorities. Delta on the golden dataset: none (the input was refused; every valid number is unchanged).
+- Fixed: C27 — `prioritize()` refuses a negative or non-finite `z`; a negative multiplier turned `PI_lower` into an upper bound. Delta on the golden dataset: none.
+- Fixed: C28 — `prioritize()` refuses a fractional, negative or non-finite `min_cases` instead of truncating it (an integral float such as `5.0` is still accepted). Delta on the golden dataset: none.
+- Fixed: C9 — every public entry point raises a `WiseError` subclass for a bad argument: `EventLog` refuses an unknown `missing_timestamps` option, a reversed observation window and an unknown `exposure_agg` with `LogSchemaError` (the first two were bare `ValueError`s, the last an `AttributeError` from pandas); `Norm.dumps()`/`fingerprint()` serialise numpy arrays and pandas `Timedelta` metadata and raise `NormError` for anything else (was `TypeError`); `Norm.loads()`/`load()`/`from_json()` raise `NormError` for malformed JSON (was `json.JSONDecodeError`); `hotspot_table()` and `compare_periods()` refuse frames that are not backlogs with `NormError` (was `KeyError`); `timestamp_outliers()` accepts a half-open window `(None, end)` or `(start, None)` (was `TypeError`). Delta on the golden dataset: none.
+- Fixed: C11 — `LogSchemaError` no longer inherits `KeyError`, and `NormError` and `NotScoredError` no longer inherit `ValueError`; an `except KeyError:` or `except ValueError:` in a caller cannot swallow a library error any more. Callers that relied on the builtin bases must catch the `wise` classes (or `WiseError`); the workbench already does. The public-API snapshot records the new bases. Delta on the golden dataset: none.
 
 ## [0.1.0] — 2026-09-05
 

@@ -158,11 +158,7 @@ def test_norm_constraint_applicability_values_cannot_be_cleared_in_place():
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=TypeError,
-    reason="C9: Norm.dumps() raises a bare TypeError for ndarray metadata",
-)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_dumps_with_ndarray_metadata_serialises_or_raises_norm_error(p2p_norm):
     n = p2p_norm.replace(metadata={"a": np.arange(3)})
     try:
@@ -173,11 +169,7 @@ def test_dumps_with_ndarray_metadata_serialises_or_raises_norm_error(p2p_norm):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=TypeError,
-    reason="C9: Norm.dumps() raises a bare TypeError for pandas Timedelta metadata",
-)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_dumps_with_timedelta_metadata_serialises_or_raises_norm_error(p2p_norm):
     n = p2p_norm.replace(metadata={"sla": pd.Timedelta("1D")})
     try:
@@ -188,11 +180,7 @@ def test_dumps_with_timedelta_metadata_serialises_or_raises_norm_error(p2p_norm)
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=json.JSONDecodeError,
-    reason="C9: Norm.from_json leaks json.JSONDecodeError for malformed text",
-)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_from_json_wraps_malformed_text_in_norm_error():
     with pytest.raises(NormError):
         wise.Norm.from_json("  {not json")

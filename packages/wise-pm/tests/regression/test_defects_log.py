@@ -116,25 +116,21 @@ def test_count_recipe_agrees_with_count_when_nat_events_are_kept(p2p_events):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C9: an unknown missing_timestamps option escapes as a bare ValueError")
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_unknown_missing_timestamps_option_raises_wise_error(p2p_events):
     with pytest.raises(WiseError):
         build_log(p2p_events, missing_timestamps="x")
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C9: a reversed observation window escapes as a bare ValueError")
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_reversed_window_raises_wise_error(p2p_events):
     with pytest.raises(WiseError):
         build_log(p2p_events, window=("2024-02-01", "2024-01-01"))
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AttributeError,
-    reason="C9: an unknown exposure_agg is passed straight to pandas and escapes as AttributeError",
-)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_unknown_exposure_agg_raises_wise_error(p2p_events):
     with pytest.raises(WiseError):
         build_log(p2p_events, exposure_col="amount", exposure_agg="nonsense")
@@ -144,7 +140,7 @@ def test_unknown_exposure_agg_raises_wise_error(p2p_events):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="C11: an 'except KeyError' clause swallows LogSchemaError")
+# C11 closed 2026-09-27: library errors inherit no builtin (decision record 0001, error contract)
 def test_except_key_error_does_not_swallow_log_schema_error():
     caught_as_key_error = False
     try:

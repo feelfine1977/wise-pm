@@ -39,7 +39,12 @@ def timestamp_outliers(log: EventLog, window: tuple[Any, Any] | None = None, q: 
     """Boolean per event: timestamp outside the observation window."""
     start, end = (log._to_ts(window[0]), log._to_ts(window[1])) if window is not None else log.observation_window(q)
     ts = log.events[log.timestamp_col]
-    return ((ts < start) | (ts > end)).rename("timestamp_outlier")
+    out = pd.Series(False, index=ts.index)
+    if start is not None:
+        out |= ts < start
+    if end is not None:
+        out |= ts > end
+    return out.rename("timestamp_outlier")
 
 
 def _resolve_end(log: EventLog, window_end: Any, window: pd.Timedelta, q: float) -> pd.Timestamp:

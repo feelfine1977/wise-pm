@@ -58,22 +58,15 @@ def _write_p2p_files(tmp_path):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C11: LogSchemaError subclasses KeyError, so any `except KeyError:` swallows schema errors",
-)
+# C11 closed 2026-09-27: library errors inherit no builtin (decision record 0001, error contract)
 def test_log_schema_error_is_not_a_key_error():
     assert not issubclass(wise.LogSchemaError, KeyError)
 
 
 @pytest.mark.regression
 @pytest.mark.parametrize("cls", [NormError, NotScoredError, LogSchemaError])
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C11/C9: WiseError subclasses also inherit builtin ValueError/KeyError, leaking out of the hierarchy",
-)
+# C11 closed 2026-09-27: library errors inherit no builtin (decision record 0001, error contract)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_wise_error_subclass_inherits_no_builtin_besides_exception(cls):
     assert _builtin_bases(cls) == []
 

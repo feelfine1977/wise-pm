@@ -1155,8 +1155,7 @@
     },
     "wise.LogSchemaError": {
       "bases": [
-        "wise.errors.WiseError",
-        "KeyError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,
@@ -1678,8 +1677,7 @@
     },
     "wise.NormError": {
       "bases": [
-        "wise.errors.WiseError",
-        "ValueError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,
@@ -1689,8 +1687,7 @@
     },
     "wise.NotScoredError": {
       "bases": [
-        "wise.errors.WiseError",
-        "ValueError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,
@@ -2345,8 +2342,7 @@
     },
     "wise.errors.LogSchemaError": {
       "bases": [
-        "wise.errors.WiseError",
-        "KeyError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,
@@ -2356,8 +2352,7 @@
     },
     "wise.errors.NormError": {
       "bases": [
-        "wise.errors.WiseError",
-        "ValueError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,
@@ -2367,8 +2362,7 @@
     },
     "wise.errors.NotScoredError": {
       "bases": [
-        "wise.errors.WiseError",
-        "ValueError"
+        "wise.errors.WiseError"
       ],
       "class_constants": {},
       "dataclass_fields": null,

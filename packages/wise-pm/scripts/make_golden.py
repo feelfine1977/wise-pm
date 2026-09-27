@@ -1038,7 +1038,9 @@ def _committed_changes(committed: Path, fresh: Path, frames: Mapping[str, pd.Dat
                 changed.append(rel)
         else:
             changed.append(rel)
-    stale = sorted(set(_files_under(committed)) - set(fresh_files))
+    # Only the golden subdirectory is owned by this generator; other files under tests/data (the BPIC'19 hash
+    # oracle, ground truth) are recorded by their own scripts.
+    stale = sorted(rel for rel in set(_files_under(committed)) - set(fresh_files) if rel.parts[0] == GOLDEN_SUBDIR)
     changed.extend(f"{path_rel} (stale: the generator does not produce it)" for path_rel in stale)
     return changed
 

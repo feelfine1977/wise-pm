@@ -66,7 +66,7 @@ def test_penalty_mass_where_list_equals_union_of_member_companies(p2p_result, co
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=KeyError, reason="C9: hotspot_table on a non-backlog frame leaks KeyError 'stable_PI'")
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_hotspot_table_rejects_penalty_mass_frame_with_wise_error(p2p_result):
     not_a_backlog = wise.penalty_mass(p2p_result, "Finance", "vendor")
     with pytest.raises(WiseError):
@@ -74,7 +74,7 @@ def test_hotspot_table_rejects_penalty_mass_frame_with_wise_error(p2p_result):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=KeyError, reason="C9: compare_periods on frames without backlog columns leaks KeyError")
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 def test_compare_periods_rejects_non_backlog_frames_with_wise_error():
     not_a_backlog = pd.DataFrame({"x": [1]})
     with pytest.raises(WiseError):
@@ -87,9 +87,7 @@ def test_compare_periods_rejects_non_backlog_frames_with_wise_error():
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True, raises=TypeError, reason="C9: timestamp_outliers compares timestamps with None for an open window bound"
-)
+# C9 closed 2026-09-27: every public entry point raises a WiseError subclass (decision record 0001, error contract)
 @pytest.mark.parametrize(
     ("window", "expected_outlier_days"),
     [((None, "2024-02-01"), {40}), (("2024-01-05", None), {0})],
@@ -240,27 +238,21 @@ def _two_slices() -> pd.DataFrame:
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True, raises=pytest.fail.Exception, reason="C26: prioritize accepts baseline=NaN and returns undefined priorities"
-)
+# C26 closed 2026-09-27: input refusal, no valid number changes (docs/semantics/parity.md)
 def test_nan_baseline_is_rejected():
     with pytest.raises(WiseError):
         wise.prioritize(_two_slices(), "slice", baseline=float("nan"))
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True, raises=pytest.fail.Exception, reason="C27: a negative uncertainty multiplier z inflates PI_lower above stable_PI"
-)
+# C27 closed 2026-09-27: input refusal, no valid number changes (docs/semantics/parity.md)
 def test_negative_z_is_rejected():
     with pytest.raises(WiseError):
         wise.prioritize(_two_slices(), "slice", z=-2)
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True, raises=pytest.fail.Exception, reason="C28: min_cases=2.9 is truncated to 2 and admits two-case slices"
-)
+# C28 closed 2026-09-27: input refusal, no valid number changes (docs/semantics/parity.md)
 def test_fractional_min_cases_is_rejected():
     with pytest.raises(WiseError):
         wise.prioritize(_two_slices(), "slice", min_cases=2.9)  # type: ignore[arg-type]  # C28: deliberate wrong type

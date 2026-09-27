@@ -139,7 +139,7 @@ class EventLog:
         for attr in case_attributes:
             _check_attribute_name(attr)
         if missing_timestamps not in ("raise", "drop", "keep"):
-            raise ValueError("missing_timestamps must be 'raise', 'drop' or 'keep'")
+            raise LogSchemaError(f"missing_timestamps must be 'raise', 'drop' or 'keep', got {missing_timestamps!r}")
 
         df = events
         if lifecycle_col is not None:
@@ -247,7 +247,11 @@ class EventLog:
             cases[attr] = ev[attr].groupby(self._codes).first().reindex(range(n_cases)).to_numpy()
         if exposure_col is not None:
             vals = pd.to_numeric(ev[exposure_col], errors="coerce")
-            exp = vals.groupby(self._codes).agg(exposure_agg).reindex(range(n_cases)).fillna(0.0).to_numpy()
+            try:
+                per_case = vals.groupby(self._codes).agg(exposure_agg)
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise LogSchemaError(f"exposure_agg must be a pandas aggregation name, got {exposure_agg!r}") from exc
+            exp = per_case.reindex(range(n_cases)).fillna(0.0).to_numpy()
             if (exp < 0).any():
                 raise LogSchemaError(
                     f"exposure column {exposure_col!r} yields negative case exposure for "
@@ -260,7 +264,7 @@ class EventLog:
         if window is not None:
             start, end = (self._to_ts(window[0]), self._to_ts(window[1]))
             if start is not None and end is not None and start > end:
-                raise ValueError("window start must not be after window end")
+                raise LogSchemaError(f"window start must not be after window end, got {window!r}")
             self.window = (start, end)
 
         self._count_cache: dict[Labels, pd.Series] = {}

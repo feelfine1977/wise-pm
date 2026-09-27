@@ -177,7 +177,7 @@ def test_exposure_and_window(p2p_log):
     win = wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time", window=("2024-01-01", "2024-02-01"))
     assert win.window_end == pd.Timestamp("2024-02-01")
     assert win.observation_window() == win.window
-    with pytest.raises(ValueError, match="window start"):
+    with pytest.raises(wise.LogSchemaError, match="window start"):
         wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time", window=("2024-02-01", "2024-01-01"))
     start, end = p2p_log.observation_window(q=0.0)
     assert start == pd.Timestamp("2023-12-31")

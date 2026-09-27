@@ -108,9 +108,10 @@ def main(argv: list[str]) -> int:
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         for e in entries:
             token = f"Fixed: {e['id']}"
-            if e["status"] == "fixed" and token not in changelog:
+            claimed = re.search(rf"Fixed: {e['id']}\b", changelog) is not None
+            if e["status"] == "fixed" and not claimed:
                 problems.append(f"{e['id']} is recorded as fixed but CHANGELOG.md has no '{token}' entry")
-            if e["status"] == "open" and token in changelog:
+            if e["status"] == "open" and claimed:
                 problems.append(f"CHANGELOG.md claims '{token}' but the ledger still lists {e['id']} as open")
 
     first_release, unreleased_empty = changelog_versions((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))

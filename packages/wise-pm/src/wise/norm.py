@@ -84,6 +84,10 @@ def _jsonable(obj: Any) -> Any:
         return obj.item()
     if isinstance(obj, pd.Timestamp):
         return obj.isoformat()
+    if isinstance(obj, pd.Timedelta):
+        return obj.isoformat()
+    if isinstance(obj, np.ndarray):
+        return [_jsonable(v) for v in obj.tolist()]
     if isinstance(obj, Path):
         return str(obj)
     return obj
@@ -92,8 +96,15 @@ def _jsonable(obj: Any) -> Any:
 def _json_default(obj: Any) -> Any:
     out = _jsonable(obj)
     if out is obj:
-        raise TypeError(f"object of type {type(obj).__name__} is not JSON serialisable")
+        raise NormError(f"norm metadata holds a value of type {type(obj).__name__} that cannot be serialised to JSON")
     return out
+
+
+def _parse_json(text: str, source: str) -> Any:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise NormError(f"{source} is not valid JSON: {exc.msg} (line {exc.lineno}, column {exc.colno})") from exc
 
 
 # ----------------------------------------------------------------------------- layers, views
@@ -556,11 +567,11 @@ class Norm:
 
     @classmethod
     def loads(cls, text: str) -> Norm:
-        return cls.from_dict(json.loads(text))
+        return cls.from_dict(_parse_json(text, "norm text"))
 
     @classmethod
     def load(cls, path: str | Path) -> Norm:
-        return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+        return cls.from_dict(_parse_json(Path(path).read_text(encoding="utf-8"), str(path)))
 
     def to_json(self, path: str | Path | None = None, indent: int = 2) -> str:
         """JSON text; also written to ``path`` if given (alias of dumps/dump)."""

@@ -105,28 +105,21 @@ def test_lag_with_explicit_bound_is_accepted():
 # --- C9: non-numeric parameters escape as TypeError / ValueError ------------------------
 
 
-def _c9(raises, what):
-    return [
-        pytest.mark.regression,
-        pytest.mark.xfail(strict=True, raises=raises, reason=f"C9: {what} escapes as {raises.__name__}, not NormError"),
-    ]
-
-
 @pytest.mark.parametrize(
     "build",
     [
-        pytest.param(lambda: wise.Presence("A", m="2"), id="presence-m-str", marks=_c9(TypeError, "Presence(m='2')")),  # type: ignore[arg-type]  # C9: deliberate wrong type
+        pytest.param(lambda: wise.Presence("A", m="2"), id="presence-m-str"),  # type: ignore[arg-type]  # C9: deliberate wrong type
         pytest.param(
             lambda: wise.Balance("x", "A", "y", "B", tau="x"),  # type: ignore[arg-type]  # C9: deliberate wrong type
             id="balance-tau-str",
-            marks=_c9(ValueError, "Balance(tau='x')"),
         ),
-        pytest.param(lambda: wise.Precedence("A", "B", k="1"), id="precedence-k-str", marks=_c9(TypeError, "Precedence(k='1')")),  # type: ignore[arg-type]  # C9: deliberate wrong type
-        pytest.param(lambda: wise.Singularity("A", k="1"), id="singularity-k-str", marks=_c9(TypeError, "Singularity(k='1')")),  # type: ignore[arg-type]  # C9: deliberate wrong type
+        pytest.param(lambda: wise.Precedence("A", "B", k="1"), id="precedence-k-str"),  # type: ignore[arg-type]  # C9: deliberate wrong type
+        pytest.param(lambda: wise.Singularity("A", k="1"), id="singularity-k-str"),  # type: ignore[arg-type]  # C9: deliberate wrong type
         pytest.param(lambda: wise.Singularity("A", K="big"), id="singularity-K-str"),  # type: ignore[arg-type]  # C9: deliberate wrong type
     ],
 )
 def test_constructor_rejects_non_numeric_parameter_with_norm_error(build):
+    # C9 closed 2026-09-27: constructors coerce once and raise NormError for any non-numeric parameter (decision record 0001)
     with pytest.raises(NormError):
         build()
 
