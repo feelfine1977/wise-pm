@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "name": "hospital_workbook: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Recorded patterns",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Recorded time",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "W01": 1.0,
+        "W02": 1.0
+      }
+    },
+    {
+      "name": "Time",
+      "description": "",
+      "constraint_weights": {
+        "W01": 1.0,
+        "W02": 3.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "W01",
+      "layer": "Recorded patterns",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__W01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__W01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "W02",
+      "layer": "Recorded time",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__W02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__W02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

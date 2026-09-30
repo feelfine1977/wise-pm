@@ -1,0 +1,107 @@
+{
+  "schema_version": 2,
+  "name": "uci_incidents: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Timing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Routing",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "U01": 1.0,
+        "U02": 1.0,
+        "U03": 1.0
+      }
+    },
+    {
+      "name": "Timing",
+      "description": "",
+      "constraint_weights": {
+        "U01": 3.0,
+        "U02": 1.0,
+        "U03": 1.0
+      }
+    },
+    {
+      "name": "Routing",
+      "description": "",
+      "constraint_weights": {
+        "U01": 1.0,
+        "U02": 3.0,
+        "U03": 3.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "U01",
+      "layer": "Timing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__U01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__U01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "U02",
+      "layer": "Routing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__U02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__U02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "U03",
+      "layer": "Routing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__U03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__U03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

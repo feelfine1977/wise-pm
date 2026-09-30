@@ -1,0 +1,112 @@
+{
+  "schema_version": 2,
+  "name": "incident_template: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Timing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Repetition",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Experience",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "M01": 1.0,
+        "M02": 1.0,
+        "M03": 1.0
+      }
+    },
+    {
+      "name": "Timing",
+      "description": "",
+      "constraint_weights": {
+        "M01": 3.0,
+        "M02": 1.0,
+        "M03": 1.0
+      }
+    },
+    {
+      "name": "Experience",
+      "description": "",
+      "constraint_weights": {
+        "M01": 1.0,
+        "M02": 1.0,
+        "M03": 3.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "M01",
+      "layer": "Timing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__M01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__M01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "M02",
+      "layer": "Repetition",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__M02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__M02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "M03",
+      "layer": "Experience",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__M03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__M03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

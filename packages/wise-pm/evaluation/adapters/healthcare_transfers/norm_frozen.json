@@ -1,0 +1,30 @@
+{
+  "version": "healthcare-transfer-illustrative-1",
+  "frozen_before_group_rank_inspection": true,
+  "meaning": "Nonclinical recorded-pathway inspection index; not care quality, treatment appropriateness, clinical risk, provider fault or intervention benefit.",
+  "scope": "Sepsis uses no lab values, demographic attributes or calendar cohorts. Workbook is a three-case technical fixture with unknown provenance.",
+  "sepsis": {
+    "excluded_measurement_activities": ["CRP", "Leucocytes", "LacticAcid"],
+    "criteria": {
+      "S01": {"name": "Additional nonmeasurement activity observations", "layer": "Recorded patterns", "threshold": 2, "width": 8},
+      "S02": {"name": "Long recorded first-to-last history in days", "layer": "Recorded time", "threshold": 7, "width": 23},
+      "S03": {"name": "Long first registration-to-first release interval in days", "layer": "Recorded time", "threshold": 3, "width": 11},
+      "S04": {"name": "Observed Return ER event", "layer": "Recorded patterns", "binary": true}
+    },
+    "views": {"Balanced": {"Recorded patterns": 1, "Recorded time": 1}, "Patterns": {"Recorded patterns": 3, "Recorded time": 1}, "Time": {"Recorded patterns": 1, "Recorded time": 3}},
+    "group": "distinct recorded release labels; no recorded release retained; not diagnosis or owner",
+    "time_policy": "UTC within-case intervals only; invalid endpoint occurrences make duration unavailable; no negative duration repair; complete endpoint observations required",
+    "top_k": 3
+  },
+  "hospital_workbook": {
+    "criteria": {
+      "W01": {"name": "Additional activity observations", "layer": "Recorded patterns", "threshold": 0, "width": 2},
+      "W02": {"name": "Long first-to-last recorded history in hours", "layer": "Recorded time", "threshold": 24, "width": 48}
+    },
+    "views": {"Balanced": {"Recorded patterns": 1, "Recorded time": 1}, "Time": {"Recorded patterns": 1, "Recorded time": 3}},
+    "group": "all three cases; no suitable business context field",
+    "top_k": 3
+  },
+  "scoring": {"mode": "flat", "baseline": "mean over scored cases", "exposure": "case count", "gamma": 0, "positive_only_top_k": true},
+  "sensitivity": {"sepsis_S02_threshold_days": [3, 14], "complete_evidence_cohort": true, "layer_balanced": true}
+}

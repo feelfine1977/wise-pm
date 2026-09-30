@@ -5,8 +5,8 @@ Status: accepted 2026-09-27 (proposed the same day; the ten questions were answe
 ## Context
 
 Three development states of this repository existed on 2026-09-26: `main`
-(classic 0.1.0, `7293b5a`), `feat/actionability-ocpm-local-llm` (`08513bd`,
-evidence, explanation, object-centric, sensitivity and assistant modules on
+(classic 0.1.0, `7293b5a`), the extension prototype (`08513bd`,
+evidence, explanation, object-centric, sensitivity modules on
 top of a modified core) and `next` (`a80f814`, the classic code relocated
 into a uv workspace with a test safety net). The workbench repository holds
 an analytics package (`wise-analytics`, 5 100 lines, numpy/pandas only) that
@@ -150,5 +150,5 @@ implementation under the `wise` import name.
 | Tree | Branch | Commit |
 |---|---|---|
 | classic | `main` | `7293b5a60076c39eb63c66159456dcba37952030` |
-| extension | `feat/actionability-ocpm-local-llm` | `08513bd4879764c61dfb5098fafe022f5653d07a` |
+| extension | the extension prototype | `08513bd4879764c61dfb5098fafe022f5653d07a` |
 | workspace | `next` | `a80f814` (M0) |

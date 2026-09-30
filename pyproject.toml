@@ -34,7 +34,7 @@ dev = [
 docs = ["mkdocs-material", "mkdocstrings[python]"]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/wise-pm/tests", "packages/wise-pm/src/wise"]
+testpaths = ["packages/wise-pm/tests", "packages/wise-pm/src/wise", "packages/wise-pm/evaluation/tests"]
 pythonpath = ["packages/wise-pm/tests"]
 addopts = "--doctest-modules --strict-markers"
 filterwarnings = ["error"]
@@ -75,6 +75,7 @@ known-first-party = ["wise", "_support"]
 "packages/*/scripts/*" = ["T20"]
 "packages/*/benchmarks/*" = ["T20"]
 "scripts/*" = ["T20"]
+"packages/*/evaluation/*" = ["E402", "T20"]
 "packages/wise-pm/src/wise/cli.py" = ["T20"]
 
 [tool.mypy]

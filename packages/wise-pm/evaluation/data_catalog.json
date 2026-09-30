@@ -1,0 +1,802 @@
+{
+  "schema_version": 1,
+  "scope": "All 14 transfer applications plus the maintained BPIC19 reproduction; 13 source families, not 15 independent empirical studies.",
+  "path_base": "packages/wise-pm/evaluation",
+  "data_root_environment": "WISE_EVALUATION_DATA_ROOT",
+  "path_resolution": "Files.path is relative to evaluation; an explicit data-root replaces data/raw. Never require a workstation path.",
+  "source_files_policy": "Copy bytes into local ignored data/raw using files.source_relative_path under a user-supplied source root. Verify destination hash before reporting success.",
+  "code_license_policy": "Preserve repository LICENSE, NOTICE, COMMERCIAL_LICENSING.md and retained package MIT notices; data licences are independent.",
+  "datasets": [
+    {
+      "id": "uci_incidents",
+      "title": "Incident management process enriched event log",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "incident",
+      "source_url": "https://doi.org/10.24432/C57S4H",
+      "license": "CC-BY-4.0",
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": true,
+        "reason": "Dataset terms remain separate from software terms; retain creator citation and licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "incident_event_log.csv",
+          "path": "data/raw/uci_incidents/incident_event_log.csv",
+          "role": "primary",
+          "bytes": 46212397,
+          "sha256": "fd184bbfd62329cfe093e99da2ea7071905f2ead91900b448eb2635870821bef",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (4).zip",
+          "path": "data/raw/uci_incidents/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 2571433,
+          "sha256": "3ea92768cb2cfada908dd601b057d7066127fe75dc8fe19e4abaa1c6766a6c13",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Amaral, C., Fantinato, M., & Peres, S. (2018). UCI Machine Learning Repository.",
+        "Official schema/population match; official-download byte comparison unavailable. Local CSV/archive member hashes match.",
+        "Cumulative counters are snapshots; resolved_at is retrospective; do not sum snapshots."
+      ],
+      "counts": {
+        "cases": 24918,
+        "events": 141712
+      },
+      "applications": [
+        "uci_incidents"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "incident_template",
+      "title": "Process Mining Event Log - Incident Management",
+      "provenance_kind": "origin_unverified",
+      "assessment_unit": "incident",
+      "source_url": "https://www.kaggle.com/datasets/albertopmd/process-mining-event-log-incident-management",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No explicit redistributable dataset licence verified. Local authorized use does not establish public redistribution permission."
+      },
+      "files": [
+        {
+          "source_relative_path": "Incident_Management_CSV.csv",
+          "path": "data/raw/incident_template/Incident_Management_CSV.csv",
+          "role": "primary",
+          "bytes": 28065706,
+          "sha256": "30e9141ea83d020266969f0c0186a4be1530d9546343e3720ea25622fc472609",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (3).zip",
+          "path": "data/raw/incident_template/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 2301112,
+          "sha256": "4280d17840663f82d5aa8248007fac68f0069b26aedeb24265e4ab5cde6ca377",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Primary page title retrieved, description/licence unavailable. Do not claim observed production data."
+      ],
+      "counts": {
+        "cases": 31588,
+        "events": 242901
+      },
+      "applications": [
+        "incident_template"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "amr_orders",
+      "title": "REGISTRO-EVENTOS-AMR-26-2",
+      "provenance_kind": "origin_and_timestamp_semantics_unverified",
+      "assessment_unit": "order",
+      "source_url": null,
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No explicit redistributable dataset licence verified. Local authorized use does not establish public redistribution permission."
+      },
+      "files": [
+        {
+          "source_relative_path": "REGISTRO-EVENTOS-AMR-26-2.csv",
+          "path": "data/raw/amr_orders/REGISTRO-EVENTOS-AMR-26-2.csv",
+          "role": "primary",
+          "bytes": 574869,
+          "sha256": "23f40bc0c8612002c7d4de1f3dd8cc48f25295b96692e8cb06f24cf6d53ed2a0",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (6).zip",
+          "path": "data/raw/amr_orders/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 50631,
+          "sha256": "2b8973d66a31e7a92ca080b5eea89d5609957bfe014f18c6305c4ab5035721b5",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "87 negative first-CAPTURO to last-TERMINO intervals under dd/mm/yy parsing. Do not repair by inference.",
+        "59 duplicate rows retained primarily; collapse sensitivity changes leading group."
+      ],
+      "counts": {
+        "cases": 1792,
+        "events": 9319
+      },
+      "applications": [
+        "amr_orders"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "p2p_csv",
+      "title": "Procure-to-Pay CSV composite",
+      "provenance_kind": "origin_unverified",
+      "assessment_unit": "procurement case",
+      "source_url": null,
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No explicit redistributable dataset licence verified. Local authorized use does not establish public redistribution permission."
+      },
+      "files": [
+        {
+          "source_relative_path": "archive (5)/Procure-to-Pay.csv",
+          "path": "data/raw/p2p_csv/Procure-to-Pay.csv",
+          "role": "primary",
+          "bytes": 631134,
+          "sha256": "a79371aa0a561f31474b8488c8afe197264780f605caab4528719111aef90159",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (5)/Procure-to-Pay 2.csv",
+          "path": "data/raw/p2p_csv/Procure-to-Pay 2.csv",
+          "role": "primary_disjoint_case_ids",
+          "bytes": 66915,
+          "sha256": "093bbd5258e8c745ea267d94c4d0417f4757e9f46eeac28e6a3b5e65205ff84c",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (5)/Procure-to-Pay 3.csv",
+          "path": "data/raw/p2p_csv/Procure-to-Pay 3.csv",
+          "role": "subset_identity_only",
+          "bytes": 80274,
+          "sha256": "87e394ac560ecb0489ada1ad51d3761ba36f8500b55f52f0803ef12010c0f411",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (5)/Phases_of_activities.csv",
+          "path": "data/raw/p2p_csv/Phases_of_activities.csv",
+          "role": "activity_dictionary",
+          "bytes": 838,
+          "sha256": "2db619aa70bd4043147ab8db0d28c5c90b3a03586db4bdbfe260c12ab27a3e7b",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (5).zip",
+          "path": "data/raw/p2p_csv/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 92733,
+          "sha256": "175a4cab7fef1496a7b445ea582f44d1aa3cdd20a90a5eecb89e234fd79a0574",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Main plus file 2 have zero overlapping case IDs; combine as declared composite with source membership.",
+        "All 629 rows / 48 cases of file 3 are a subset of main, not another application.",
+        "Activity phase mapping covers 24 labels but is not a normative order constraint.",
+        "Currency and completion guarantees unavailable."
+      ],
+      "counts": {
+        "cases": 380,
+        "events": 5510
+      },
+      "applications": [
+        "p2p"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "ocel_p2p",
+      "title": "P2P object-centric event log in OCEL 2.0",
+      "provenance_kind": "simulation_confirmed",
+      "assessment_unit": "directly linked purchase order object",
+      "source_url": "https://doi.org/10.5281/zenodo.8412920",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No explicit redistributable dataset licence verified. Local authorized use does not establish public redistribution permission."
+      },
+      "files": [
+        {
+          "source_relative_path": "OCEL /ocel2-export.xml",
+          "path": "data/raw/ocel_p2p/ocel2-export.xml",
+          "role": "representation_integrity",
+          "bytes": 18439773,
+          "sha256": "622b7a2fd3937f5213225ebbcf94103249f5b147269ad1793b037a676ac05f19",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2-p2p.csv",
+          "path": "data/raw/ocel_p2p/ocel2-p2p.csv",
+          "role": "representation_integrity",
+          "bytes": 2280449,
+          "sha256": "decb19939930e9fd8a84d56780ddc55d53c348db87419e220b14ccee5b5d90bd",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2-p2p.json",
+          "path": "data/raw/ocel_p2p/ocel2-p2p.json",
+          "role": "primary",
+          "bytes": 14263783,
+          "sha256": "33a8a412ad9d7b124c50e89581f243344dc4d7b80f5bdd38b5306edb9b9fa2ec",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2-p2p.sqlite",
+          "path": "data/raw/ocel_p2p/ocel2-p2p.sqlite",
+          "role": "representation_integrity",
+          "bytes": 13746176,
+          "sha256": "0017c34aeecdcb7712004d4364b11b372f2cc1a9cf2639ffe295f95a0df1ee74",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2-p2p.xml",
+          "path": "data/raw/ocel_p2p/ocel2-p2p.xml",
+          "role": "representation_integrity",
+          "bytes": 18439773,
+          "sha256": "622b7a2fd3937f5213225ebbcf94103249f5b147269ad1793b037a676ac05f19",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2.ocel.events.csv",
+          "path": "data/raw/ocel_p2p/ocel2.ocel.events.csv",
+          "role": "representation_integrity",
+          "bytes": 1363341,
+          "sha256": "87f92ea84108badd286cae23f7f7b8984cf34c7a16551eca128e03fa7ba28736",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2.ocel.objects.attributes.csv",
+          "path": "data/raw/ocel_p2p/ocel2.ocel.objects.attributes.csv",
+          "role": "representation_integrity",
+          "bytes": 5780640,
+          "sha256": "96902e7334c3bafc37fe1968d8cb8c524b22849c2eea064a826974feb3177fc9",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2.ocel.objects.csv",
+          "path": "data/raw/ocel_p2p/ocel2.ocel.objects.csv",
+          "role": "representation_integrity",
+          "bytes": 300119,
+          "sha256": "abcf83c846bc085bff8f12b976c64113d1d8e5a200864588a81b7f4cdaaa7e88",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "OCEL /ocel2.ocel.relationships.events-objects.csv",
+          "path": "data/raw/ocel_p2p/ocel2.ocel.relationships.events-objects.csv",
+          "role": "representation_integrity",
+          "bytes": 1602165,
+          "sha256": "fe59b4847e1482dfe91ebf70d7f5f671dbad3507de3284101f81028d1ee7f3d3",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Gyunam Park and Leah Tacke genannt Unterberg; RWTH Aachen University; 2023.",
+        "Zenodo describes simulation. Official original-file MD5 checksums match local originals.",
+        "Licence field not rendered by available page extraction; explicit licence remains unverified.",
+        "2028 dangling object-to-object relations are present consistently across original formats. Do not repair or expand silently.",
+        "14671 global events are distinct from 8404 projected events and 9230 event-PO associations."
+      ],
+      "counts": {
+        "cases": 1598,
+        "global_events": 14671,
+        "objects": 9543,
+        "projected_distinct_events": 8404,
+        "event_case_associations": 9230
+      },
+      "applications": [
+        "ocel"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "icpm_hackathon",
+      "title": "ICPM 2026 Hackathon purchase-order tables",
+      "provenance_kind": "business_origin_organiser_metadata",
+      "assessment_unit": "purchase-order item",
+      "source_url": "https://pretix.eu/PI360/icpm-2026-hack/",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No explicit redistributable dataset licence verified. Local authorized use does not establish public redistribution permission."
+      },
+      "files": [
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Inventory.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Inventory.csv",
+          "role": "relational_integrity",
+          "bytes": 4851,
+          "sha256": "9493e09cd84386bd223fa985843bc9112f06d2dfdac34361e606eb9bdd621b85",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Material Master History.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Material Master History.csv",
+          "role": "relational_integrity",
+          "bytes": 30034,
+          "sha256": "35106d13560d1a5b5116eb43901d244fc4f1d20d34862ab3b1d4a0f005016de0",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Material Master.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Material Master.csv",
+          "role": "relational_integrity",
+          "bytes": 10824,
+          "sha256": "17b38cc3a0d53abb3e80f34a71fdc887321028ef38fe813b6571179686cb85b8",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Purchase Order Activities.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Purchase Order Activities.csv",
+          "role": "primary",
+          "bytes": 1075030,
+          "sha256": "620a4acfc36d755d51343b51513439a1bb11e826045db1f1954c64b31f0882de",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Purchase Orders.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Purchase Orders.csv",
+          "role": "primary",
+          "bytes": 155947,
+          "sha256": "0abfcf8cd3b8e247b339db6c2f3092c1db6d28a423ab372319538a9454625004",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Sales Order Activities.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Sales Order Activities.csv",
+          "role": "relational_integrity",
+          "bytes": 18089190,
+          "sha256": "d49b695be7d707136a00cc690822f8d3562d8b9c8a3cd851967fecb3560e2fe6",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Sales Orders.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Sales Orders.csv",
+          "role": "relational_integrity",
+          "bytes": 4666112,
+          "sha256": "7cb88c43c5864c9d4c4765af9663c76a33c64f97716ad54f39a867d08818708b",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/ICPM Data - Stock Movements.csv",
+          "path": "data/raw/icpm_hackathon/ICPM Data - Stock Movements.csv",
+          "role": "relational_integrity",
+          "bytes": 14955768,
+          "sha256": "ea32277978ec414f88c1970a62bc79be3a6dad8090ae1f66029c939acc17f31c",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "ICPM Hackathon/OneDrive_2026-02-11.zip",
+          "path": "data/raw/icpm_hackathon/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 38989634,
+          "sha256": "b30531b81ce017aa7298ac5cd6b290a89ef491f1a1a820f70788b564fd32f131",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "PI360 organiser identifies ABB business challenge and underlying data; no public local-file checksum or dataset redistribution licence verified.",
+        "Primary unit is union of master and activity document/item keys; 32 activity-only cases retain unknown context.",
+        "Exclude existing management_outputs, ocel_outputs and outputs_icpm2026 as inputs; never deserialize their pickles.",
+        "Eight CSVs audited; financial, receipt and stock joins do not establish monetary loss or quantity comparability."
+      ],
+      "counts": {
+        "cases": 1412,
+        "events": 13567,
+        "master_cases": 1380,
+        "activity_only_cases": 32
+      },
+      "applications": [
+        "icpm"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "bpic2012",
+      "title": "BPI Challenge 2012",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "loan application",
+      "source_url": "https://doi.org/10.4121/uuid:3926db30-f712-4394-aebc-75976070e91f",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "BPI Challenge 2012_1_all/BPI_Challenge_2012.xes.gz",
+          "path": "data/raw/bpic2012/BPI_Challenge_2012.xes.gz",
+          "role": "primary",
+          "bytes": 3342406,
+          "sha256": "5cd9cc16b9bcb20bd4aae45666a5d87479ddbf47e6371618b6ad217174cecdf3",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2012_1_all/DATA.xml",
+          "path": "data/raw/bpic2012/DATA.xml",
+          "role": "metadata",
+          "bytes": 6394,
+          "sha256": "1f539a257941744840984bbe0afa195878020db1305bcd5189bbbfc21305eb26",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2012_1_all.zip",
+          "path": "data/raw/bpic2012/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 3349072,
+          "sha256": "002372c298c6dfd2ae0a46f32bebb524b89269df457b1008b90e30e08a1c5c8d",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Local DATA.xml labels rights as Public; no specific reuse licence inferred.",
+        "XES is primary; CSV if present is a representation audit, not another population."
+      ],
+      "applications": [
+        "bpic2012"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "bpic2017",
+      "title": "BPI Challenge 2017",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "loan application",
+      "source_url": "https://doi.org/10.4121/uuid:5f3067df-f10b-45da-b98b-86ae4c7a310b",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "BPI Challenge 2017_1_all/BPI Challenge 2017.xes.gz",
+          "path": "data/raw/bpic2017/BPI Challenge 2017.xes.gz",
+          "role": "primary",
+          "bytes": 29658747,
+          "sha256": "183c5e5189282779c811c78c33ff936351b3dd201165d612211fc220936f8249",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2017_1_all/DATA.xml",
+          "path": "data/raw/bpic2017/DATA.xml",
+          "role": "metadata",
+          "bytes": 7581,
+          "sha256": "f56bbabf3f16aa1b12f6e6a0bc423e41d2bf7f8f4222581de64996aeddd68c2e",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2017_1_all.zip",
+          "path": "data/raw/bpic2017/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 29666600,
+          "sha256": "63779d5c4701d9d4b71cc9a4fa9e7bd9aa3310dc4a1def349a6a89da78d5b7ee",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "bpi_2017_cleaned.csv",
+          "path": "data/raw/bpic2017/bpi_2017_cleaned.csv",
+          "role": "row_parity_representation",
+          "bytes": 208694666,
+          "sha256": "15a486bbb12dcc2f27e890887275359698193bed55fe3ae0bc814fcd6cd6dca5",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (1).zip",
+          "path": "data/raw/bpic2017/cleaned_source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 24306941,
+          "sha256": "32ae6388b496edc6e5a0a3ff0185bebb987436632515f4ed8d2a9ce8c5de71c8",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Local DATA.xml labels rights as Public; no specific reuse licence inferred.",
+        "XES is primary; CSV if present is a representation audit, not another population."
+      ],
+      "applications": [
+        "bpic2017"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "bpic2013",
+      "title": "BPI Challenge 2013 VINST",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "incident or problem case, assessed separately",
+      "source_url": "https://ais.win.tue.nl/bpi/2013/challenge.html",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "BPI Challenge 2013/bpi_challenge_2013_closed_problems.xes.gz",
+          "path": "data/raw/bpic2013/bpi_challenge_2013_closed_problems.xes.gz",
+          "role": "primary",
+          "bytes": 186515,
+          "sha256": "6d2a6c64666621dd258765cabe38c013b5a8c59cc42b55d4191ddf57b6da072f",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2013/bpi_challenge_2013_incidents.xes.gz",
+          "path": "data/raw/bpic2013/bpi_challenge_2013_incidents.xes.gz",
+          "role": "primary",
+          "bytes": 1322247,
+          "sha256": "6ec2136c607648608655802486df97a866f351668751b7ecbca51e1f8715d522",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2013/bpi_challenge_2013_open_problems.xes.gz",
+          "path": "data/raw/bpic2013/bpi_challenge_2013_open_problems.xes.gz",
+          "role": "primary",
+          "bytes": 68697,
+          "sha256": "71cedbecdef25255af32f73719e75f43f4cf183f1e8c08e03687b684f3174190",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2013/csv_files.zip",
+          "path": "data/raw/bpic2013/csv_files.zip",
+          "role": "representation_integrity",
+          "bytes": 798418,
+          "sha256": "9178d6fef390c2391a6f3096d682d50f2f2f58b9ac99b673ede1356e95f85800",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2013/vinst_data_set.pdf",
+          "path": "data/raw/bpic2013/vinst_data_set.pdf",
+          "role": "process_documentation",
+          "bytes": 470196,
+          "sha256": "eb62bc8ab117f84cd724a05d774a9a19b83dd8fa630b7e3504687b7ea27db880",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2013/vinst_manual.pdf",
+          "path": "data/raw/bpic2013/vinst_manual.pdf",
+          "role": "process_documentation",
+          "bytes": 802033,
+          "sha256": "bfad8c88ca4e12ccee5063f87d7dc6fef773b459c3012aa80491d919ade830a9",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Incident DOI 10.4121/500573e6-accc-4b0c-9576-aa5468b10cee; open DOI 10.4121/3537c19d-6c64-4b1d-815d-915ab0e479da; closed DOI 10.4121/c2c3b154-ab26-4b31-a0e8-8f2350ddac11.",
+        "Three applications from one source family; 465 problem IDs overlap between open and closed exports. Do not pool.",
+        "CSV archive and PDFs are required by full schema/document identity audit."
+      ],
+      "applications": [
+        "bpic2013_incidents",
+        "bpic2013_open_problems",
+        "bpic2013_closed_problems"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "bpic2020",
+      "title": "BPI Challenge 2020 Domestic Declarations",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "declaration",
+      "source_url": "https://doi.org/10.4121/uuid:3f422315-ed9d-4882-891f-e180b5b4feb5",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "BPI Challenge 2020_ Domestic Declarations_1_all/DomesticDeclarations.xes.gz",
+          "path": "data/raw/bpic2020/DomesticDeclarations.xes.gz",
+          "role": "primary",
+          "bytes": 933930,
+          "sha256": "0bc3312acf0b9ee5ae6f4ebe9df204005ef11665d62f2d21dd04995161d7532b",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "BPI Challenge 2020_ Domestic Declarations_1_all/README.txt",
+          "path": "data/raw/bpic2020/README.txt",
+          "role": "metadata",
+          "bytes": 1616,
+          "sha256": "1cd883bbb879375ffdf34c2616a7184e01dc57d55d4dac2e0d48a230c14eb31f",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Boudewijn van Dongen, 2020; 4TU.",
+        "Domestic trips do not require prior permission; budget-owner/supervisor steps can merge."
+      ],
+      "applications": [
+        "bpic2020"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "bpic2019",
+      "title": "BPI Challenge 2019 maintained CSV experiment",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "purchase-order item",
+      "source_url": "https://doi.org/10.4121/uuid:d06aff4b-79f0-45e6-8ec8-e19730c248f1",
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "BPIC 2019/BPI_Challenge_2019.csv",
+          "path": "data/raw/bpic2019/BPI_Challenge_2019.csv",
+          "role": "primary",
+          "bytes": 527457189,
+          "sha256": "7d592fb425690d13011d1b874fe2af63f61a66acfc368ecf87b4ed266e6cdb00",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Relocated input has same hash as the maintained experiment; reproduction, not a new transfer.",
+        "Local CSV extraction provenance is separate from the published event-log record."
+      ],
+      "applications": [
+        "bpic2019"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "sepsis",
+      "title": "Sepsis Cases - Event Log",
+      "provenance_kind": "real_world_primary_metadata",
+      "assessment_unit": "hospital pathway case",
+      "source_url": "https://doi.org/10.4121/uuid:915d2bfb-7e84-49ad-a286-dc35f063a460",
+      "license": "4TU General Terms of Use",
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "archive (2)/DATA.xml",
+          "path": "data/raw/sepsis/DATA.xml",
+          "role": "metadata",
+          "bytes": 7219,
+          "sha256": "12ae0401d150342d86cac078daa87c415694e4ba812f0f699dc27a087525cad3",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (2)/Sepsis Cases - Event Log.xes",
+          "path": "data/raw/sepsis/Sepsis Cases - Event Log.xes",
+          "role": "primary",
+          "bytes": 5441435,
+          "sha256": "b501d2063678b9471e3cb1be04d961f924ae5be6ecc8154701bb57a24c7ae0ab",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (2)/readme.txt",
+          "path": "data/raw/sepsis/readme.txt",
+          "role": "metadata",
+          "bytes": 2059,
+          "sha256": "4a7d7c259669a78989c5d8420a5805f3e2cb17910e4bb89aecde701a6d4458b6",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (2).zip",
+          "path": "data/raw/sepsis/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 233068,
+          "sha256": "e130c76b93ae656962916ec21fa9ac66997e4fee9fd29200df682c94a2bb1177",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Felix Mannhardt, 2016; 4TU.",
+        "Primary record labels licence 4TU General Terms of Use; do not replace with CC BY/CC0.",
+        "Anonymized/time-shifted; only within-case durations, no inferred calendar trends or clinical performance.",
+        "readme and DATA.xml match published MD5; supplied archive identity verified; decompressed primary XES byte match not independently established."
+      ],
+      "applications": [
+        "sepsis"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    },
+    {
+      "id": "hospital_workbook",
+      "title": "Supplied hospital workbook",
+      "provenance_kind": "unknown_technical_fixture",
+      "assessment_unit": "technical trace fixture",
+      "source_url": null,
+      "license": null,
+      "redistribution": {
+        "raw_policy": "local_only_ignored",
+        "source_rows_as_fixtures": "not_planned",
+        "public_redistribution_verified": false,
+        "reason": "No specific redistributable licence verified; publicly accessible or Public metadata does not establish a blanket software/data licence."
+      },
+      "files": [
+        {
+          "source_relative_path": "01_hospital_data_update.xlsx",
+          "path": "data/raw/hospital_workbook/01_hospital_data_update.xlsx",
+          "role": "primary",
+          "bytes": 10950,
+          "sha256": "3fc37082d2b86343e397bc6bdac5dd1672931876efc9452508a84fd99d859726",
+          "tracked": false
+        },
+        {
+          "source_relative_path": "archive (7).zip",
+          "path": "data/raw/hospital_workbook/source_archive.zip",
+          "role": "archive_identity",
+          "bytes": 8413,
+          "sha256": "d6dc029f99a18870d763baedd64f87e64b602810f4b42f49adefcb6793109dd8",
+          "tracked": false
+        }
+      ],
+      "notes": [
+        "Three cases / fourteen rows; no publisher, population, generation or clinical meaning established.",
+        "Archive 7 duplicates the workbook. Keep raw and derived patient rows local only.",
+        "A parse/scoring exercise, not an empirical clinical evaluation."
+      ],
+      "applications": [
+        "hospital_workbook"
+      ],
+      "acquisition": "Use the cited primary record where available, or the locally supplied source. Match the exact SHA-256 before replay; a different export requires a separately recorded adapter configuration."
+    }
+  ],
+  "application_count": 15,
+  "file_count": 52,
+  "total_local_bytes": 1071618043,
+  "excluded_source_patterns": [
+    "**/.DS_Store",
+    "**/*.pkl",
+    "**/*.pickle",
+    "ICPM Hackathon/management_outputs/**",
+    "ICPM Hackathon/ocel_outputs/**",
+    "ICPM Hackathon/outputs_icpm2026/**",
+    "**/__MACOSX/**"
+  ],
+  "norm_locations": {
+    "kaggle_transfers": "adapters/kaggle_transfers/norms.json",
+    "ocel_icpm": "adapters/ocel_icpm/norms.json",
+    "bpic2013": "adapters/bpic2013/illustrative_norm.json",
+    "bpic2020": "adapters/bpic2020/norm_frozen.json",
+    "bpic2012_2017": "adapters/bpic2012_2017/illustrative_norm.json",
+    "healthcare_transfers": "adapters/healthcare_transfers/norm_frozen.json",
+    "bpic2019": "oracle/evaluation/illustrative_norm.json"
+  }
+}

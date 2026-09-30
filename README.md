@@ -29,3 +29,10 @@ make check      # ruff, format, mypy, import-linter, hooks
 `make help` lists the targets; the full developer loop, test tiers and
 release procedure are described in [CONTRIBUTING.md](CONTRIBUTING.md) and
 [docs/PUBLISHING.md](docs/PUBLISHING.md).
+
+## Dataset evaluation
+
+[Reproducible dataset evaluations](packages/wise-pm/evaluation/README.md) provide
+source adapters, explicit norms, native scoring checks and a notebook. Full logs
+and case-level outputs remain in local ignored data folders; the tracked catalogue
+records the required inputs and checksums.

@@ -10,7 +10,7 @@ numerical method may declare a tolerance, next to its own golden. A failure
 means the library's numbers moved: decide whether the change is a listed fix,
 then regenerate only with
 
-    /Users/ula/code/PhD/WISE/wise-next/.venv/bin/python scripts/make_golden.py --write
+    uv run --frozen --no-sync python packages/wise-pm/scripts/make_golden.py --write
 
 and review the diff. Never edit golden files by hand.
 """

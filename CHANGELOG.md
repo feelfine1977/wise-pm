@@ -29,6 +29,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Dataset evaluation tools for 15 configurations and 44 primary views: portable
+  source catalogue, raw-data adapters, explicit domain configurations, native
+  prepared-assessment norms, parity checks and an interactive notebook. Full
+  logs and source-derived case outputs remain local and ignored. The core API,
+  historical BPIC19 norm and golden records are unchanged.
+
 - Test tiers: regression tests pinning the 16 behavioural defects of the
   2026-09-26 review (C1–C13, C15, C16, C18) as strict `xfail`s, the structural
   findings being tracked in the plan; Hypothesis property tests for the scoring,

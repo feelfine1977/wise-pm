@@ -1,0 +1,43 @@
+{
+  "status": "Author-defined exploratory norms frozen after schema inspection and before group scoring/ranking, 2026-09-30",
+  "purpose": "Test explicit mappings and unchanged WISE reference arithmetic. No domain-validated SLA, causal diagnosis, economic savings or independent replication claim.",
+  "policy": {"mode": "flat", "gamma": 0, "min_cases": 1, "exposure": "one case", "reference": "all scored cases within each dataset/view", "duplicates": "retain raw rows; exact-row collapse sensitivity", "missing": "in-scope NaN, never absence-as-failure", "clock": "naive local timestamps; no timezone or business-calendar adjustment"},
+  "datasets": {
+    "incident_template": {
+      "unit": "incident", "group": "constant Issue Type × Report Channel",
+      "criteria": [
+        {"id": "M01", "feature": "elapsed_hours", "threshold": 8, "width": 24, "layer": "Timing", "meaning": "first Ticket created to last Ticket closed; elapsed clock hours"},
+        {"id": "M02", "feature": "reopen_events", "threshold": 0, "width": 2, "layer": "Repetition", "meaning": "observed Ticket reopened by customer count; legitimate reopens can occur"},
+        {"id": "M03", "feature": "satisfaction_shortfall", "threshold": 0, "width": 3, "layer": "Experience", "meaning": "max(4-constant recorded satisfaction,0), only an integer in 1..5"}
+      ],
+      "views": {"Balanced": [1,1,1], "Timing": [3,1,1], "Experience": [1,1,3]}
+    },
+    "uci_incidents": {
+      "unit": "incident", "group": "category at earliest sys_updated_at; sys_mod_count then source row break ties",
+      "criteria": [
+        {"id": "U01", "feature": "elapsed_hours", "threshold": 24, "width": 72, "layer": "Timing", "meaning": "constant resolved_at minus constant opened_at; recorded endpoint duration, not observed-state response pairing"},
+        {"id": "U02", "feature": "reassignments", "threshold": 0, "width": 3, "layer": "Routing", "meaning": "maximum observed cumulative reassignment_count; do not sum snapshots"},
+        {"id": "U03", "feature": "reopens", "threshold": 0, "width": 2, "layer": "Routing", "meaning": "maximum observed cumulative reopen_count; do not sum snapshots"}
+      ],
+      "views": {"Balanced": [1,1,1], "Timing": [3,1,1], "Routing": [1,3,3]}
+    },
+    "amr_orders": {
+      "unit": "order", "group": "constant SERVICE TYPE",
+      "criteria": [
+        {"id": "A01", "feature": "elapsed_days", "threshold": 7, "width": 30, "layer": "Timing", "meaning": "first CAPTURO to last TERMINO; label-based operationalization with unverified domain semantics"},
+        {"id": "A02", "feature": "assignment_events", "threshold": 1, "width": 2, "layer": "Changes", "meaning": "ASIGNO records beyond one; observations, not proven unnecessary assignments"},
+        {"id": "A03", "feature": "change_events", "threshold": 0, "width": 3, "layer": "Changes", "meaning": "CAMBIO DE CENTRO / CAMBIO DATOS / CAMBIO DE SITUACION records"}
+      ],
+      "views": {"Balanced": [1,1,1], "Timing": [3,1,1], "Changes": [1,3,3]}
+    },
+    "p2p": {
+      "unit": "procurement case", "group": "constant Country; currency unavailable so no amount exposure",
+      "criteria": [
+        {"id": "P01", "feature": "elapsed_days", "threshold": 30, "width": 60, "layer": "Timing", "meaning": "first Create Purchase Requisition start to last Pay invoice completion; absent payment means unknown duration"},
+        {"id": "P02", "feature": "amendment_events", "threshold": 0, "width": 3, "layer": "Changes", "meaning": "Amend Purchase Requisition and both requester/manager Amend Request for Quotation records"},
+        {"id": "P03", "feature": "dispute_events", "threshold": 0, "width": 2, "layer": "Changes", "meaning": "Settle dispute with supplier Purchasing Agent / Financial Manager records"}
+      ],
+      "views": {"Balanced": [1,1,1], "Timing": [3,1,1], "Changes": [1,3,3]}
+    }
+  }
+}

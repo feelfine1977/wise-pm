@@ -1,0 +1,34 @@
+{
+  "status": "frozen before any group ranking; researcher-defined illustrative transfer, not elicited policy",
+  "freeze_date": "2026-09-30",
+  "common": {"mode":"flat","reference":"all scored cases in the current population/view","gamma":0,"exposure":"case count only; never monetary cost","minimum_support":1},
+  "ocel": {
+    "unit":"purchase_order object; unique event ID counted once per directly related PO",
+    "projection":"direct event-object relationships only; no traversal of object-object links",
+    "groups":"initial declared vendor metadata; purchasing group is alternative context",
+    "criteria":[
+      {"id":"O01","name":"Long observed PO approval lag","layer":"Timing","scope":"all POs","evidence":"first creation and first approval recorded, timestamps valid, nonnegative lag","threshold":2,"width":5,"unit":"days"},
+      {"id":"O02","name":"Goods receipt recorded before PO approval","layer":"Sequence","scope":"all POs","evidence":"first goods receipt and first approval recorded","type":"binary earlier-than"},
+      {"id":"O03","name":"Repeated execution of a linked payment object","layer":"Repetition","scope":"all POs","evidence":"at least one directly linked payment execution with an extant payment object","threshold":1,"width":1,"unit":"max distinct execution events per linked payment object"},
+      {"id":"O04","name":"Long first PO-to-payment elapsed time","layer":"Timing","scope":"all POs","evidence":"first creation and first directly linked payment recorded; nonnegative lag","threshold":30,"width":60,"unit":"days"}
+    ],
+    "views":{"Balanced":[1,1,1,1],"Control":[1,3,3,1],"Timeliness":[3,1,1,3]},
+    "sensitivities":["layer_balanced","approval_threshold_5_days","exclude_shared_payment_evidence"],
+    "limits":"Simulation; repeated executions are recorded patterns, not recovered loss. Shared events can affect several PO assessments. Unknown observation closure; missing endpoints stay unevaluable. Initial attributes are grouping metadata, not reconstructed time-varying truth."
+  },
+  "icpm": {
+    "unit":"union of Purchase Orders and Purchase Order Activities document+item keys; source row is event-record identity",
+    "projection":"raw PO activity rows only; master table left join; orphan activity cases retained with unknown master context",
+    "groups":"Vendor ID and Vendor Country; missing master context forms explicit group; SKU alternative",
+    "criteria":[
+      {"id":"I01","name":"Snapshot confirmation later than snapshot scheduled date","layer":"Schedule","scope":"all except known deletion flag L","evidence":"both snapshot dates parse","threshold":0,"width":30,"unit":"days"},
+      {"id":"I02","name":"First observed goods receipt later than snapshot scheduled date","layer":"Schedule","scope":"all except known deletion flag L","evidence":"first goods receipt timestamp and snapshot scheduled date parse","threshold":0,"width":30,"unit":"days, timestamps normalised to calendar date"},
+      {"id":"I03","name":"Delivery-date changes recorded","layer":"Changes","scope":"all cases","evidence":"at least one activity row for case","activities":["Change Delivery date (Confirmation)","Changed Delivery date (Schedule Line)"],"threshold":0,"width":3,"unit":"source event rows"},
+      {"id":"I04","name":"PO quantity changes recorded","layer":"Changes","scope":"all cases","evidence":"at least one activity row for case","activities":["Changed PO Quantity- Decrease","Changed PO Quantity - Increase"],"threshold":0,"width":3,"unit":"source event rows"},
+      {"id":"I05","name":"Snapshot confirmed quantity below ordered quantity","layer":"Quantity","scope":"all cases","evidence":"order quantity finite positive; confirmed quantity finite nonnegative","formula":"max(order-confirmed,0)/order clipped at 1","unit":"within-item quantity fraction"}
+    ],
+    "views":{"Balanced":[1,1,1,1,1],"Delivery":[3,3,2,1,1],"Changes":[1,1,3,3,1]},
+    "sensitivities":["collapse_exact_activity_rows","master_context_only","layer_balanced","schedule_width_60_days"],
+    "limits":"Snapshot dates can differ from historical commitments; first receipt is not completed fulfilment. Exact repeated rows may be real repeated observations, retained primary. No completion-absence claim, no matched invoice/receipt quantity balance, no actual cost or currency inference from indexed values."
+  }
+}

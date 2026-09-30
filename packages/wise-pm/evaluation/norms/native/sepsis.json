@@ -1,0 +1,127 @@
+{
+  "schema_version": 2,
+  "name": "sepsis: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Recorded patterns",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Recorded time",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "S01": 1.0,
+        "S02": 1.0,
+        "S03": 1.0,
+        "S04": 1.0
+      }
+    },
+    {
+      "name": "Patterns",
+      "description": "",
+      "constraint_weights": {
+        "S01": 3.0,
+        "S02": 1.0,
+        "S03": 1.0,
+        "S04": 3.0
+      }
+    },
+    {
+      "name": "Time",
+      "description": "",
+      "constraint_weights": {
+        "S01": 1.0,
+        "S02": 3.0,
+        "S03": 3.0,
+        "S04": 1.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "S01",
+      "layer": "Recorded patterns",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__S01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__S01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "S02",
+      "layer": "Recorded time",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__S02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__S02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "S03",
+      "layer": "Recorded time",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__S03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__S03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "S04",
+      "layer": "Recorded patterns",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__S04",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__S04",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

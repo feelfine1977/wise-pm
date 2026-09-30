@@ -22,3 +22,8 @@ coverage.xml
 bench.json
 requirements.lock.txt
 .import_linter_cache/
+
+# Full evaluation inputs and source-derived outputs remain local.
+/packages/wise-pm/evaluation/data/raw/
+/packages/wise-pm/evaluation/data/prepared/
+/packages/wise-pm/evaluation/results/

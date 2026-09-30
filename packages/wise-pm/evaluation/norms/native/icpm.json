@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "name": "icpm: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Schedule",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Changes",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Quantity",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "I01": 1.0,
+        "I02": 1.0,
+        "I03": 1.0,
+        "I04": 1.0,
+        "I05": 1.0
+      }
+    },
+    {
+      "name": "Delivery",
+      "description": "",
+      "constraint_weights": {
+        "I01": 3.0,
+        "I02": 3.0,
+        "I03": 2.0,
+        "I04": 1.0,
+        "I05": 1.0
+      }
+    },
+    {
+      "name": "Changes",
+      "description": "",
+      "constraint_weights": {
+        "I01": 1.0,
+        "I02": 1.0,
+        "I03": 3.0,
+        "I04": 3.0,
+        "I05": 1.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "I01",
+      "layer": "Schedule",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__I01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__I01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "I02",
+      "layer": "Schedule",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__I02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__I02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "I03",
+      "layer": "Changes",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__I03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__I03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "I04",
+      "layer": "Changes",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__I04",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__I04",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "I05",
+      "layer": "Quantity",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__I05",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__I05",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

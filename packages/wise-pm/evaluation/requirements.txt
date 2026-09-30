@@ -1,0 +1,12 @@
+# Evaluation tools only; the library retains its dependency-light public runtime.
+# Recorded direct versions for the raw adapter run, not a transitive lockfile.
+numpy==2.2.6
+pandas==2.3.0
+scipy==1.16.0
+pyarrow==20.0.0
+defusedxml==0.7.1
+matplotlib==3.10.1
+nbformat==5.10.4
+nbclient==0.10.2
+ipykernel==6.29.5
+pytest>=8

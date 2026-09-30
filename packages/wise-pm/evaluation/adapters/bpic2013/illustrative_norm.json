@@ -1,0 +1,145 @@
+{
+  "id": "wise-bpic2013-transfer-six-v1",
+  "status": "frozen after schema/document inspection, before assessment or group ranking",
+  "core_sha256": "87a25cbfb36eb0546ed2602cf4048e6aa09afe3224ae47354fcefb7ea26282c4",
+  "expected": {
+    "incidents": {
+      "cases": 7554,
+      "events": 65533,
+      "sha256": "6ec2136c607648608655802486df97a866f351668751b7ecbca51e1f8715d522"
+    },
+    "open_problems": {
+      "cases": 819,
+      "events": 2351,
+      "sha256": "71cedbecdef25255af32f73719e75f43f4cf183f1e8c08e03687b684f3174190"
+    },
+    "closed_problems": {
+      "cases": 1487,
+      "events": 6660,
+      "sha256": "6d2a6c64666621dd258765cabe38c013b5a8c59cc42b55d4191ddf57b6da072f"
+    }
+  },
+  "field_mapping": {
+    "incidents": {
+      "team": "org:group",
+      "organization": "organization involved",
+      "country": "organization country"
+    },
+    "closed_problems": {
+      "team": "organization involved",
+      "organization": "org:group",
+      "country": "organization country"
+    },
+    "open_problems": {
+      "team": null,
+      "organization": "org:group",
+      "country": "oranization country"
+    }
+  },
+  "criteria": [
+    {
+      "id": "C01",
+      "name": "Observed support-team changes",
+      "layer": "Routing",
+      "threshold": 2,
+      "width": 4,
+      "scope": "all",
+      "feature": "team_changes"
+    },
+    {
+      "id": "C02",
+      "name": "Immediate return to prior support team (compressed A-B-A)",
+      "layer": "Routing",
+      "threshold": 0,
+      "width": 2,
+      "scope": "all",
+      "feature": "team_returns"
+    },
+    {
+      "id": "C03",
+      "name": "Repeated substatus observations beyond first occurrence",
+      "layer": "Recorded patterns",
+      "threshold": 2,
+      "width": 8,
+      "scope": "all",
+      "feature": "repeated_substatus"
+    },
+    {
+      "id": "C04",
+      "name": "Wait - User observed (not abuse)",
+      "layer": "Recorded patterns",
+      "threshold": 0,
+      "width": 1,
+      "scope": "incidents",
+      "feature": "wait_user_count"
+    },
+    {
+      "id": "C05",
+      "name": "Long observed trace span (not resolution/SLA time)",
+      "layer": "Timing",
+      "threshold_by_family": {
+        "incidents": 7,
+        "open_problems": 30,
+        "closed_problems": 30
+      },
+      "width_by_family": {
+        "incidents": 23,
+        "open_problems": 150,
+        "closed_problems": 150
+      },
+      "scope": "all",
+      "feature": "span_days"
+    },
+    {
+      "id": "C06",
+      "name": "Active status observed after Completed (not certified failed resolution)",
+      "layer": "Reactivation",
+      "threshold": 0,
+      "width": 1,
+      "scope": "incidents",
+      "feature": "post_completed_active"
+    }
+  ],
+  "views": {
+    "Balanced": {
+      "Routing": 1,
+      "Recorded patterns": 1,
+      "Timing": 1,
+      "Reactivation": 1
+    },
+    "Routing": {
+      "Routing": 3,
+      "Recorded patterns": 1,
+      "Timing": 1,
+      "Reactivation": 1
+    },
+    "Timing": {
+      "Routing": 1,
+      "Recorded patterns": 1,
+      "Timing": 3,
+      "Reactivation": 2
+    }
+  },
+  "primary_mode": "flat",
+  "primary_gamma": 0,
+  "min_support": 1,
+  "top_k": 10,
+  "positive_epsilon": 1e-12,
+  "ordering": "Parse all timestamps UTC; sort by timestamp then original event position. Sequence criteria unavailable when any timestamp invalid or tied timestamps contain different relevant sequence values. Never drop missing team/status then bridge the gap.",
+  "grouping": "Stable product across all events; else explicit missing/multiple label. Separate stable organizational-line summaries. No assignment of responsible owner.",
+  "missing_markers": [
+    "",
+    "0",
+    "none",
+    "nan",
+    "null",
+    "unknown",
+    "?"
+  ],
+  "claims": "Illustrative recorded concerns; no SLA compliance, actual cost, causal ping-pong, wait-user abuse, fault of closure, or cross-family score comparability. Open/closed are source labels, not adjudicated terminal truth.",
+  "core_compatibility_revision": {
+    "previous_core_sha256": "4beac0f55a84f2d2b450b1d0eda10090c9f41a8d2008f1bb99c840c1929df675",
+    "previous_config_sha256": "48897d6cc247607904a846bbd7c8aed08215e3884b0f394913fd351d26a4b24e",
+    "change": "Mechanical formatting, lint cleanup and documentation correction of the evaluation oracle; assessment definitions and weights unchanged."
+  }
+}

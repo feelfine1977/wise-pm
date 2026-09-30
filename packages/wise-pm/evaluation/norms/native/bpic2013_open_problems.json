@@ -1,0 +1,177 @@
+{
+  "schema_version": 2,
+  "name": "bpic2013_open_problems: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Routing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Recorded patterns",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Timing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Reactivation",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "C01": 1.0,
+        "C02": 1.0,
+        "C03": 1.0,
+        "C04": 1.0,
+        "C05": 1.0,
+        "C06": 1.0
+      }
+    },
+    {
+      "name": "Routing",
+      "description": "",
+      "constraint_weights": {
+        "C01": 3.0,
+        "C02": 3.0,
+        "C03": 1.0,
+        "C04": 1.0,
+        "C05": 1.0,
+        "C06": 1.0
+      }
+    },
+    {
+      "name": "Timing",
+      "description": "",
+      "constraint_weights": {
+        "C01": 1.0,
+        "C02": 1.0,
+        "C03": 1.0,
+        "C04": 1.0,
+        "C05": 3.0,
+        "C06": 2.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "C01",
+      "layer": "Routing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C02",
+      "layer": "Routing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C03",
+      "layer": "Recorded patterns",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C04",
+      "layer": "Recorded patterns",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C04",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C04",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C05",
+      "layer": "Timing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C05",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C05",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C06",
+      "layer": "Reactivation",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C06",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C06",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "schema_version": 2,
+  "name": "p2p: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Timing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Changes",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "P01": 1.0,
+        "P02": 1.0,
+        "P03": 1.0
+      }
+    },
+    {
+      "name": "Timing",
+      "description": "",
+      "constraint_weights": {
+        "P01": 3.0,
+        "P02": 1.0,
+        "P03": 1.0
+      }
+    },
+    {
+      "name": "Changes",
+      "description": "",
+      "constraint_weights": {
+        "P01": 1.0,
+        "P02": 3.0,
+        "P03": 3.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "P01",
+      "layer": "Timing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__P01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__P01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "P02",
+      "layer": "Changes",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__P02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__P02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "P03",
+      "layer": "Changes",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__P03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__P03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

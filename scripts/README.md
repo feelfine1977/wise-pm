@@ -65,8 +65,8 @@ skipped, the suite is `FAIL` and the skip reasons recorded in its JUnit file
 are echoed (`skip reason: …`): an explicitly requested reproduction that did
 not happen must not turn the gate green. The CSV path is made absolute before
 the suite changes into `apps/backend`, so a relative path works. The challenge
-CSV is never committed; the maintainer's copy used by the notes is
-`/Users/ula/code/PhD/WISE/WISE/Untitled/data/BPI_Challenge_2019.csv`.
+CSV is never committed. Supply its location explicitly with `--bpic19-csv`
+or `WISE_BPIC19_CSV`; the path must identify the intended input version.
 
 ### Usage
 

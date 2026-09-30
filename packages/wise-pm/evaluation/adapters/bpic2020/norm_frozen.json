@@ -1,0 +1,165 @@
+{
+  "id": "wise-bpic2020-domestic-seven-v1",
+  "frozen_at_utc": "2026-09-30T18:37:54.637387+00:00",
+  "freeze_stage": "After full field/activity/missingness inventory, before group score or rank inspection",
+  "norm_status": "Author-defined illustrative investigation concerns; not institutional policy or validated stakeholder preferences",
+  "dataset_doi": "10.4121/uuid:3f422315-ed9d-4882-891f-e180b5b4feb5",
+  "expected_compressed_sha256": "0bc3312acf0b9ee5ae6f4ebe9df204005ef11665d62f2d21dd04995161d7532b",
+  "expected_cases": 10500,
+  "expected_events": 56437,
+  "case_unit": "XES declaration trace",
+  "primary_group": "amount_band",
+  "secondary_group": "first_submission_quarter",
+  "amount_band_edges": [
+    0,
+    100,
+    500,
+    1000
+  ],
+  "amount_interpretation": "Anonymised/recorded declaration amount is a stratification attribute, not actual processing cost, loss or recoverable savings. Zero retained as a distinct band; missing/nonfinite/negative values explicit invalid group.",
+  "parser_policy": "Defused XML, DTD/entities/external entities forbidden, gzip streamed, original trace/event attributes retained, missing/duplicate case or event IDs and activity labels rejected, dates parsed UTC with invalid dates retained as missing evidence; no execution of supplied code.",
+  "endpoint_policy": "First timestamp of each named activity family; if any occurrence of an endpoint family has missing/invalid timestamp, duration unevaluable; if an endpoint is absent, missing_prerequisite; negative first-to-first durations are invalid_temporal_order, not silently repaired or response paired.",
+  "activity_families": {
+    "submit": [
+      "Declaration SUBMITTED by EMPLOYEE"
+    ],
+    "final_approval": [
+      "Declaration FINAL_APPROVED by SUPERVISOR"
+    ],
+    "request": [
+      "Request Payment"
+    ],
+    "handled": [
+      "Payment Handled"
+    ],
+    "rejection_prefix": "Declaration REJECTED by "
+  },
+  "criteria": [
+    {
+      "id": "D01",
+      "name": "Repeated recorded submission",
+      "layer": "Revision observations",
+      "scope": "all declarations",
+      "kind": "count_ramp",
+      "feature": "n_submit",
+      "threshold": 1,
+      "width": 2,
+      "interpretation": "Repeated submissions, not proven avoidable rework"
+    },
+    {
+      "id": "D02",
+      "name": "Recorded rejection observations",
+      "layer": "Revision observations",
+      "scope": "all declarations",
+      "kind": "count_ramp",
+      "feature": "n_reject",
+      "threshold": 0,
+      "width": 2,
+      "interpretation": "Any recorded rejection including employee; not defect or culpability"
+    },
+    {
+      "id": "D03",
+      "name": "Long first submission to first final-approval interval",
+      "layer": "Claimant waiting",
+      "scope": "recorded submission exists",
+      "scope_feature": "n_submit",
+      "kind": "duration_ramp",
+      "start": "submit",
+      "end": "final_approval",
+      "threshold": 14,
+      "width": 28,
+      "unit": "days"
+    },
+    {
+      "id": "D04",
+      "name": "Long first final approval to first payment-request interval",
+      "layer": "Payment waiting",
+      "scope": "recorded final approval exists",
+      "scope_feature": "n_final_approval",
+      "kind": "duration_ramp",
+      "start": "final_approval",
+      "end": "request",
+      "threshold": 7,
+      "width": 14,
+      "unit": "days"
+    },
+    {
+      "id": "D05",
+      "name": "Long first payment request to first handled interval",
+      "layer": "Payment waiting",
+      "scope": "recorded payment request exists",
+      "scope_feature": "n_request",
+      "kind": "duration_ramp",
+      "start": "request",
+      "end": "handled",
+      "threshold": 7,
+      "width": 14,
+      "unit": "days"
+    },
+    {
+      "id": "D06",
+      "name": "Payment request without recorded handling",
+      "layer": "Payment observations",
+      "scope": "recorded payment request exists",
+      "scope_feature": "n_request",
+      "kind": "absence",
+      "feature": "n_handled",
+      "interpretation": "Absence within available history, not proof of unpaid declaration; no verified extraction cutoff"
+    },
+    {
+      "id": "D07",
+      "name": "Multiple recorded payment-handled events",
+      "layer": "Payment observations",
+      "scope": "all declarations",
+      "kind": "count_ramp",
+      "feature": "n_handled",
+      "threshold": 1,
+      "width": 1,
+      "interpretation": "Multiple handling observations, not proven duplicate payment"
+    }
+  ],
+  "views": {
+    "Balanced": {
+      "Revision observations": 1,
+      "Claimant waiting": 1,
+      "Payment waiting": 1,
+      "Payment observations": 1
+    },
+    "ClaimantService": {
+      "Revision observations": 2,
+      "Claimant waiting": 3,
+      "Payment waiting": 1,
+      "Payment observations": 1
+    },
+    "PaymentReview": {
+      "Revision observations": 1,
+      "Claimant waiting": 1,
+      "Payment waiting": 3,
+      "Payment observations": 3
+    }
+  },
+  "primary_mode": "flat",
+  "primary_gamma": 0,
+  "reference": "mean score of all scored declarations under each fixed population/view, before support filtering",
+  "volume": "declaration count; no amount exposure multiplier",
+  "top_k": 3,
+  "positive_priority_epsilon": 1e-12,
+  "tie_policy": "descending PI, descending scored support, lexical group key",
+  "min_cases": 1,
+  "sensitivity": {
+    "D03_threshold_days": [
+      7,
+      28
+    ],
+    "D03_width_held_days": 28,
+    "populations": [
+      "submission_calendar_2018",
+      "recorded_payment_handled",
+      "complete_in_scope_evidence"
+    ],
+    "secondary_group": "first_submission_quarter",
+    "gamma": 20,
+    "layer_balanced": true
+  },
+  "exclusions": "No mandatory role approval, individual-resource count, organisational ownership, causal root cause, financial balance or savings estimation; budget field constant and role-equivalence context absent."
+}

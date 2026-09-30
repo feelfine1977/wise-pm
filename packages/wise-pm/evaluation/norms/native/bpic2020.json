@@ -1,0 +1,197 @@
+{
+  "schema_version": 2,
+  "name": "bpic2020: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Revision observations",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Claimant waiting",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Payment waiting",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Payment observations",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "D01": 1.0,
+        "D02": 1.0,
+        "D03": 1.0,
+        "D04": 1.0,
+        "D05": 1.0,
+        "D06": 1.0,
+        "D07": 1.0
+      }
+    },
+    {
+      "name": "ClaimantService",
+      "description": "",
+      "constraint_weights": {
+        "D01": 2.0,
+        "D02": 2.0,
+        "D03": 3.0,
+        "D04": 1.0,
+        "D05": 1.0,
+        "D06": 1.0,
+        "D07": 1.0
+      }
+    },
+    {
+      "name": "PaymentReview",
+      "description": "",
+      "constraint_weights": {
+        "D01": 1.0,
+        "D02": 1.0,
+        "D03": 1.0,
+        "D04": 3.0,
+        "D05": 3.0,
+        "D06": 3.0,
+        "D07": 3.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "D01",
+      "layer": "Revision observations",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D02",
+      "layer": "Revision observations",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D03",
+      "layer": "Claimant waiting",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D04",
+      "layer": "Payment waiting",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D04",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D04",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D05",
+      "layer": "Payment waiting",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D05",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D05",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D06",
+      "layer": "Payment observations",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D06",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D06",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "D07",
+      "layer": "Payment observations",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__D07",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__D07",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}

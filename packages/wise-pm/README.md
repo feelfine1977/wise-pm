@@ -136,8 +136,7 @@ settings live in `packages/wise-pm/examples/bpic19_norm.json` and the evaluation
 WISE ranks measured deviations under the chosen norm, weights and comparator.
 It does not discover a correct norm, prove causes, estimate guaranteed savings
 or optimise an action roadmap. Applications own data preparation, norm approval,
-workflow and deployment. This classic runtime contains no object-centric or
-local-assistant API.
+workflow and deployment. This classic runtime uses case-based event logs.
 
 This distribution is [MIT](https://github.com/feelfine1977/wise-pm/blob/main/packages/wise-pm/LICENSE) licensed. Prospective rights-controlled
 additions live in a separate distribution under
@@ -146,3 +145,6 @@ additions live in a separate distribution under
 Please cite the method using [CITATION.cff](https://github.com/feelfine1977/wise-pm/blob/main/CITATION.cff). See
 [CHANGELOG.md](https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md) and the [publishing guide](https://github.com/feelfine1977/wise-pm/blob/main/docs/PUBLISHING.md)
 for release history and procedure.
+
+For additional raw-data adapters, prepared-assessment norms and native parity
+checks, see the repository [dataset evaluation package](evaluation/README.md).

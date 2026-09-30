@@ -1,0 +1,155 @@
+{
+  "id": "wise-bpic19-transparent-ten-v1",
+  "evidence_status": "Researcher-defined exploratory configuration; not elicited organisational policy; not reproduction of historical 29-rule norm",
+  "expected_csv_sha256": "7d592fb425690d13011d1b874fe2af63f61a66acfc368ecf87b4ed266e6cdb00",
+  "expected_events": 1595923,
+  "expected_cases": 251734,
+  "expected_documents": 76349,
+  "timestamp_format": "%d-%m-%Y %H:%M:%S.%f",
+  "timing_plausibility_start": "2017-01-01",
+  "timing_plausibility_end_exclusive": "2020-01-01",
+  "timing_policy": "Only endpoint timestamps within this explicit broad plausibility range are usable; this does not certify extraction date. Nonnegative first-IR to first-CI lag only.",
+  "maturity_reference_date": "2019-01-31",
+  "maturity_days": 60,
+  "maturity_policy": "Sensitivity only: last plausible recorded event no later than reference date minus 60 days. Not a known completion/censoring truth label.",
+  "resource_identity_policy": "Human proxy only explicit user_[0-9]+ identities; batch_[0-9]+ is observed automation identity; NONE/empty/other labels unevaluable, never silently human or automated",
+  "lag_interpretation": "First IR to first CI is a first-endpoint trace proxy; it does not match multiple invoices/receipts/clearings into individual invoice cycles",
+  "primary_scoring_mode": "flat",
+  "primary_reference": "mean of all scored cases for the stated configuration",
+  "primary_gamma": 0,
+  "seed": 20260929,
+  "bootstrap_replicates": 200,
+  "bootstrap_top_k": 10,
+  "criteria": [
+    {
+      "id": "C01",
+      "name": "No recorded invoice receipt",
+      "layer": "Completion",
+      "scope": "non-consignment",
+      "evaluator": "absence",
+      "activity": "Record Invoice Receipt",
+      "evidence_policy": "absence within recorded history, not proof of non-completion"
+    },
+    {
+      "id": "C02",
+      "name": "No recorded clearing",
+      "layer": "Completion",
+      "scope": "non-consignment",
+      "evaluator": "absence",
+      "activity": "Clear Invoice",
+      "evidence_policy": "absence within recorded history, not proof of non-completion"
+    },
+    {
+      "id": "C03",
+      "name": "No recorded goods or service receipt",
+      "layer": "Completion",
+      "scope": "DF1 or DF2",
+      "evaluator": "absence_any",
+      "activities": [
+        "Record Goods Receipt",
+        "Record Service Entry Sheet"
+      ]
+    },
+    {
+      "id": "C04",
+      "name": "Long observed invoice-to-clearing lag",
+      "layer": "Timing",
+      "scope": "non-consignment",
+      "evaluator": "first_to_first_lag",
+      "threshold": 30,
+      "width": 60,
+      "unit": "days",
+      "evidence_policy": "both first timestamps observed and plausible; nonnegative lag"
+    },
+    {
+      "id": "C05",
+      "name": "Invoice precedes goods or service receipt",
+      "layer": "Timing",
+      "scope": "DF1",
+      "evaluator": "first_timestamp_order",
+      "evidence_policy": "both first timestamps observed and plausible; equality permitted"
+    },
+    {
+      "id": "C06",
+      "name": "Invoice-receipt cancellation recorded",
+      "layer": "Rework",
+      "scope": "all",
+      "evaluator": "presence",
+      "activity": "Cancel Invoice Receipt"
+    },
+    {
+      "id": "C07",
+      "name": "Price or quantity edits recorded",
+      "layer": "Rework",
+      "scope": "all",
+      "evaluator": "count_excess",
+      "activities": [
+        "Change Price",
+        "Change Quantity"
+      ],
+      "threshold": 0,
+      "width": 3
+    },
+    {
+      "id": "C08",
+      "name": "Repeated invoice receipt",
+      "layer": "Rework",
+      "scope": "non-consignment",
+      "evaluator": "count_excess",
+      "activity": "Record Invoice Receipt",
+      "threshold": 1,
+      "width": 3
+    },
+    {
+      "id": "C09",
+      "name": "Recorded human touches",
+      "layer": "Effort proxy",
+      "scope": "all",
+      "evaluator": "count_excess",
+      "threshold": 5,
+      "width": 10,
+      "evidence_policy": "every event resource usable; missing event resource makes full count unevaluable"
+    },
+    {
+      "id": "C10",
+      "name": "Distinct recorded human resources",
+      "layer": "Effort proxy",
+      "scope": "all",
+      "evaluator": "distinct_count_excess",
+      "threshold": 2,
+      "width": 5,
+      "evidence_policy": "every event resource usable; missing event resource makes full count unevaluable"
+    }
+  ],
+  "views": {
+    "Balanced": {
+      "Completion": 1,
+      "Timing": 1,
+      "Rework": 1,
+      "Effort proxy": 1
+    },
+    "Completion": {
+      "Completion": 3,
+      "Timing": 2,
+      "Rework": 1,
+      "Effort proxy": 1
+    },
+    "Operations": {
+      "Completion": 1,
+      "Timing": 1,
+      "Rework": 2,
+      "Effort proxy": 3
+    }
+  },
+  "view_weight_policy": "Each criterion receives its layer's stated raw weight; these are per-criterion weights, not target layer totals.",
+  "flow_map": {
+    "3-way match, invoice after GR": "DF1",
+    "3-way match, invoice before GR": "DF2",
+    "Consignment": "Consignment",
+    "2-way match": "2-way"
+  },
+  "missing_group_label": "(missing)",
+  "tie_policy": "descending index, then descending scored support, then lexicographic group key; top-k overlap includes eligible zero-priority ties and reports positive-group counts",
+  "claim_boundary": "Recorded concern under illustrative settings; no validated ownership, actual labour effort, causal diagnosis, financial loss or intervention-effect claim",
+  "declared_before_result_inspection": true
+}

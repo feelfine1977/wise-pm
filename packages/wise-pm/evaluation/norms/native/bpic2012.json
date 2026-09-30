@@ -1,0 +1,132 @@
+{
+  "schema_version": 2,
+  "name": "bpic2012: prepared assessment norm",
+  "version": "1",
+  "description": "Prepared assessment parity norm. Metric identity mapping preserves declared severities and scope.",
+  "scoring_mode": "flat",
+  "metadata": {
+    "input_kind": "prepared_assessment_matrix",
+    "carrier": "One non-process assessment record per case; source traces are separate.",
+    "raw_operator_equivalence_claimed": false
+  },
+  "layers": [
+    {
+      "id": "Timing",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Interaction",
+      "name": "",
+      "description": ""
+    },
+    {
+      "id": "Offer",
+      "name": "",
+      "description": ""
+    }
+  ],
+  "views": [
+    {
+      "name": "Balanced",
+      "description": "",
+      "constraint_weights": {
+        "C01": 1.0,
+        "C02": 1.0,
+        "C03": 1.0,
+        "C04": 1.0
+      }
+    },
+    {
+      "name": "Timeliness",
+      "description": "",
+      "constraint_weights": {
+        "C01": 4.0,
+        "C02": 1.0,
+        "C03": 1.0,
+        "C04": 1.0
+      }
+    },
+    {
+      "name": "Interaction",
+      "description": "",
+      "constraint_weights": {
+        "C01": 1.0,
+        "C02": 3.0,
+        "C03": 3.0,
+        "C04": 1.0
+      }
+    }
+  ],
+  "derived_attributes": [],
+  "constraints": [
+    {
+      "id": "C01",
+      "layer": "Timing",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C01",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C01",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C02",
+      "layer": "Interaction",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C02",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C02",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C03",
+      "layer": "Interaction",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C03",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C03",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    },
+    {
+      "id": "C04",
+      "layer": "Offer",
+      "type": "metric",
+      "params": {
+        "attribute": "assessment_value__C04",
+        "threshold": 0.0,
+        "width": 1.0,
+        "direction": "high"
+      },
+      "weight": 1.0,
+      "applicability": {
+        "attr": "assessment_scope__C04",
+        "eq": true
+      },
+      "description": "Identity mapping of an externally evaluated bounded severity; source evidence remains with the adapter."
+    }
+  ]
+}
