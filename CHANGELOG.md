@@ -74,6 +74,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Golden CSV verification supports pandas 3.1 prereleases without passing the
+  deprecated `float_precision` argument. Earlier pandas versions retain
+  round-trip parsing; exact comparisons and committed golden records are unchanged.
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.

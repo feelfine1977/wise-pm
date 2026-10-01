@@ -771,7 +771,13 @@ def read_record(path: Path) -> pd.DataFrame:
 
 def read_readable(path: Path, like: pd.DataFrame) -> pd.DataFrame:
     """Read a CSV back; ``like`` (the record) supplies the index depth and string dtypes a CSV cannot carry."""
-    df = pd.read_csv(path, index_col=list(range(like.index.nlevels)), float_precision="round_trip")
+    index_col = list(range(like.index.nlevels))
+    # pandas 3.1 unified the float converters and deprecated float_precision.
+    # Older releases still need round_trip to preserve exact CSV/record parity.
+    if tuple(int(part) for part in pd.__version__.split(".")[:2]) >= (3, 1):
+        df = pd.read_csv(path, index_col=index_col)
+    else:
+        df = pd.read_csv(path, index_col=index_col, float_precision="round_trip")
     strings = {c: like[c].dtype for c in df.columns if c in like.columns and not pd.api.types.is_numeric_dtype(like[c])}
     return df.astype(strings) if strings else df
 
