@@ -74,6 +74,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Evaluation paths on Windows: accept native path objects without rejecting
+  their separators, use portable fixture directories, and retain legacy OCEL
+  name normalization and path-containment checks. Symlink tests skip only when
+  Windows refuses the required privilege; source data and scoring are unchanged.
 - Workflow security: pin external actions to verified commit SHAs, disable
   checkout credential persistence, and disable dependency caching in release
   jobs and their reusable CI gate. The workflow audit now blocks CI and nightly
