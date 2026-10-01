@@ -11,7 +11,7 @@ import shutil
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePath, PurePosixPath
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
@@ -37,9 +37,9 @@ def relative_path(value: str) -> Path:
     return Path(*parts)
 
 
-def contained_path(root: Path, relative: str | Path) -> Path:
+def contained_path(root: Path, relative: str | PurePath) -> Path:
     root = root.resolve()
-    rel = relative_path(str(relative))
+    rel = relative_path(relative.as_posix() if isinstance(relative, PurePath) else relative)
     result = root / rel
     if not result.resolve().is_relative_to(root):
         raise ValueError("Catalogue path escapes its root through a link")
