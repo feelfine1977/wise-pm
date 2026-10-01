@@ -74,6 +74,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Workflow security: pin external actions to verified commit SHAs, disable
+  checkout credential persistence, and disable dependency caching in release
+  jobs and their reusable CI gate. The workflow audit now blocks CI and nightly
+  runs on medium/high findings instead of reporting success after an audit error.
 - Golden CSV verification supports pandas 3.1 prereleases without passing the
   deprecated `float_precision` argument. Earlier pandas versions retain
   round-trip parsing; exact comparisons and committed golden records are unchanged.
