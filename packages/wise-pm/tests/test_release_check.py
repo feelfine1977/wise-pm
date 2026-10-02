@@ -16,6 +16,7 @@ import pytest
 import wise
 
 SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "check_release.py"
+VERSION_FILE = Path("packages") / "wise-pm" / "src" / "wise" / "_version.py"
 
 pytestmark = pytest.mark.skipif(not SCRIPT.exists(), reason="repository scripts are not part of this tree")
 
@@ -30,7 +31,7 @@ def _load() -> ModuleType:
 
 
 def _tree(root: Path, *, package: str, citation: str, changelog: str) -> None:
-    version_file = root / "packages" / "wise-pm" / "src" / "wise" / "_version.py"
+    version_file = root / VERSION_FILE
     version_file.parent.mkdir(parents=True)
     version_file.write_text(f'__version__ = "{package}"\n', encoding="utf-8")
     (root / "CITATION.cff").write_text(f"cff-version: 1.2.0\nversion: {citation}\n", encoding="utf-8")
@@ -45,7 +46,7 @@ def check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     """The check pointed at an empty tree under ``tmp_path``, without the golden reproduction."""
     module = _load()
     monkeypatch.setattr(module, "ROOT", tmp_path)
-    monkeypatch.setattr(module, "VERSION_FILES", [tmp_path / "packages" / "wise-pm" / "src" / "wise" / "_version.py"])
+    monkeypatch.setattr(module, "VERSION_FILES", [tmp_path / VERSION_FILE])
     monkeypatch.setattr(module, "golden_exact_problem", lambda: None)
     return module
 
