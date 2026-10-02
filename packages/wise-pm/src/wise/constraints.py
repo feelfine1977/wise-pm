@@ -451,7 +451,8 @@ def constraint_from_dict(type_name: str, params: Mapping[str, Any]) -> Constrain
     """Build a constraint from its type name and a parameter mapping.
 
     Unknown types and unknown parameters raise :class:`NormError`; numeric
-    parameters given as strings are coerced.
+    parameters given as strings are coerced, and the constructor then refuses
+    what is out of range, including a non-integer count such as ``m=1.5`` (C1).
     """
     key = TYPE_ALIASES.get(type_name, type_name)
     if key not in CONSTRAINT_TYPES:
@@ -468,7 +469,5 @@ def constraint_from_dict(type_name: str, params: Mapping[str, Any]) -> Constrain
                 v = float(v)
             except ValueError as exc:
                 raise NormError(f"{key}: parameter {k}={v!r} is not numeric") from exc
-        if k in ("m", "k") and v is not None:
-            v = int(v)
         clean[k] = v
     return cls(**clean)

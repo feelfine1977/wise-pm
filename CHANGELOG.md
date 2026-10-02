@@ -220,6 +220,17 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Fixed
 
+- Fixed: C1 — `constraint_from_dict` (and so `Norm.from_dict`, `load` and
+  `loads`) truncated a non-integer count before the constructor checked it, so
+  a document with `m: 2.7` built `Presence(m=2)` and `k: 0.9` built
+  `Singularity(k=0)`. The counts `m` and `k` of Sec. IV-B are integers: a
+  document now refuses a non-integer `m` (Presence) or `k` (Singularity,
+  Precedence) with the same `NormError` as the constructor ("m must be an
+  integer >= 1, got 2.7"); an integral value such as `2.0` or `"2"` is still
+  accepted as `2`. A boolean, a list or a non-finite count is refused with a
+  `NormError` from the constructor instead of an escaping `TypeError` or
+  `ValueError`. Delta on the golden dataset: none (its counts are integers;
+  every table is unchanged).
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.

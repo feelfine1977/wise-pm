@@ -30,27 +30,49 @@ MINIMAL_PARAMS: dict[str, dict[str, Any]] = {
 }
 
 
-# --- C1: constraint_from_dict truncates non-integer m / k ------------------------------
+# --- C1: constraint_from_dict truncated non-integer m / k ------------------------------
+# C1 closed 2026-10-02: the counts m (Presence) and k (Singularity, Precedence) of paper
+# Sec. IV-B are integers; a document and a constructor refuse a non-integer value with the
+# same NormError instead of truncating it (2.7 used to become m = 2).
+
+NON_INTEGER_COUNTS = [
+    pytest.param("presence", {"activity": "A", "m": 1.5}, "presence: m must be an integer", id="presence-m-1.5"),
+    pytest.param("presence", {"activity": "A", "m": "2.7"}, "presence: m must be an integer", id="presence-m-str-2.7"),
+    pytest.param("singularity", {"activity": "A", "k": 0.9}, "singularity: k must be an integer", id="singularity-k-0.9"),
+    pytest.param("precedence", {"a": "A", "b": "B", "k": 1.5}, "precedence: k must be an integer", id="precedence-k-1.5"),
+]
 
 
-@pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C1: constraint_from_dict truncates non-integer m/k with int() before the dataclass validation runs",
-)
+@pytest.mark.spec("IV-B")
+@pytest.mark.parametrize(("type_name", "params", "message"), NON_INTEGER_COUNTS)
+def test_constraint_from_dict_rejects_non_integer_count_parameters(type_name, params, message):
+    with pytest.raises(NormError, match=message):
+        constraint_from_dict(type_name, params)
+
+
+@pytest.mark.spec("IV-B")
+@pytest.mark.parametrize(("type_name", "params", "message"), NON_INTEGER_COUNTS)
+def test_norm_document_rejects_non_integer_count_parameters(type_name, params, message):
+    doc = {
+        "constraints": [{"id": "c", "layer": "L", "type": type_name, "params": params}],
+        "views": [{"name": "v", "layer_weights": {"L": 1}}],
+    }
+    with pytest.raises(NormError, match=message):
+        wise.Norm.from_dict(doc)
+
+
+@pytest.mark.spec("IV-B")
 @pytest.mark.parametrize(
-    ("type_name", "params"),
+    "build",
     [
-        pytest.param("presence", {"activity": "A", "m": 1.5}, id="presence-m-1.5"),
-        pytest.param("presence", {"activity": "A", "m": "2.7"}, id="presence-m-str-2.7"),
-        pytest.param("singularity", {"activity": "A", "k": 0.9}, id="singularity-k-0.9"),
-        pytest.param("precedence", {"a": "A", "b": "B", "k": 1.5}, id="precedence-k-1.5"),
+        pytest.param(lambda: wise.Presence("A", m=1.5), id="presence-m-1.5"),  # type: ignore[arg-type]  # C1: deliberate non-integer
+        pytest.param(lambda: wise.Singularity("A", k=0.9), id="singularity-k-0.9"),  # type: ignore[arg-type]  # C1: deliberate non-integer
+        pytest.param(lambda: wise.Precedence("A", "B", k=1.5), id="precedence-k-1.5"),  # type: ignore[arg-type]  # C1: deliberate non-integer
     ],
 )
-def test_constraint_from_dict_rejects_non_integer_count_parameters(type_name, params):
-    with pytest.raises(NormError):
-        constraint_from_dict(type_name, params)
+def test_constructor_rejects_non_integer_count_parameters(build):
+    with pytest.raises(NormError, match="must be an integer"):
+        build()
 
 
 @pytest.mark.parametrize("m", [2.0, "2", 2], ids=["float", "numeric-string", "int"])
