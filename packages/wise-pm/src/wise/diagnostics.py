@@ -25,7 +25,7 @@ import pandas as pd
 from .constraints import as_labels, as_list
 from .errors import LogSchemaError, NotScoredError
 from .log import EventLog
-from .prioritization import _frame, _keys, prioritize
+from .prioritization import case_slices, prioritize
 from .scoring import ScoreResult
 
 
@@ -172,14 +172,13 @@ def gap_retained(
     retained]``. ``retained`` can exceed 1 when the excluded cases were a
     slice's best ones; a slice whose gap collapses was a window artefact.
     """
-    by = _keys(by)
     ranked = prioritize(result, by, view=view, gamma=gamma)
     full, baseline = ranked.table, ranked.spec.global_mean
-    frame, score_col = _frame(result, view, "score", by)
-    keep = ~exclude.reindex(result.cases.index, fill_value=False).astype(bool).to_numpy()
-    if not (keep & frame[score_col].notna().to_numpy()).any():
+    slices = case_slices(result, ranked)
+    keep = ~exclude.reindex(slices.index, fill_value=False).astype(bool).to_numpy()
+    if not (keep & slices["score"].notna().to_numpy()).any():
         raise NotScoredError("every scored case is excluded")
-    kept = prioritize(frame[keep], by, gamma=gamma, baseline=baseline, score_col=score_col).table
+    kept = prioritize(slices.reset_index(drop=True)[keep], list(ranked.spec.by), gamma=gamma, baseline=baseline).table
     out = pd.DataFrame(
         {
             "n_cases": full["n_cases"],
@@ -210,23 +209,23 @@ def validation_table(
     ``replication_ratio > ratio_flag`` count as replicated) or a boolean
     Series (e.g. from :func:`cross_case_replication` thresholded).
     """
-    by = _keys(by)
-    full = prioritize(result, by, view=view, gamma=gamma).table
-    frame, score_col = _frame(result, view, "score", by)
-    scored = frame[score_col].notna().to_numpy()
+    ranked = prioritize(result, by, view=view, gamma=gamma)
+    full, keys = ranked.table, list(ranked.spec.by)
+    slices = case_slices(result, ranked).reset_index(drop=True)
+    scored = slices["score"].notna().to_numpy()
     out = pd.DataFrame({"n_cases": full["n_cases"], "stable_gap": full["stable_gap"], "stable_PI": full["stable_PI"]})
     if censored is not None:
         c = censored.reindex(result.cases.index, fill_value=False).astype(bool)
-        flags = frame[scored].assign(_c=c.to_numpy()[scored])
-        out["censored_share"] = flags.groupby(by, dropna=False, observed=True)["_c"].mean()
-        gr = gap_retained(result, view, by, exclude=c, gamma=gamma)
+        flags = slices[scored].assign(_c=c.to_numpy()[scored])
+        out["censored_share"] = flags.groupby(keys, dropna=False, observed=True)["_c"].mean()
+        gr = gap_retained(result, view, keys, exclude=c, gamma=gamma)
         out["stable_gap_kept"] = gr["stable_gap_kept"]
         out["retained"] = gr["retained"]
     if replication is not None:
         r = replication["replication_ratio"] > ratio_flag if isinstance(replication, pd.DataFrame) else replication.astype(bool)
         r = r.reindex(result.cases.index, fill_value=False)
-        flags = frame[scored].assign(_r=r.to_numpy()[scored])
-        out["replicated_share"] = flags.groupby(by, dropna=False, observed=True)["_r"].mean()
+        flags = slices[scored].assign(_r=r.to_numpy()[scored])
+        out["replicated_share"] = flags.groupby(keys, dropna=False, observed=True)["_r"].mean()
 
     def reading(row: pd.Series) -> str:
         notes = []

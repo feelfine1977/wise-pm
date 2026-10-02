@@ -170,6 +170,30 @@ snapshot writes the version as a placeholder and is unchanged.
   annotations and the two new classes; every output column is unchanged.
   `wise.backlog` sits directly below `wise.prioritization` in the import
   layers. Delta on the golden dataset: none.
+- `compare_periods(previous, current, *, intended=())` refuses two backlog
+  records whose specifications differ in slice keys (`by`), `view`, `gamma`,
+  the requested `baseline` or `volume`, with a `NormError` that names each
+  differing field with both values; a caller who means the difference names
+  the fields in `intended` (unknown names are refused). Frames carry no
+  specification and are compared as before; a record ranked with
+  `as_index=False` is aligned on its slice keys instead of its row
+  positions. The output gains the column
+  `presence` (`"both"`, `"new"`, `"gone"`), and a slice ranked in one period
+  only keeps missing `gap_change` and `PI_change` (see `Fixed: C24`).
+- A case without a value for a slice key falls in the slice labelled
+  `wise.MISSING_KEY` (`"(missing)"`, the label the workbench gateway already
+  uses) in `prioritize`, `layer_drivers`, `penalty_mass`, `gap_retained` and
+  `validation_table` instead of a NaN index entry; that slice ranks after
+  every keyed slice on a tie, as NaN did. A numeric key column
+  with missing values becomes `object`, a categorical one gains the label as
+  its last category. A key column that has missing values and the value
+  `"(missing)"` is refused with `NormError` (see `Fixed: C23`).
+- `diagnostics.gap_retained` and `validation_table` compute through
+  `prioritize`, the backlog record and `case_slices`; their results are
+  unchanged. `wise.constraints._UNITS` is now the public, read-only
+  `wise.constraints.TIME_UNITS`; `derive` and the Lag family use it. No module
+  of the package imports an underscore name from another one (see
+  `Fixed: C21`).
 
 - Recipes are parsed when the norm is built (or, for `EventLog.derive` and
   `compute_recipe`, before the first one is computed, so a malformed recipe
@@ -187,6 +211,13 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Added
 
+- `wise.case_slices(data, by, view=None, score_col="score")`: the slice each
+  case falls in, as `prioritize` forms it (missing keys labelled), and its
+  score, one row per case indexed like the cases; `by` may be a backlog
+  record, whose keys, view and score column are used; its frame can be
+  ranked again, also when a numeric key mixes numbers and the label.
+  `wise.MISSING_KEY`.
+  The contract snapshot gains these two names.
 - `wise.evaluate(constraint, log)` evaluates a constraint, or a
   `NormConstraint` with its applicability, on every case and returns a
   `wise.Evaluation`: `value` (`ν_c(σ)`, NaN without a value) and `reason` per
@@ -475,6 +506,30 @@ snapshot writes the version as a placeholder and is unchanged.
   the committed backlog and hotspot parquet records still carry the 0.1.0
   attrs in their metadata until the next regeneration on the record host,
   and the golden comparison does not read attrs).
+- Fixed: C24 — `compare_periods` filled a slice absent from one period with
+  zeros, so a slice that disappeared read as an improvement by its whole gap
+  and PI, a new slice as a deterioration, and either as no change when its PI
+  was zero. A gap is defined for a ranked slice only (Sec. IV-E): such a slice
+  is now reported as `new` or `gone` in `presence` with missing changes, and
+  two records ranked with different specifications are refused unless the
+  difference is `intended`. Delta on the golden dataset: none for its tables
+  (`compare_periods` is not part of the golden pipeline). Splitting its cases
+  at the median start into two periods (Finance, γ = 20, baseline 0.9): by
+  vendor, all 60 slices occur in both periods and nothing changes; by company
+  and vendor, 164 of 399 slices occur in one period only. Before, 67 of them
+  reported their whole PI as a change and 97 a change of zero; now all 164
+  have missing changes, and the sum of `PI_change` over the slices of both
+  periods is 1.0017 where the zero-filled sum was 1.2304.
+- Fixed: C23 — a missing slice key became a NaN index entry of the backlog,
+  the drivers and the penalty mass, which `.loc`, joins and period comparisons
+  cannot address reliably. Every scored case belongs to one slice (Sec. IV-E);
+  the slice of cases without a key is now labelled `wise.MISSING_KEY`. Delta on
+  the golden dataset: none (no case lacks `company` or `vendor`).
+- Fixed: C21 — `diagnostics` imported the private `_frame` and `_keys` of
+  `prioritization`, and `derive` and the Lag family the private `_UNITS` of
+  `constraints`. They now use public names (decision record 0001, one owner
+  per computation), and a test refuses any import of an underscore name from
+  another module of the package. Delta on the golden dataset: none.
 - Fixed: C11 — `LogSchemaError` no longer inherits `KeyError`, and `NormError` and `NotScoredError` no longer inherit `ValueError`; an `except KeyError:` or `except ValueError:` in a caller cannot swallow a library error any more. Callers that relied on the builtin bases must catch the `wise` classes (or `WiseError`); the workbench already does. The public-API snapshot records the new bases. Delta on the golden dataset: none.
 
 ## [0.1.0] — 2026-09-05

@@ -230,17 +230,70 @@ def test_backlog_parameters_survive_operations_that_drop_dataframe_attrs(p2p_res
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="C24: compare_periods zero-fills slices absent from one period")
+@pytest.mark.spec("IV-E")
+# C24 closed 2026-10-02: a slice ranked in one period only has no measured change (paper Sec. IV-E, the gap is defined per ranked slice)
 def test_compare_periods_keeps_absent_slices_unknown():
     previous = pd.DataFrame(
-        {"n_cases": [10, 5], "stable_gap": [0.2, 0.1], "stable_PI": [2.0, 0.5]}, index=pd.Index(["a", "b"], name="slice")
+        {"n_cases": [10, 5], "stable_gap": [0.25, 0.125], "stable_PI": [2.5, 0.625]}, index=pd.Index(["a", "b"], name="slice")
     )
-    current = pd.DataFrame({"n_cases": [12], "stable_gap": [0.1], "stable_PI": [1.2]}, index=pd.Index(["a"], name="slice"))
+    current = pd.DataFrame(
+        {"n_cases": [12, 4], "stable_gap": [0.125, 0.5], "stable_PI": [1.5, 2.0]}, index=pd.Index(["a", "c"], name="slice")
+    )
     out = wise.compare_periods(previous, current)
-    assert pd.isna(out.loc["b", "gap_change"]), (
-        "a slice that disappeared has no measurable change; it must not read as an improvement of 0.1"
+    assert out.loc["a", "gap_change"] == -0.125
+    assert out.loc["a", "PI_change"] == -1.0
+    assert out["presence"].to_dict() == {"c": "new", "a": "both", "b": "gone"}
+    for gone_or_new in ("b", "c"):
+        assert pd.isna(out.loc[gone_or_new, "gap_change"]), "a slice ranked in one period only has no measurable change"
+        assert pd.isna(out.loc[gone_or_new, "PI_change"])
+    assert pd.isna(out.loc["b", "stable_gap_now"])
+    assert pd.isna(out.loc["c", "stable_PI_prev"])
+
+
+# ---------------------------------------------------------------- C23: missing slice keys become NaN index labels
+
+
+@pytest.mark.regression
+@pytest.mark.spec("IV-E")
+# C23 closed 2026-10-02: a case without a slice key falls in the slice labelled wise.MISSING_KEY (paper Sec. IV-E, every scored case is in one slice)
+def test_missing_slice_key_is_reported_under_an_explicit_label():
+    # global mean 0.5; slice a scores 0.75 (no gap), the two cases without a key score 0.25: gap 0.25, PI 0.5
+    df = pd.DataFrame({"slice": ["a", "a", None, np.nan], "vendor": ["V1"] * 4, "score": [0.75, 0.75, 0.25, 0.25]})
+    assert wise.MISSING_KEY == "(missing)"
+    backlog = wise.prioritize(df, "slice")
+    table = backlog.table
+    assert table.index.tolist() == ["(missing)", "a"]
+    assert not any(pd.isna(table.index))
+    assert table.loc["(missing)", "n_cases"] == 2
+    assert table.loc["(missing)", "PI"] == 0.5
+    flat = wise.prioritize(df, ["vendor", "slice"], as_index=False).table
+    assert flat[["vendor", "slice"]].to_numpy().tolist() == [["V1", "(missing)"], ["V1", "a"]]
+    change = wise.compare_periods(backlog, backlog)
+    assert change.index.tolist() == ["(missing)", "a"]
+    assert (change["presence"] == "both").all()
+    assert (change["PI_change"] == 0.0).all()
+
+
+@pytest.mark.regression
+@pytest.mark.spec("IV-E")
+# C23 closed 2026-10-02: the slice helpers label a missing key like prioritize (paper Sec. IV-E)
+def test_slice_helpers_label_a_missing_key(p2p_log, p2p_norm):
+    events = p2p_log.events
+    events.loc[events["case"] == "E", "vendor"] = None
+    log = wise.EventLog(
+        events, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["company", "vendor", "flow_type"]
     )
-    assert pd.isna(out.loc["b", "PI_change"])
+    result = wise.score(log, p2p_norm)
+    # Finance scores: A 0.6625 (V1), B 29/30 (V2), C 0.87 (V1), D 0.9 (V1), E 0.15 (no vendor)
+    backlog = wise.prioritize(result, "vendor", view="Finance")
+    assert backlog.table.index.tolist() == ["(missing)", "V1", "V2"]
+    assert wise.layer_drivers(result, backlog).index.tolist() == ["V1", "V2", "(missing)"]
+    assert wise.penalty_mass(result, backlog).index.tolist() == ["(missing)", "V1", "V2"]
+    assert wise.penalty_mass(result, backlog).loc["(missing)", "penalty_mass"] == pytest.approx(0.85)
+    table = wise.validation_table(result, "Finance", "vendor", censored=pd.Series({"E": True}))
+    assert table.index.tolist() == ["(missing)", "V1", "V2"]
+    assert table.loc["(missing)", "censored_share"] == 1.0
+    assert table.loc["V1", "censored_share"] == 0.0
 
 
 # ---------------------------------------------------------------- C25: negation admits unknown attributes

@@ -53,6 +53,8 @@ from .log import EventLog
 from .log_schema import LogSchema, ParsedLog, parse
 from .norm import SCHEMA_VERSION, Layer, Norm, NormConstraint, View
 from .prioritization import (
+    MISSING_KEY,
+    case_slices,
     compare_periods,
     concentration,
     constraint_drivers,
@@ -69,6 +71,7 @@ from .scoring import ScoreResult, evaluate, evaluate_constraint, score, violatio
 
 __all__ = [
     "CONSTRAINT_TYPES",
+    "MISSING_KEY",
     "SCHEMA_VERSION",
     "Backlog",
     "BacklogSpec",
@@ -95,6 +98,7 @@ __all__ = [
     "WiseError",
     "__version__",
     "as_labels",
+    "case_slices",
     "compare_periods",
     "concentration",
     "constraint_drivers",

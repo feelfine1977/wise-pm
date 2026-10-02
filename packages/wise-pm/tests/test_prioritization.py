@@ -195,3 +195,84 @@ def test_slice_by_case_id_index(p2p_result):
         wise.prioritize(res, "case", view="Finance", gamma="five")
     assert len(wise.concentration(wise.prioritize(res, "case", view="Finance").table, thresholds=0.8)) == 1
     assert "match" in wise.layer_drivers(res, "case", view="Finance", layers="match").columns
+
+
+# ------------------------------------------------------------------ slices of cases without a key
+@pytest.mark.spec("IV-E")
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        (["b", None, "a"], ["a", "b", wise.MISSING_KEY]),
+        ([2, None, 1], [1.0, 2.0, wise.MISSING_KEY]),
+        (pd.Categorical(["a", None, "z"], categories=["z", "a"]), ["z", "a", wise.MISSING_KEY]),
+    ],
+    ids=["strings", "numbers", "categories-in-their-order"],
+)
+def test_the_missing_slice_ranks_after_every_keyed_slice_on_a_tie(keys, expected):
+    # every slice scores the global mean: PI 0 and one case each, so key order decides
+    backlog = wise.prioritize(pd.DataFrame({"slice": keys, "score": [0.5] * 3}), "slice").table
+    assert backlog.index.tolist() == expected
+
+
+@pytest.mark.spec("IV-E")
+def test_layer_drivers_label_and_order_the_missing_slice_last():
+    df = pd.DataFrame({"slice": [2, None, 1], "score": [0.5] * 3, "contrib__L": [0.25, 0.5, 0.75]})
+    drivers = wise.layer_drivers(df, "slice")
+    assert drivers.index.tolist() == [1.0, 2.0, wise.MISSING_KEY]
+    assert drivers.loc[wise.MISSING_KEY, "L"] == 0.5
+
+
+def test_a_key_value_equal_to_the_missing_label_is_refused_when_keys_are_missing():
+    df = pd.DataFrame({"slice": ["(missing)", None], "score": [0.5, 0.5]})
+    with pytest.raises(NormError, match="slice"):
+        wise.prioritize(df, "slice")
+    assert wise.prioritize(df.dropna(), "slice").table.index.tolist() == ["(missing)"]
+
+
+@pytest.mark.spec("IV-E")
+def test_case_slices_gives_each_case_its_slice_and_score(p2p_result):
+    slices = wise.case_slices(p2p_result, ["company", "vendor"], view="Finance")
+    assert slices.index.equals(p2p_result.cases.index)
+    assert list(slices.columns) == ["company", "vendor", "score"]
+    assert slices.loc["E"].tolist() == ["B", "V2", p2p_result.scores["Finance"]["E"]]
+    backlog = wise.prioritize(p2p_result, "case", view="Logistics")
+    by_record = wise.case_slices(p2p_result, backlog)
+    assert list(by_record.columns) == ["case", "score"]
+    pd.testing.assert_series_equal(by_record["score"], p2p_result.scores["Logistics"], check_names=False)
+    frame = pd.DataFrame({"slice": ["a", None], "s": [0.5, None]}, index=["x", "y"])
+    slices = wise.case_slices(frame, "slice", score_col="s")
+    assert slices.index.tolist() == ["x", "y"]
+    assert slices["slice"].tolist() == ["a", "(missing)"]
+    assert slices["s"].iloc[0] == 0.5
+    assert pd.isna(slices["s"].iloc[1])
+
+
+@pytest.mark.spec("IV-E")
+def test_case_slices_with_a_numeric_key_can_be_ranked_again(p2p_result):
+    # the labelled numeric key mixes numbers and the label; ranking it again must order it as prioritize did
+    df = pd.DataFrame({"slice": [2, None, 1], "score": [0.5] * 3})
+    slices = wise.case_slices(df, "slice")
+    assert wise.prioritize(slices, "slice").table.index.tolist() == [1.0, 2.0, wise.MISSING_KEY]
+
+
+@pytest.mark.spec("IV-E")
+def test_diagnostics_label_a_missing_numeric_key(p2p_log, p2p_norm):
+    events = p2p_log.events
+    events["plant"] = events["case"].map({"A": 1, "B": 2, "C": 1, "D": 2})
+    log = wise.EventLog(
+        events,
+        case_col="case",
+        activity_col="activity",
+        timestamp_col="time",
+        case_attributes=["company", "vendor", "flow_type", "plant"],
+    )
+    result = wise.score(log, p2p_norm)
+    # Finance scores: A 0.6625 and C 0.87 (plant 1), B 29/30 and D 0.9 (plant 2), E 0.15 (no plant);
+    # excluding A keeps E in the missing slice, re-ranked against the same baseline: its gap is retained whole
+    retained = wise.gap_retained(result, "Finance", "plant", exclude=pd.Series({"A": True}))
+    assert retained.index.tolist() == [wise.MISSING_KEY, 1.0, 2.0]
+    assert retained["n_kept"].tolist() == [1, 1, 2]
+    assert retained.loc[wise.MISSING_KEY, "retained"] == 1.0
+    table = wise.validation_table(result, "Finance", "plant", censored=pd.Series({"A": True}))
+    assert table.loc[wise.MISSING_KEY, "censored_share"] == 0.0
+    assert table.loc[1.0, "censored_share"] == 0.5

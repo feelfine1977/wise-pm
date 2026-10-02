@@ -216,11 +216,12 @@
       "id": "C21",
       "title": "cross-module use of private members",
       "severity": "S3",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M4",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C22",
@@ -237,21 +238,23 @@
       "id": "C23",
       "title": "NaN slice keys become NaN index labels",
       "severity": "S3",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M4",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C24",
       "title": "compare_periods zero-fills slices absent from one period",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M4",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C25",

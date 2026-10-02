@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, fields
+from types import MappingProxyType
 from typing import Any, ClassVar, Literal
 
 import numpy as np
@@ -41,19 +42,22 @@ from .family import family
 Labels = tuple[str, ...]
 Activities = str | Sequence[str]
 
-_UNITS: dict[str, str] = {
-    "D": "D",
-    "d": "D",
-    "h": "h",
-    "H": "h",
-    "min": "min",
-    "T": "min",
-    "s": "s",
-    "S": "s",
-    "ms": "ms",
-    "W": "W",
-    "w": "W",
-}
+TIME_UNITS: Mapping[str, str] = MappingProxyType(
+    {
+        "D": "D",
+        "d": "D",
+        "h": "h",
+        "H": "h",
+        "min": "min",
+        "T": "min",
+        "s": "s",
+        "S": "s",
+        "ms": "ms",
+        "W": "W",
+        "w": "W",
+    }
+)
+"""Accepted spellings of a time unit, each mapped to its pandas unit (``"d"`` → ``"D"``)."""
 
 
 def as_labels(x: str | Iterable[str] | None, *, what: str = "activities") -> Labels:
@@ -109,7 +113,7 @@ def _opt(x: Activities | None) -> Labels:
 
 def in_units(delta: pd.Series, unit: str) -> pd.Series:
     """Express a Series of time differences in ``unit`` (NaT → NaN)."""
-    return delta.dt.total_seconds() / pd.Timedelta(f"1{_UNITS[unit]}").total_seconds()
+    return delta.dt.total_seconds() / pd.Timedelta(f"1{TIME_UNITS[unit]}").total_seconds()
 
 
 def _plain(value: Any) -> Any:
@@ -294,9 +298,9 @@ class Lag(Constraint):
             object.__setattr__(self, "delta", float(self.delta))
         _check_nonneg("lag: width", self.width)
         object.__setattr__(self, "width", float(self.width))
-        if self.unit not in _UNITS:
-            raise NormError(f"lag: unit must be one of {sorted(set(_UNITS.values()))}, got {self.unit!r}")
-        object.__setattr__(self, "unit", _UNITS[self.unit])
+        if self.unit not in TIME_UNITS:
+            raise NormError(f"lag: unit must be one of {sorted(set(TIME_UNITS.values()))}, got {self.unit!r}")
+        object.__setattr__(self, "unit", TIME_UNITS[self.unit])
         if self.missing is not None:
             if self.missing not in ("violate", "skip"):
                 raise NormError("lag: missing must be 'violate' or 'skip'")

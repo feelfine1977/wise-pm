@@ -68,7 +68,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from .constraints import _UNITS, Labels
+from .constraints import TIME_UNITS, Labels
 from .errors import LogSchemaError, NormError
 from .families import lag as lag_family
 from .family import Inputs
@@ -352,7 +352,7 @@ class LagRecipe(Recipe):
             doc.name,
             doc.labels("a"),
             doc.labels("b"),
-            unit=doc.choice("unit", tuple(_UNITS), "D"),
+            unit=doc.choice("unit", tuple(TIME_UNITS), "D"),
             activation=cast(Literal["first", "last"], doc.choice("activation", ACTIVATIONS, "first")),
             response=cast(Literal["first_after", "first_overall"], doc.choice("response", RESPONSES, "first_after")),
             allow_negative=doc.flag("allow_negative", False),

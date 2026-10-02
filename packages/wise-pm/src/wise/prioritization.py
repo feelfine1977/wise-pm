@@ -19,14 +19,15 @@ plus the specification it was ranked with. The helpers that work on a backlog
 take that record and read the slice keys, view and parameters from its
 specification. All aggregations return DataFrames indexed by the slice key(s)
 so they can be joined with ``.loc``; pass ``as_index=False`` to get the keys as
-columns.
+columns. A case without a value for a slice key falls in the slice labelled
+:data:`MISSING_KEY`, which ranks after every keyed slice on a tie.
 """
 
 from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -63,6 +64,53 @@ def _frame(data: ScoreResult | pd.DataFrame, view: str | None, score_col: str, b
     if missing:
         raise NormError(f"slice columns not in frame: {missing}")
     return df, score_col
+
+
+MISSING_KEY = "(missing)"
+"""The label of a slice key a case has no value for; a slice key never becomes a NaN index entry (C23)."""
+
+
+def _label_missing(df: pd.DataFrame, by: Sequence[str]) -> tuple[pd.DataFrame, bool]:
+    """``df`` with every missing value of a slice key replaced by :data:`MISSING_KEY`, and whether a key holds the label.
+
+    A categorical key gains the label as its last category; another key column becomes ``object``
+    unless it holds strings. A key that already has the value :data:`MISSING_KEY` next to missing
+    values is refused, since the two slices could not be told apart. A key labelled before (from
+    :func:`case_slices`) counts as labelled when it mixes the label with non-string values, which
+    only the key-function sort can order; a string key holding the value is sorted as before.
+    """
+    labelled: dict[str, pd.Series] = {}
+    relabelled = False
+    for col in by:
+        values = df[col]
+        if not values.isna().any():
+            if values.dtype == object and (values == MISSING_KEY).any():
+                relabelled |= not all(isinstance(v, str) for v in values)
+            continue
+        categorical = isinstance(values.dtype, pd.CategoricalDtype)
+        if (MISSING_KEY in values.cat.categories) if categorical else (values == MISSING_KEY).any():
+            raise NormError(f"slice column {col!r} has missing values and the value {MISSING_KEY!r}, which labels them")
+        if categorical:
+            labelled[col] = values.cat.add_categories([MISSING_KEY]).fillna(MISSING_KEY)
+        else:
+            base = values if pd.api.types.is_string_dtype(values.dtype) else values.astype(object)
+            labelled[col] = base.where(values.notna(), MISSING_KEY)
+    return (df.assign(**labelled), True) if labelled else (df, relabelled)
+
+
+def _missing_last(level: pd.Index) -> pd.Index:
+    """Sort key of one slice-key level: key order, the missing label last (categories keep their order)."""
+    if isinstance(level.dtype, pd.CategoricalDtype):
+        return level
+    return pd.Index([(isinstance(v, str) and v == MISSING_KEY, v) for v in level], tupleize_cols=False)
+
+
+_Table = TypeVar("_Table", pd.DataFrame, "pd.Series[Any]")
+
+
+def _sort_slices(frame: _Table, labelled: bool) -> _Table:
+    """``frame`` in slice-key order; with a labelled missing key that slice comes last, as NaN did."""
+    return frame.sort_index(key=_missing_last) if labelled else frame.sort_index()
 
 
 BACKLOG_COLUMNS: tuple[str, ...] = ("n_cases", "stable_gap", "stable_PI")
@@ -202,9 +250,9 @@ def prioritize(
     -------
     A :class:`~wise.backlog.Backlog`. Its ``table`` is a DataFrame indexed by
     ``by`` (unless ``as_index=False``), sorted by ``stable_PI`` (ties: larger
-    ``n_cases`` first, then key order), with ``n_cases, mean_score, volume,
-    [exposure], gap, PI, stable_mean, stable_gap, stable_PI, [se, gap_lower,
-    PI_lower], global_mean``. Its ``spec`` holds the slice keys, the view,
+    ``n_cases`` first, then key order, the :data:`MISSING_KEY` slice last),
+    with ``n_cases, mean_score, volume, [exposure], gap, PI, stable_mean,
+    stable_gap, stable_PI, [se, gap_lower, PI_lower], global_mean``. Its ``spec`` holds the slice keys, the view,
     ``gamma``, ``volume``, the requested ``baseline`` and the realised global
     mean, ``min_cases``, ``z``, the score column and the norm fingerprint.
     """
@@ -219,6 +267,7 @@ def prioritize(
     z_value = _check_z(z)
     baseline_value = _check_baseline(baseline)
     df, score_col = _frame(data, view, score_col, by)
+    df, labelled = _label_missing(df, by)
     if isinstance(data, ScoreResult):
         view = view if view is not None else data.views[0]
         fingerprint: str | None = data.norm_fingerprint or None
@@ -257,7 +306,7 @@ def prioritize(
     agg["global_mean"] = mu_bar
 
     agg = agg[agg["n_cases"] >= min_cases]
-    agg = agg.sort_index().sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
+    agg = _sort_slices(agg, labelled).sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
     spec = BacklogSpec(
         by=tuple(by),
         view=view,
@@ -291,6 +340,7 @@ def layer_drivers(
     """
     by, view = _from_spec(data, by, view) if isinstance(by, Backlog) else (_keys(by), view)
     df, score_col = _frame(data, view, "score", by)
+    df, labelled = _label_missing(df, by)
     prefix = "contrib__"
     if isinstance(data, ScoreResult):
         layer_cols = [f"{prefix}{layer}" for layer in (as_list(layers) or data.norm.layer_ids)]
@@ -305,6 +355,8 @@ def layer_drivers(
     g = d.groupby(by, dropna=False, observed=True, sort=True)
     out = g[layer_cols].mean()
     out.insert(0, "n_cases", g.size())
+    if labelled:
+        out = _sort_slices(out, labelled)
     deltas = out[layer_cols] - global_mean
     for col in layer_cols:
         out[f"{col[len(prefix) :]}__delta"] = deltas[col]
@@ -376,6 +428,7 @@ def penalty_mass(
         raise NormError("penalty_mass needs the slice keys: pass by=... or a backlog record as view")
     by = _keys(by)
     f, score_col = _frame(result, view, "score", by)
+    f, labelled = _label_missing(f, by)
     mask = select_cases(result.cases, where, log=result.log).to_numpy() & f[score_col].notna().to_numpy()
     d = f[mask]
     if d.empty:
@@ -383,12 +436,38 @@ def penalty_mass(
     d = d.assign(_penalty=1.0 - d[score_col])
     g = d.groupby(by, dropna=False, observed=True, sort=True)
     out = pd.DataFrame({"n_cases": g.size(), "penalty_mass": g["_penalty"].sum(), "mean_penalty": g["_penalty"].mean()})
-    out = out.sort_index().sort_values(["penalty_mass", "n_cases"], ascending=False, kind="mergesort")
+    out = _sort_slices(out, labelled).sort_values(["penalty_mass", "n_cases"], ascending=False, kind="mergesort")
     total = float(out["penalty_mass"].sum())
     out["share"] = out["penalty_mass"] / total if total > 0 else 0.0
     out["cum_share"] = out["share"].cumsum()
     out["rank"] = np.arange(1, len(out) + 1)
     return out if as_index else out.reset_index()
+
+
+def case_slices(
+    data: ScoreResult | pd.DataFrame,
+    by: str | Sequence[str] | Backlog,
+    view: str | None = None,
+    score_col: str = "score",
+) -> pd.DataFrame:
+    """The slice each case falls in, as :func:`prioritize` forms it, and the case's score.
+
+    ``by`` is the slice key(s) or a backlog record, whose slice keys, view and
+    score column are used (a record ranked on another norm is refused).
+    Returns one row per case, indexed like the cases of ``data``, with the key
+    columns (a missing key as :data:`MISSING_KEY`) and the score column
+    (``"score"`` for a result; missing for an unscored case).
+    """
+    if isinstance(by, Backlog):
+        score_col = by.spec.score_col
+        by, view = _from_spec(data, by, view)
+    else:
+        by = _keys(by)
+    df, score_col = _frame(data, view, score_col, by)
+    df, _ = _label_missing(df, by)
+    out = df[[*by, score_col]]
+    out.index = data.cases.index if isinstance(data, ScoreResult) else data.index
+    return out
 
 
 def pareto(backlog: Backlog | pd.DataFrame, metric: str = "stable_PI") -> pd.DataFrame:
@@ -530,18 +609,74 @@ def hotspot_table(backlog: Backlog | pd.DataFrame, top: int = 12, drivers: pd.Da
     return pos
 
 
-def compare_periods(previous: Backlog | pd.DataFrame, current: Backlog | pd.DataFrame) -> pd.DataFrame:
-    """Join two backlogs (same ``by``) and report the change in gap and PI per
-    slice. Use a common ``baseline`` in :func:`prioritize` for comparability."""
-    previous = _check_backlog(previous, "previous")
-    current = _check_backlog(current, "current")
+COMPARED_FIELDS: tuple[str, ...] = ("by", "view", "gamma", "baseline", "volume")
+"""The fields of :class:`~wise.backlog.BacklogSpec` two compared periods must share."""
+
+
+def compare_periods(
+    previous: Backlog | pd.DataFrame,
+    current: Backlog | pd.DataFrame,
+    *,
+    intended: str | Sequence[str] = (),
+) -> pd.DataFrame:
+    """Join two backlogs and report the change in gap and PI per slice.
+
+    Two backlog records must have been ranked alike: their specifications may
+    not differ in slice keys (``by``), ``view``, ``gamma``, the requested
+    ``baseline`` or ``volume``, unless each differing field is named in
+    ``intended``; otherwise :class:`~wise.errors.NormError` names the fields.
+    A record is aligned on its slice keys, also when ranked with
+    ``as_index=False``. Frames carry no specification and are compared as
+    given, on their index. Use a common
+    ``baseline`` in :func:`prioritize` to compare gaps against one reference.
+
+    ``presence`` is ``"both"``, ``"new"`` (ranked in ``current`` only) or
+    ``"gone"`` (ranked in ``previous`` only). A slice ranked in one period only
+    has no measured change: its ``gap_change`` and ``PI_change`` are missing,
+    like the columns of the period it is absent from (C24).
+    """
+    accepted = _keys(intended)
+    unknown = [f for f in accepted if f not in COMPARED_FIELDS]
+    if unknown:
+        raise NormError(f"intended names fields that are not compared: {unknown}; compared are {list(COMPARED_FIELDS)}")
+    if isinstance(previous, Backlog) and isinstance(current, Backlog):
+        _check_comparable(previous.spec, current.spec, accepted)
+    previous = _by_slice(previous, "previous")
+    current = _by_slice(current, "current")
     cols = list(BACKLOG_COLUMNS)
     p = previous[cols].add_suffix("_prev")
     c = current[cols].add_suffix("_now")
     out = p.join(c, how="outer")
-    out["gap_change"] = out["stable_gap_now"].fillna(0) - out["stable_gap_prev"].fillna(0)
-    out["PI_change"] = out["stable_PI_now"].fillna(0) - out["stable_PI_prev"].fillna(0)
+    out["gap_change"] = out["stable_gap_now"] - out["stable_gap_prev"]
+    out["PI_change"] = out["stable_PI_now"] - out["stable_PI_prev"]
+    in_prev, in_now = out["n_cases_prev"].notna().to_numpy(), out["n_cases_now"].notna().to_numpy()
+    out["presence"] = np.select([in_prev & in_now, in_now], ["both", "new"], "gone")
     return out.sort_values("stable_PI_now", ascending=False, kind="mergesort")
+
+
+def _by_slice(backlog: Backlog | pd.DataFrame, what: str) -> pd.DataFrame:
+    """The table of a backlog indexed by its slice keys; a record ranked with ``as_index=False`` is re-indexed."""
+    table = _check_backlog(backlog, what)
+    if isinstance(backlog, Backlog):
+        keys = list(backlog.spec.by)
+        if list(table.index.names) != keys and all(k in table.columns for k in keys):
+            return table.set_index(keys)
+    return table
+
+
+def _check_comparable(previous: BacklogSpec, current: BacklogSpec, intended: Sequence[str]) -> None:
+    """Refuse two specifications that differ in a compared field not named in ``intended``."""
+
+    def shown(value: Any) -> Any:
+        return list(value) if isinstance(value, tuple) else value
+
+    refused = [f for f in COMPARED_FIELDS if getattr(previous, f) != getattr(current, f) and f not in intended]
+    if refused:
+        differences = "; ".join(f"{f} {shown(getattr(previous, f))!r} and {shown(getattr(current, f))!r}" for f in refused)
+        raise NormError(
+            f"the periods were ranked with different specifications: {differences}; "
+            f"pass intended={refused!r} if the difference is intended"
+        )
 
 
 def estimate_gamma(
