@@ -30,7 +30,9 @@ The missing-value policy is an explicit argument of every evaluation.
 ``"legacy"`` reproduces 0.1.0 operator by operator: a missing attribute is out
 of scope under ``in``, ``eq``, ``gt``, ``gte``, ``lt``, ``lte`` and ``notna``
 and in scope under ``not_in``, ``ne`` and ``isna``; ``not`` negates that. It
-never yields unknown.
+yields unknown only where a pandas comparison itself returns ``<NA>`` (a column
+of a nullable dtype holding ``pd.NA`` under ``eq``, ``ne`` and their
+negations), which 0.1.0 could not evaluate at all.
 
 ``"three_valued"`` (decision 0001, section 3): a row whose attribute is missing
 is unknown under every attribute operator, and ``not`` keeps it unknown.
