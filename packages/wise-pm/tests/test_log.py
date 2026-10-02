@@ -198,6 +198,14 @@ def test_validate_report():
     assert rep["timestamp_outliers"] == 0
 
 
+def test_validate_reports_variation_only_for_the_schema_case_attributes(p2p_log):
+    # case B records amounts 25 and 100; an attribute attached later under the same name is one value per case
+    assert p2p_log.events.loc[p2p_log.events["case"] == "B", "amount"].nunique() == 2
+    p2p_log.add_case_attribute("amount", pd.Series(1.0, index=p2p_log.case_ids))
+    assert "amount" in p2p_log.case_attributes
+    assert not any(key.startswith("varying_within_case") for key in p2p_log.validate().index)
+
+
 def test_derive_recipes(p2p_log):
     log = p2p_log
     names = log.derive(
