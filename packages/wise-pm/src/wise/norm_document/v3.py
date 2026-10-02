@@ -34,7 +34,6 @@ VERSIONS = (3,)
 #: The values of the ``missing_values`` field.
 MISSING_VALUES: tuple[str, ...] = (THREE_VALUED,)
 TOP_KEYS = v2.TOP_KEYS | {"missing_values"}
-FREE_FORM_KEYS = v2.FREE_FORM_KEYS
 
 
 # ----------------------------------------------------------------------------- read
