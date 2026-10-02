@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+The 0.2.0 line deepens the library's modules behind their current public
+interface; classic numbers do not change. The package version is
+`0.2.0.dev0`. `CITATION.cff` stays at the released version 0.1.0 and changes
+at release time. The committed records that name the library version that
+produced them (the golden manifest, the BPIC'19 oracle and the native
+evaluation summary) keep `0.1.0`: they are provenance, the golden check
+tolerates a version difference, and no golden value changes. The contract
+snapshot writes the version as a placeholder and is unchanged.
+
 ### Changed
 
 - Repository layout: the library moved to `packages/wise-pm` inside a uv
@@ -28,6 +37,10 @@ All notable changes to this project are documented here. The format follows
 - New optional extra `io` (pyarrow) for parquet input.
 
 ### Added
+
+- Tests for `scripts/check_release.py`: a tag that agrees with the package,
+  `CITATION.cff` and the changelog passes; a development version, the
+  previous release tag and a tag without the `v` prefix are refused.
 
 - Dataset evaluation tools for 15 configurations and 44 primary views: portable
   source catalogue, raw-data adapters, explicit domain configurations, native
