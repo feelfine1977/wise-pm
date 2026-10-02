@@ -2,9 +2,9 @@
 
 Each example draws an event frame (string, integer or categorical case ids;
 null and categorical activities; naive, aware, string and unparseable
-timestamps; lifecycle transitions; ties; duplicates; non-numeric and negative
-exposure) and a combination of the constructor's options, then builds the
-log both ways: through ``EventLog`` (and through ``parse`` with the matching
+timestamps; lifecycle transitions; ties; exact duplicates and events equal
+only in case, activity and time; non-numeric and negative exposure) and a
+combination of the constructor's options, then builds the log both ways: through ``EventLog`` (and through ``parse`` with the matching
 ``LogSchema``), and through the frozen 0.1.0 construction in
 ``_support.legacy_log``. The two agree exactly, except where 0.1.0 accepted
 input silently and wrongly: an event frame without rows, a lifecycle column
@@ -77,6 +77,9 @@ def frames(draw: st.DrawFn) -> pd.DataFrame:
             rows[draw(st.integers(0, len(rows) - 1))][column] = null
     if draw(st.booleans()) and rows:
         rows = rows + rows[: draw(st.integers(0, len(rows)))]  # exact duplicates
+    for twin in draw(st.lists(_row, max_size=3)) if rows else []:
+        source = rows[draw(st.integers(0, len(rows) - 1))]  # equal in case, activity and time only
+        rows.append({**twin, "case": source["case"], "activity": source["activity"], "day": source["day"]})
     kinds = (
         draw(st.sampled_from(["str", "int", "category"])),
         draw(st.sampled_from(["object", "category"])),
