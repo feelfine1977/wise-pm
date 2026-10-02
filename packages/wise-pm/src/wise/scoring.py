@@ -26,7 +26,7 @@ constraints of a layer apply to a case. The mode is part of the norm
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -34,8 +34,9 @@ import numpy as np
 import pandas as pd
 
 from ._version import __version__
+from .calibration import Calibration
 from .constraints import Constraint
-from .derive import derived_log
+from .derive import derived_log, realised_calibrations
 from .errors import NormError, NotScoredError
 from .family import Evaluation, family_of
 from .log import EventLog
@@ -115,6 +116,12 @@ class ScoreResult:
         The :class:`EventLog` the norm was evaluated on (for drill-down to
         traces): the scored log itself, or, when the run derived attributes,
         a log that shares its events and adds them.
+    calibrations
+        Per ``quantile_scale`` recipe computed in the run, the
+        :class:`~wise.calibration.Calibration` it divided by: its fitted
+        record, or, for a recipe without one (schema version 2 legacy
+        profile), the record of the divisor realised on the scored cases,
+        stating the scored log's fingerprint. Empty with ``derive=False``.
     """
 
     norm: Norm
@@ -129,6 +136,7 @@ class ScoreResult:
     wise_version: str = __version__
     _weights: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
     _eff_cache: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
+    calibrations: Mapping[str, Calibration] = field(default_factory=dict, kw_only=True)
 
     def __repr__(self) -> str:
         return (
@@ -289,8 +297,10 @@ def score(
     mode = mode or norm.scoring_mode
     if mode not in SCORING_MODES:
         raise NormError(f"mode must be one of {SCORING_MODES}, got {mode!r}")
+    calibrations: dict[str, Calibration] = {}
     if derive and norm.derived_attributes:
-        log = derived_log(log, norm.recipes)
+        scored, log = log, derived_log(log, norm.recipes)
+        calibrations = realised_calibrations(scored, log, norm.recipes)
 
     V, S = violation_matrix(log, norm, return_scope=True)
     M = V.notna().to_numpy(dtype=float)
@@ -327,4 +337,5 @@ def score(
         log=log,
         norm_fingerprint=norm.fingerprint(),
         _weights=weights,
+        calibrations=calibrations,
     )

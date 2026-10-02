@@ -567,6 +567,110 @@
       "type": "dict",
       "value": "{'presence': <class 'wise.constraints.Presence'>, 'exclusion': <class 'wise.constraints.Exclusion'>, 'singularity': <class 'wise.constraints.Singularity'>, 'lag': <class 'wise.constraints.Lag'>, 'precedence': <class 'wise.constraints.Precedence'>, 'balance': <class 'wise.constraints.Balance'>, 'metric': <class 'wise.constraints.Metric'>}"
     },
+    "wise.Calibration": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "quantile",
+        "status",
+        "divisor",
+        "log_fingerprint",
+        "size",
+        "window"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "float",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "quantile"
+          },
+          {
+            "annotation": "CalibrationStatus",
+            "default": "<CalibrationStatus.UNFITTED: 'unfitted'>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "status"
+          },
+          {
+            "annotation": "float | None",
+            "default": "None",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "divisor"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "log_fingerprint"
+          },
+          {
+            "annotation": "int | None",
+            "default": "None",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "size"
+          },
+          {
+            "annotation": "Window | None",
+            "default": "None",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "window"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "fitted": {
+          "kind": "classmethod",
+          "parameters": [
+            {
+              "annotation": "float",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "quantile"
+            },
+            {
+              "annotation": "float",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "divisor"
+            },
+            {
+              "annotation": "str",
+              "default": "<required>",
+              "kind": "KEYWORD_ONLY",
+              "name": "log_fingerprint"
+            },
+            {
+              "annotation": "int",
+              "default": "<required>",
+              "kind": "KEYWORD_ONLY",
+              "name": "size"
+            },
+            {
+              "annotation": "Window",
+              "default": "<required>",
+              "kind": "KEYWORD_ONLY",
+              "name": "window"
+            }
+          ],
+          "returns": "Calibration"
+        },
+        "is_fitted": {
+          "kind": "property",
+          "returns": "bool",
+          "settable": false
+        },
+        "to_dict": {
+          "kind": "method",
+          "parameters": [],
+          "returns": "dict[str, Any]"
+        }
+      }
+    },
     "wise.Constraint": {
       "bases": [
         "object"
@@ -998,6 +1102,11 @@
           "kind": "property",
           "returns": "pd.DataFrame",
           "settable": false
+        },
+        "fingerprint": {
+          "kind": "method",
+          "parameters": [],
+          "returns": "str"
         },
         "first_after": {
           "kind": "method",
@@ -2437,7 +2546,8 @@
         "norm_fingerprint",
         "wise_version",
         "_weights",
-        "_eff_cache"
+        "_eff_cache",
+        "calibrations"
       ],
       "init": {
         "parameters": [
@@ -2512,6 +2622,12 @@
             "default": "<factory>",
             "kind": "POSITIONAL_OR_KEYWORD",
             "name": "_eff_cache"
+          },
+          {
+            "annotation": "Mapping[str, Calibration]",
+            "default": "<factory>",
+            "kind": "KEYWORD_ONLY",
+            "name": "calibrations"
           }
         ],
         "returns": "None"
@@ -3091,6 +3207,24 @@
         }
       ],
       "returns": "pd.DataFrame"
+    },
+    "wise.fit_calibration": {
+      "kind": "function",
+      "parameters": [
+        {
+          "annotation": "Norm",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "norm"
+        },
+        {
+          "annotation": "EventLog",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "log"
+        }
+      ],
+      "returns": "Norm"
     },
     "wise.gap_retained": {
       "kind": "function",
