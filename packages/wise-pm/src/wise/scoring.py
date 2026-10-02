@@ -330,7 +330,8 @@ def score(
         :class:`~wise.errors.NormError`. With ``derive=False`` the attributes
         must already be on ``log``. Under the corrected semantics (schema
         version 3) a ``quantile_scale`` recipe without a fitted calibration
-        record is refused with :class:`~wise.errors.NormError`.
+        record is refused with :class:`~wise.errors.NormError`, with or
+        without ``derive``.
 
     The norm is evaluated under its semantics profile, ``norm.semantics``.
     """
@@ -341,8 +342,8 @@ def score(
     if mode not in SCORING_MODES:
         raise NormError(f"mode must be one of {SCORING_MODES}, got {mode!r}")
     calibrations: dict[str, Calibration] = {}
+    _check_calibrations(norm.recipes, norm.semantics)
     if derive and norm.derived_attributes:
-        _check_calibrations(norm.recipes, norm.semantics)
         scored, log = log, derived_log(log, norm.recipes)
         calibrations = realised_calibrations(scored, log, norm.recipes)
 
