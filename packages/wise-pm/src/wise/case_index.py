@@ -36,8 +36,9 @@ _LATEST: Final[int] = int(np.iinfo(np.int64).max)
 
 Codes = NDArray[np.int64]
 Mask = NDArray[np.bool_]
-Select = str | Iterable[str] | Mask | None
-"""An activity label, an iterable of labels, a boolean mask over the events, or ``None`` for every event."""
+Select = str | Iterable[str] | Mask | pd.Series | None
+"""An activity label, an iterable of labels, a boolean mask over the events (array or
+Series, by position), or ``None`` for every event."""
 
 
 def event_order(case_codes: ArrayLike, timestamps: ArrayLike, tie: ArrayLike | None = None) -> NDArray[np.intp]:
@@ -193,7 +194,9 @@ class CaseIndex:
     # ------------------------------------------------------------------ selection
     def mask(self, activities: str | Iterable[str]) -> Mask:
         """Events whose activity is one of ``activities`` (unknown labels match nothing)."""
-        labels = [activities] if isinstance(activities, str) else [str(a) for a in activities]
+        labels = [activities] if isinstance(activities, str) else list(activities)
+        if not all(isinstance(a, str) for a in labels):
+            raise LogSchemaError("activities must be labels (strings); pass an event mask as a boolean array")
         lut = np.zeros(len(self._act_labels) + 1, dtype=bool)
         idx = self._act_labels.get_indexer(pd.Index(labels, dtype=object))
         lut[idx[idx >= 0]] = True
@@ -203,6 +206,8 @@ class CaseIndex:
     def _select(self, select: Select) -> Mask | None:
         if select is None:
             return None
+        if isinstance(select, pd.Series):
+            select = select.to_numpy()
         if isinstance(select, np.ndarray):
             if select.dtype != np.bool_:
                 raise LogSchemaError(f"an event mask must be boolean, got dtype {select.dtype}")

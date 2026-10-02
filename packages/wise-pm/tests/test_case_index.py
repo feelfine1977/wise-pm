@@ -118,6 +118,18 @@ def test_a_mask_of_the_wrong_shape_or_type_is_refused() -> None:
     assert issubclass(LogSchemaError, WiseError)
 
 
+@pytest.mark.parametrize("wrap", [pd.Series, list])
+def test_a_mask_in_another_container_is_a_mask_or_refused(wrap: Any) -> None:
+    idx = small_index()
+    mask = wrap([True, True, False, False, False, True, False, False])
+    if wrap is pd.Series:
+        _eq(idx.count(mask), [2, 1, 0])
+        _eq(idx.first(mask), list(_days(1, 7, None)))
+    else:
+        with pytest.raises(LogSchemaError, match="label"):
+            idx.count(mask)
+
+
 # ------------------------------------------------------------------ first and last
 @pytest.mark.spec("IV-A")
 @pytest.mark.parametrize(
