@@ -122,8 +122,9 @@ layers = [
   "wise.prioritization",
   "wise.scoring",
   "wise.norm",
+  "wise.selection",
   "wise.log",
   "wise.derive",
   "wise.constraints",
-  "wise.errors | wise._version",
+  "wise.errors | wise._version | wise._json",
 ]
