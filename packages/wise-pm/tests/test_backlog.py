@@ -174,3 +174,13 @@ def test_view_agreement_ranks_every_view_with_the_record_parameters(p2p_result: 
     pd.testing.assert_frame_equal(
         wise.view_agreement(p2p_result, backlog, k=2), wise.view_agreement(p2p_result, "case", k=2, gamma=1.0)
     )
+
+
+def test_view_agreement_ranks_every_view_with_the_record_z(p2p_result: wise.ScoreResult) -> None:
+    # By vendor, V2 is the only slice below the mean in both views; with z = 0.5 its lower
+    # bound stays positive in Logistics only, so the PI_lower top sets are {} and {V2}.
+    backlog = wise.prioritize(p2p_result, "vendor", view="Finance", z=0.5)
+    lower = wise.view_agreement(p2p_result, backlog, k=2, metric="PI_lower")
+    stable = wise.view_agreement(p2p_result, backlog, k=2)
+    assert lower.loc[("Finance", "Logistics"), "top2_overlap"] == 0.0
+    assert stable.loc[("Finance", "Logistics"), "top2_overlap"] == 1.0

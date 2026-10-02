@@ -457,8 +457,8 @@ def view_agreement(
     """Pairwise top-``k`` Jaccard overlap of backlogs and case-score correlation
     across views. ``by`` is the slice key(s) or a backlog record ranked on
     ``result``; with a record every view is ranked with the record's slice
-    keys, ``gamma``, ``volume``, ``baseline`` and ``min_cases`` (``gamma``
-    is then ignored). ``method`` is ``"pearson"`` (default), ``"spearman"`` or
+    keys, ``gamma``, ``volume``, ``baseline``, ``min_cases`` and ``z`` (so
+    ``metric="PI_lower"`` works; ``gamma`` is then ignored). ``method`` is ``"pearson"`` (default), ``"spearman"`` or
     ``"kendall"``; the latter two need SciPy (``pip install "wise-pm[stats]"``)."""
     if method not in ("pearson", "spearman", "kendall"):
         raise NormError(f"method must be 'pearson', 'spearman' or 'kendall', got {method!r}")
@@ -467,7 +467,14 @@ def view_agreement(
         keys, _ = _from_spec(result, by, None)
         backlogs = {
             v: prioritize(
-                result, keys, view=v, gamma=spec.gamma, volume=spec.volume, min_cases=spec.min_cases, baseline=spec.baseline
+                result,
+                keys,
+                view=v,
+                gamma=spec.gamma,
+                volume=spec.volume,
+                min_cases=spec.min_cases,
+                z=spec.z,
+                baseline=spec.baseline,
             )
             for v in result.views
         }

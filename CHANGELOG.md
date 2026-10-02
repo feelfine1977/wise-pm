@@ -137,7 +137,7 @@ snapshot writes the version as a placeholder and is unchanged.
   parameters are no longer written into `DataFrame.attrs` (see `Fixed: C19`).
   The helpers take the record: `layer_drivers(data, by=<Backlog>)` and
   `view_agreement(result, by=<Backlog>)` use its slice keys and view (and,
-  for `view_agreement`, its `gamma`, `volume`, `baseline` and `min_cases`);
+  for `view_agreement`, its `gamma`, `volume`, `baseline`, `min_cases` and `z`);
   `constraint_drivers(result, view=<Backlog>)` and
   `penalty_mass(result, view=<Backlog>)` use its view and slice keys
   (`penalty_mass`'s `by` now defaults to `None` and is required unless a
