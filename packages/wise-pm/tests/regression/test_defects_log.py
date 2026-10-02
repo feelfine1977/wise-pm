@@ -44,38 +44,41 @@ def p2p_events() -> pd.DataFrame:
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C6: null lifecycle transitions never match keep_transitions and are dropped silently, leaving an empty log",
-)
+@pytest.mark.spec("IV-A")
+# C6 closed 2026-10-02: a log is a set of cases with at least one event each (Sec. IV-A); the parse step
+# refuses null lifecycle transitions instead of dropping them, and refuses a log without events
 def test_all_null_lifecycle_column_raises_schema_error(p2p_events):
-    with pytest.raises(LogSchemaError):
+    with pytest.raises(LogSchemaError, match=rf"lifecycle column 'lc' has {len(p2p_events)} null transitions \(first at row 0\)"):
         build_log(p2p_events.assign(lc=None), lifecycle_col="lc")
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C6: a single null lifecycle transition is dropped silently instead of being reported",
-)
+@pytest.mark.spec("IV-A")
+# C6 closed 2026-10-02 (Sec. IV-A): one null transition is reported with its row, not dropped
 def test_one_null_lifecycle_transition_raises_schema_error(p2p_events):
     lifecycle: list[str | None] = ["complete"] * len(p2p_events)
     lifecycle[3] = None
-    with pytest.raises(LogSchemaError):
+    with pytest.raises(LogSchemaError, match=r"lifecycle column 'lc' has 1 null transition \(first at row 3\)"):
         build_log(p2p_events.assign(lc=lifecycle), lifecycle_col="lc")
+    assert len(build_log(p2p_events.assign(lc="complete"), lifecycle_col="lc").events) == len(p2p_events)
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C6: an EventLog with zero events is built silently as 'EventLog(0 events, 0 cases)'",
-)
+@pytest.mark.spec("IV-A")
+# C6 closed 2026-10-02 (Sec. IV-A): an event frame without rows is refused
 def test_log_with_zero_events_raises_schema_error(p2p_events):
-    with pytest.raises(LogSchemaError):
+    with pytest.raises(LogSchemaError, match="event frame has no rows"):
         build_log(p2p_events.iloc[:0])
+
+
+@pytest.mark.regression
+@pytest.mark.spec("IV-A")
+# C6 closed 2026-10-02 (Sec. IV-A): a log whose filters remove every event is refused with the filter named
+def test_log_emptied_by_its_filters_raises_schema_error(p2p_events):
+    with pytest.raises(LogSchemaError, match=r"no event of lifecycle column 'lc' has a transition in \['complete'\]"):
+        build_log(p2p_events.assign(lc="start"), lifecycle_col="lc")
+    with pytest.raises(LogSchemaError, match="every event has a null or unparseable timestamp"):
+        build_log(p2p_events.assign(time=pd.NaT), missing_timestamps="drop")
 
 
 # ---------------------------------------------------------------- C7: mutable public state

@@ -41,6 +41,14 @@ snapshot writes the version as a placeholder and is unchanged.
   reuse an unchanged recipe, moved from the private `EventLog._recipe_cache`
   into `wise.derive`; reuse behaves as before. `wise.observation_window` is
   documented as an alias of `EventLog.observation_window`.
+- `EventLog(exposure_agg=...)` and `LogSchema(exposure_agg=...)` take one of
+  the names of `ExposureAggregation` (the pandas reductions that give one
+  number per case: max, sum, first, last, min, mean, median, prod, std, var,
+  sem, skew, count, nunique, size, any, all), checked even when no exposure
+  column is set; `idxmin`/`idxmax` (which gave a row label as exposure) and
+  callables are refused with a `LogSchemaError` that lists the names. An
+  unknown `missing_timestamps` is refused with "must be one of ['raise',
+  'drop', 'keep']". Delta on the golden dataset: none.
 
 ### Added
 
@@ -57,6 +65,26 @@ snapshot writes the version as a placeholder and is unchanged.
   `EventLog.to_timestamp(value)` converts a value to a timestamp comparable
   with the log's (naive values are localised to the log's time zone, aware
   values become naive UTC on a naive log, `None` stays `None`).
+
+- `wise.LogSchema`, `wise.parse` and `wise.ParsedLog` (module
+  `wise.log_schema`): building a log is separate from querying it. A frozen
+  `LogSchema` names the columns by role (case, activity, timestamp, case
+  attributes, exposure, order, event id, lifecycle with its kept
+  transitions, kept columns, timestamp format) and carries every policy as an
+  enumerated value with a documented default: `missing_timestamps`
+  (`MissingTimestamps`, `raise`), `duplicates` (`Duplicates`, `keep`),
+  `time_zone` (`TimeZone`, `as_parsed`), `date_order` (`DateOrder`,
+  `month_first`), `exposure_agg` (`ExposureAggregation`, `max`) and
+  `case_attribute_values` (`CaseAttributeValues`, `first_non_null`).
+  `LogSchema.digest` is a SHA-256 over the roles and policies; it changes
+  when, and only when, one of them changes. `LogSchema.from_options(...)` maps
+  the column and policy options of `EventLog` onto a schema. `parse(events,
+  schema)` returns the sorted events, the case index and the case table.
+  `EventLog(...)` is now a façade over both and builds the same log as before
+  for every combination of its options. It takes an optional
+  keyword-only `schema=` in place of those options and exposes the schema it
+  was built with as `EventLog.schema`. `EventLog.from_csv`, `from_pm4py` and
+  `from_xes` go through the same parse step.
 
 - `wise.selection`: one rule grammar for selecting rows. A rule (the short
   form or the rule form of applicability) is parsed once into a small tree
@@ -130,6 +158,16 @@ snapshot writes the version as a placeholder and is unchanged.
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.
+- Fixed: C6 — the parse step refuses input that 0.1.0 built into a silently
+  wrong or empty log, with a `LogSchemaError` that names the problem: an event
+  frame without rows; a lifecycle column with null transitions (they never
+  matched `keep_transitions` and were dropped; the error gives their number
+  and the first row); a lifecycle filter that keeps no event (the transitions
+  found are listed); and `missing_timestamps="drop"` on a log where every
+  timestamp is missing. Consumers that build an empty `EventLog` (two tests
+  of the workbench do) must stop doing so. Delta on the golden dataset: none
+  (its log has rows, no lifecycle column and no missing timestamps; every
+  table is unchanged).
 - Fixed: C26 — `prioritize()` refuses `baseline=NaN` (and any non-finite baseline) with a `NormError` instead of returning null gaps and priorities. Delta on the golden dataset: none (the input was refused; every valid number is unchanged).
 - Fixed: C27 — `prioritize()` refuses a negative or non-finite `z`; a negative multiplier turned `PI_lower` into an upper bound. Delta on the golden dataset: none.
 - Fixed: C28 — `prioritize()` refuses a fractional, negative or non-finite `min_cases` instead of truncating it (an integral float such as `5.0` is still accepted). Delta on the golden dataset: none.

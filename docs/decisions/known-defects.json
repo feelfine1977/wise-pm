@@ -56,11 +56,12 @@
       "id": "C6",
       "title": "null lifecycle transitions dropped silently; empty logs build silently",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C7",

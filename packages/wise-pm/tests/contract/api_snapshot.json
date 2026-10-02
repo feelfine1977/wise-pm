@@ -592,6 +592,12 @@
             "default": "False",
             "kind": "KEYWORD_ONLY",
             "name": "dedupe"
+          },
+          {
+            "annotation": "LogSchema | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "schema"
           }
         ],
         "returns": ""
@@ -895,6 +901,11 @@
           ],
           "returns": "tuple[pd.Timestamp, pd.Timestamp]"
         },
+        "schema": {
+          "kind": "property",
+          "returns": "LogSchema",
+          "settable": false
+        },
         "to_pm4py": {
           "kind": "method",
           "parameters": [],
@@ -1169,6 +1180,253 @@
       },
       "kind": "class",
       "members": {}
+    },
+    "wise.LogSchema": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "case_col",
+        "activity_col",
+        "timestamp_col",
+        "case_attributes",
+        "exposure_col",
+        "order_col",
+        "event_id_col",
+        "lifecycle_col",
+        "keep_transitions",
+        "keep_columns",
+        "timestamp_format",
+        "missing_timestamps",
+        "duplicates",
+        "time_zone",
+        "date_order",
+        "exposure_agg",
+        "case_attribute_values"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "str",
+            "default": "'case:concept:name'",
+            "kind": "KEYWORD_ONLY",
+            "name": "case_col"
+          },
+          {
+            "annotation": "str",
+            "default": "'concept:name'",
+            "kind": "KEYWORD_ONLY",
+            "name": "activity_col"
+          },
+          {
+            "annotation": "str",
+            "default": "'time:timestamp'",
+            "kind": "KEYWORD_ONLY",
+            "name": "timestamp_col"
+          },
+          {
+            "annotation": "str | Iterable[str]",
+            "default": "()",
+            "kind": "KEYWORD_ONLY",
+            "name": "case_attributes"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "exposure_col"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "order_col"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "event_id_col"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "lifecycle_col"
+          },
+          {
+            "annotation": "str | Iterable[str]",
+            "default": "('complete',)",
+            "kind": "KEYWORD_ONLY",
+            "name": "keep_transitions"
+          },
+          {
+            "annotation": "str | Iterable[str] | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "keep_columns"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "timestamp_format"
+          },
+          {
+            "annotation": "MissingTimestamps | Literal['raise', 'drop', 'keep']",
+            "default": "<MissingTimestamps.RAISE: 'raise'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "missing_timestamps"
+          },
+          {
+            "annotation": "Duplicates | Literal['keep', 'drop']",
+            "default": "<Duplicates.KEEP: 'keep'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "duplicates"
+          },
+          {
+            "annotation": "TimeZone | Literal['as_parsed', 'utc']",
+            "default": "<TimeZone.AS_PARSED: 'as_parsed'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "time_zone"
+          },
+          {
+            "annotation": "DateOrder | Literal['month_first', 'day_first']",
+            "default": "<DateOrder.MONTH_FIRST: 'month_first'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "date_order"
+          },
+          {
+            "annotation": "ExposureAggregation | str",
+            "default": "<ExposureAggregation.MAX: 'max'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "exposure_agg"
+          },
+          {
+            "annotation": "CaseAttributeValues | Literal['first_non_null']",
+            "default": "<CaseAttributeValues.FIRST_NON_NULL: 'first_non_null'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "case_attribute_values"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "digest": {
+          "kind": "property",
+          "returns": "str",
+          "settable": false
+        },
+        "from_options": {
+          "kind": "classmethod",
+          "parameters": [
+            {
+              "annotation": "str",
+              "default": "'case:concept:name'",
+              "kind": "KEYWORD_ONLY",
+              "name": "case_col"
+            },
+            {
+              "annotation": "str",
+              "default": "'concept:name'",
+              "kind": "KEYWORD_ONLY",
+              "name": "activity_col"
+            },
+            {
+              "annotation": "str",
+              "default": "'time:timestamp'",
+              "kind": "KEYWORD_ONLY",
+              "name": "timestamp_col"
+            },
+            {
+              "annotation": "Iterable[str]",
+              "default": "()",
+              "kind": "KEYWORD_ONLY",
+              "name": "case_attributes"
+            },
+            {
+              "annotation": "str | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "exposure_col"
+            },
+            {
+              "annotation": "str",
+              "default": "'max'",
+              "kind": "KEYWORD_ONLY",
+              "name": "exposure_agg"
+            },
+            {
+              "annotation": "str | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "order_col"
+            },
+            {
+              "annotation": "str | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "event_id_col"
+            },
+            {
+              "annotation": "str | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "lifecycle_col"
+            },
+            {
+              "annotation": "Iterable[str]",
+              "default": "('complete',)",
+              "kind": "KEYWORD_ONLY",
+              "name": "keep_transitions"
+            },
+            {
+              "annotation": "bool",
+              "default": "False",
+              "kind": "KEYWORD_ONLY",
+              "name": "utc"
+            },
+            {
+              "annotation": "str | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "timestamp_format"
+            },
+            {
+              "annotation": "bool",
+              "default": "False",
+              "kind": "KEYWORD_ONLY",
+              "name": "dayfirst"
+            },
+            {
+              "annotation": "Literal['raise', 'drop', 'keep']",
+              "default": "'raise'",
+              "kind": "KEYWORD_ONLY",
+              "name": "missing_timestamps"
+            },
+            {
+              "annotation": "Iterable[str] | None",
+              "default": "None",
+              "kind": "KEYWORD_ONLY",
+              "name": "keep_columns"
+            },
+            {
+              "annotation": "bool",
+              "default": "False",
+              "kind": "KEYWORD_ONLY",
+              "name": "dedupe"
+            }
+          ],
+          "returns": "LogSchema"
+        },
+        "roles": {
+          "kind": "property",
+          "returns": "tuple[str, ...]",
+          "settable": false
+        }
+      }
     },
     "wise.LogSchemaError": {
       "bases": [
@@ -1711,6 +1969,69 @@
       "init": null,
       "kind": "class",
       "members": {}
+    },
+    "wise.ParsedLog": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "schema",
+        "events",
+        "index",
+        "cases",
+        "n_missing_timestamps",
+        "n_null_activities"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "LogSchema",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "schema"
+          },
+          {
+            "annotation": "pd.DataFrame",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "events"
+          },
+          {
+            "annotation": "CaseIndex",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "index"
+          },
+          {
+            "annotation": "pd.DataFrame",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "cases"
+          },
+          {
+            "annotation": "int",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "n_missing_timestamps"
+          },
+          {
+            "annotation": "int",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "n_null_activities"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "tz": {
+          "kind": "property",
+          "returns": "Any",
+          "settable": false
+        }
+      }
     },
     "wise.Precedence": {
       "bases": [
@@ -2634,6 +2955,24 @@
         }
       ],
       "returns": "pd.DataFrame"
+    },
+    "wise.parse": {
+      "kind": "function",
+      "parameters": [
+        {
+          "annotation": "pd.DataFrame",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "events"
+        },
+        {
+          "annotation": "LogSchema",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "schema"
+        }
+      ],
+      "returns": "ParsedLog"
     },
     "wise.penalty_mass": {
       "kind": "function",
