@@ -125,6 +125,9 @@ run and returned in `result.cases` and `result.log`. `EventLog.derive` attaches 
 explicitly, and a recipe named like a case attribute it did not produce is refused.
 Each recipe is parsed strictly into a typed record (`wise.recipes`): an unknown key, option value or
 type is refused when the norm is built, and an `eval` recipe may only name one case-table column.
+`wise.migrate(document_or_norm)` is the only operation that changes the schema version: it rewrites a
+version 1 or 2 document to version 3 (the corrected semantics) and returns the migrated document, its norm
+and a `MigrationReport` that lists every rewrite with the corrections it can bring and what to review.
 
 ## Command line and validation
 
@@ -133,6 +136,7 @@ wise validate packages/wise-pm/examples/running_p2p_norm.json
 wise describe packages/wise-pm/examples/running_p2p_norm.json
 wise score norm.json log.csv --case case --activity activity --timestamp time \
   --attr company --by company --view Finance --gamma 20 --out backlog.csv
+wise migrate norm.json   # writes norm_v3.json (or --out PATH), prints the migration report; never overwrites norm.json
 ```
 
 `make test` runs the unit, regression, property, golden, contract and paper

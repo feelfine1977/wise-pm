@@ -1,4 +1,4 @@
-"""Defects C4, C5, C7, C9, C12, C15 and C16 in the norm layer (``wise.norm``, ``wise.derive``).
+"""Defects C4, C5, C7, C9, C12, C14, C15 and C16 in the norm layer (``wise.norm``, ``wise.derive``).
 
 Regression tests pin the desired behaviour and are ``xfail(strict=True)``
 until the fix lands; characterisation tests guard behaviour that is already
@@ -363,10 +363,46 @@ def test_unknown_constraint_key_raises_norm_error():
         wise.Norm.from_dict({**BASE, "constraints": [{**BASE["constraints"][0], "applicabilty": {}}]})
 
 
-@pytest.mark.parametrize("schema_version", [99, "abc"], ids=["newer", "non-integer"])
-def test_unsupported_schema_version_raises_norm_error(schema_version):
+# --- C14 (decision 0001, section 4): the schema version has migration semantics --------------------------------------
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001/4")
+# C14 closed 2026-10-02: a document whose schema_version is missing or unknown is refused with the supported versions
+# listed, and only migrate() changes the version of a norm, always with a report of every rewrite (decision 0001,
+# section 4)
+@pytest.mark.parametrize(
+    ("schema_version", "message"),
+    [
+        (99, r"norm schema_version 99 is newer than supported \(3\); supported: \[1, 2, 3\]"),
+        ("abc", r"norm schema_version 'abc' is not an integer; supported: \[1, 2, 3\]"),
+        (0, r"norm schema_version 0 is not a known schema version; supported: \[1, 2, 3\]"),
+        (None, r"norm schema_version None is not an integer; supported: \[1, 2, 3\]"),
+        ("missing", r"norm document has no 'schema_version'; give one of \[1, 2, 3\]"),
+    ],
+    ids=["newer", "non-integer", "zero", "null", "missing"],
+)
+def test_unsupported_schema_version_is_refused_with_the_supported_versions(schema_version, message):
+    document = {**BASE, "schema_version": schema_version}
+    if schema_version == "missing":
+        del document["schema_version"]
+    for read in (wise.Norm.from_dict, wise.migrate):
+        with pytest.raises(NormError, match=message):
+            read(document)
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001/4")
+def test_only_migrate_changes_the_schema_version_and_it_reports_the_change():
+    legacy = wise.Norm.from_dict(BASE)
     with pytest.raises(NormError):
-        wise.Norm.from_dict({**BASE, "schema_version": schema_version})
+        legacy.replace(schema_version=3)
+    with pytest.raises(NormError):
+        wise.Norm.from_dict({**legacy.to_dict(), "schema_version": 3})  # a v3 document names its missing-value policy
+    migration = wise.migrate(legacy)
+    assert (legacy.schema_version, migration.norm.schema_version) == (2, 3)
+    assert (migration.report.source_version, migration.report.target_version) == (2, 3)
+    assert [r.rule for r in migration.report.rewrites] == ["missing_values"]
 
 
 def test_json_string_round_trip_preserves_dict_and_fingerprint(p2p_norm):

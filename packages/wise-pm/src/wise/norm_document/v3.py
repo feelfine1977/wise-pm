@@ -59,13 +59,14 @@ def read(document: Mapping[str, Any], schema_version: int) -> Norm:
     return v2.read(legacy, schema_version)
 
 
-def _is_lag(entry: Mapping[str, Any]) -> bool:
+def is_lag(entry: Mapping[str, Any]) -> bool:
+    """Whether a constraint entry of a document is a ``lag`` (by its type name or an alias of it)."""
     type_ = entry.get("type")
     return isinstance(type_, str) and TYPE_ALIASES.get(type_, type_) == "lag"
 
 
 def _read_constraint(entry: Any) -> Any:
-    if not isinstance(entry, Mapping) or not _is_lag(entry):
+    if not isinstance(entry, Mapping) or not is_lag(entry):
         return entry
     params = dict(entry.get("params", {}) or {})
     where = f"constraint {entry.get('id')!r} (lag)"
@@ -97,7 +98,7 @@ def write(norm: Norm) -> dict[str, Any]:
 def write_constraint(nc: NormConstraint) -> dict[str, Any]:
     """One entry of the ``constraints`` list; an unbounded lag is written ``"unbounded": true``."""
     entry = v2.write_constraint(nc)
-    if _is_lag(entry) and entry["params"].get("delta") is None:
+    if is_lag(entry) and entry["params"].get("delta") is None:
         entry["params"] = {
             ("unbounded" if k == "delta" else k): (True if k == "delta" else v) for k, v in entry["params"].items()
         }

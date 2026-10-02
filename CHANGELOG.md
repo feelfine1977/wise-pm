@@ -265,6 +265,12 @@ snapshot writes the version as a placeholder and is unchanged.
   version a norm built in Python carries, stays 2. A schema version above 3
   is "newer than supported (3)", and the message for a missing
   `schema_version` lists `[1, 2, 3]`.
+- Every refusal of a document's `schema_version` lists the supported
+  versions: a value that is not an integer, is not known or is newer than
+  supported ends in "; supported: [1, 2, 3]", and a missing one still says
+  "give one of [1, 2, 3]" (see `Fixed: C14`).
+- `wise.norm_document.v3.is_lag` (was the private `_is_lag`) tells whether a
+  constraint entry of a document is a lag.
 - `ScoreResult.in_scope` (and `Evaluation.in_scope`) is true where a
   constraint is known to apply: a case whose scope is unknown under the
   three-valued policy is not in scope. Under schema version 2 nothing is
@@ -496,6 +502,36 @@ snapshot writes the version as a placeholder and is unchanged.
   reason `wise.family.SCOPE_UNKNOWN` (`"scope_unknown"`) marks a case whose
   applicability is unknown.
 
+- `wise.migrate(source)`, the only operation that changes a norm's schema
+  version (decision 0001, section 4). It takes a norm or its document of
+  schema version 1 or 2 and returns a `wise.Migration`: the schema version 3
+  `document` (read-only), the `norm` it describes and a
+  `wise.MigrationReport` (`norm`, `source_version`, `target_version`,
+  `rewrites`, `corrections`, `to_dict()`, `to_json()`, `from_dict()`). Each
+  `wise.norm_document.Rewrite` states its `rule`, the JSON `path`, the
+  `subject` (recipe, constraint or norm), the keys `before` and `after`, a
+  `note`, the ledger `corrections` that can change a scored row, and a
+  `recommendation` where something needs review. The rules: the
+  missing-value policy is added (C4, C25); an `eval` over a bare case-table
+  column becomes a `column` recipe (C16), and any other `eval` stops the
+  migration with the recipe named; a `quantile_scale` without a record gets an
+  unfitted calibration record and the recommendation to fit it (C15); a `lag`
+  without `delta` gets `"delta": 0, "width": 0` written explicitly and the
+  recommendation to review it (C2); `"delta": null` becomes `"unbounded":
+  true`. The rest of the document is copied unchanged, so every number keeps
+  its value and JSON form; the report of a document is always the same text.
+  Migrating does not emit `LegacySemanticsWarning`; a schema version 3 source
+  is refused. `wise.migrate`, `wise.Migration`, `wise.MigrationReport`,
+  `wise.norm_document.migrate` and `wise.norm_document.load_document(path)`
+  (the JSON document of a norm file, not yet read) are new public names. The
+  shipped norms migrate; the delta report
+  (`docs/semantics/schema-v3-delta.md`) lists their rewrites and shows that no
+  row of their tables differs.
+- `wise migrate NORM [--out PATH]` writes the migrated norm (by default
+  `<NORM>_v3.json` beside it) and prints the migration report as JSON. It
+  refuses to write over its input, also through another spelling of the path
+  or a link.
+
 ### Deprecated
 
 - `EventLog._to_ts` emits a `DeprecationWarning` and delegates to
@@ -522,6 +558,21 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Fixed
 
+- Fixed: C2 — a `Lag` without a time bound silently defaulted to `delta=0,
+  width=0`, which makes any delay a full violation. Closed for schema version
+  3 documents, as the ledger defines it (decision 0001, section 3): a v3 lag
+  states `delta` or `"unbounded": true` and is refused otherwise, and
+  `wise.migrate` writes the 0.1.0 bound `"delta": 0, "width": 0` into the
+  document with a recommendation to review it, so the default is never
+  silent. Schema version 2 documents and a `Lag` built in Python keep the
+  0.1.0 default under the legacy profile (section 4). Delta on the golden
+  dataset: none; the golden norm's lags state their bounds, and its migrated
+  norm scores every golden table unchanged.
+- Fixed: C14 — `schema_version` was accepted without migration semantics.
+  A document whose `schema_version` is missing or unknown is refused with the
+  supported versions listed, and only `wise.migrate` changes the version of a
+  norm, always with a report of every rewrite (decision 0001, section 4).
+  Delta on the golden dataset: none.
 - Fixed: C4 — an `ne` or `not_in` applicability rule put a case whose
   attribute is missing in scope (`NaN != v` is true). Under schema version 3
   applicability is three-valued (decision 0001, section 3): such a case is

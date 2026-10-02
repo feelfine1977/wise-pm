@@ -72,17 +72,18 @@ def schema_version_of(document: Mapping[str, Any]) -> int:
     if "schema_version" not in document:
         raise NormError(f"norm document has no 'schema_version'; give one of {list(SCHEMA_VERSIONS)} (current: {SCHEMA_VERSION})")
     raw = document["schema_version"]
+    supported = f"supported: {sorted(ADAPTERS)}"
     if isinstance(raw, bool) or not isinstance(raw, int | str):
-        raise NormError(f"norm schema_version {raw!r} is not an integer")
+        raise NormError(f"norm schema_version {raw!r} is not an integer; {supported}")
     try:
         version = int(raw)
     except ValueError:
-        raise NormError(f"norm schema_version {raw!r} is not an integer") from None
+        raise NormError(f"norm schema_version {raw!r} is not an integer; {supported}") from None
     newest = max(ADAPTERS)
     if version > newest:
-        raise NormError(f"norm schema_version {version} is newer than supported ({newest})")
+        raise NormError(f"norm schema_version {version} is newer than supported ({newest}); {supported}")
     if version not in ADAPTERS:
-        raise NormError(f"norm schema_version {version} is not a known schema version; known: {sorted(ADAPTERS)}")
+        raise NormError(f"norm schema_version {version} is not a known schema version; {supported}")
     return version
 
 
@@ -155,6 +156,11 @@ def loads(text: str, *, source: str = "norm text") -> Norm:
     return read(_parse_json(text, source))
 
 
+def load_document(path: str | Path) -> Any:
+    """The JSON document of a norm file, not yet read into a norm (what :func:`migrate` takes)."""
+    return _parse_json(Path(path).read_text(encoding="utf-8"), str(path))
+
+
 def load(path: str | Path) -> Norm:
     """The norm of a JSON file."""
     return loads(Path(path).read_text(encoding="utf-8"), source=str(path))
@@ -170,17 +176,25 @@ def fingerprint(norm: Norm) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+# The migration reads and writes through the functions above, so it is imported once they are defined.
+from .migration import Migration, MigrationReport, Rewrite, migrate  # noqa: E402
+
 __all__ = [
     "ADAPTERS",
     "V2",
     "V3",
     "Adapter",
+    "Migration",
+    "MigrationReport",
+    "Rewrite",
     "adapter",
     "dump",
     "dumps",
     "fingerprint",
     "load",
+    "load_document",
     "loads",
+    "migrate",
     "read",
     "schema_version_of",
     "write",

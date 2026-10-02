@@ -17,11 +17,13 @@
       "id": "C2",
       "title": "Lag defaults delta=0,width=0 make any delay a full violation",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "note": "Closed for schema version 3 documents: a v3 lag states delta or unbounded, and migrate() writes the 0.1.0 bound delta 0, width 0 explicitly with a recommendation to review it. Schema version 2 documents and a Lag built in Python keep the 0.1.0 default under the legacy profile (decision 0001, section 4).",
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C3",
@@ -147,11 +149,12 @@
       "id": "C14",
       "title": "schema_version accepted without migration semantics",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C15",

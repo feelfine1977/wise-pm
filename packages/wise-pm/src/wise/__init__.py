@@ -57,6 +57,7 @@ from .family import Evaluation
 from .log import EventLog
 from .log_schema import LogSchema, ParsedLog, parse
 from .norm import SCHEMA_VERSION, Layer, Norm, NormConstraint, View
+from .norm_document import Migration, MigrationReport, migrate
 from .prioritization import (
     MISSING_KEY,
     case_slices,
@@ -93,6 +94,8 @@ __all__ = [
     "LogSchema",
     "LogSchemaError",
     "Metric",
+    "Migration",
+    "MigrationReport",
     "Norm",
     "NormConstraint",
     "NormError",
@@ -123,6 +126,7 @@ __all__ = [
     "hotspot_table",
     "layer_drivers",
     "left_truncated",
+    "migrate",
     "observation_window",
     "pareto",
     "parse",
