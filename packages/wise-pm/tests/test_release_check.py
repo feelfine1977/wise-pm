@@ -22,7 +22,8 @@ pytestmark = pytest.mark.skipif(not SCRIPT.exists(), reason="repository scripts 
 
 def _load() -> ModuleType:
     spec = importlib.util.spec_from_file_location("check_release", SCRIPT)
-    assert spec is not None and spec.loader is not None
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -95,4 +96,3 @@ def test_this_checkout_refuses_a_tag_that_is_not_its_version(
     assert module.read_version_file(module.VERSION_FILES[0]) == wise.__version__
     assert module.main(["check_release.py", "v99.0.0"]) == 1
     assert f"_version.py has {wise.__version__}, tag says 99.0.0" in capsys.readouterr().err
-
