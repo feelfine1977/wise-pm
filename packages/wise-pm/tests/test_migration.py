@@ -424,7 +424,9 @@ def bpic19_shaped_log() -> wise.EventLog:
         ("c5", "Change Quantity", 4, "user_011", 70.0, "Consignment"),
         ("c6", gr, 0, "user_012", 10.0, "other"),
     ]
-    df = pd.DataFrame(rows, columns=["case", "activity", "day", "event org:resource", "event Cumulative net worth (EUR)", "flow_type"])
+    df = pd.DataFrame(
+        rows, columns=["case", "activity", "day", "event org:resource", "event Cumulative net worth (EUR)", "flow_type"]
+    )
     df["time"] = pd.Timestamp("2018-01-01") + pd.to_timedelta(df["day"], unit="D")
     return wise.EventLog(
         df,
