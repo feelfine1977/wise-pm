@@ -160,7 +160,8 @@
         "stable_gap_now",
         "stable_PI_now",
         "gap_change",
-        "PI_change"
+        "PI_change",
+        "presence"
       ],
       "index": [
         "company"
@@ -1680,6 +1681,11 @@
       "kind": "class",
       "members": {}
     },
+    "wise.MISSING_KEY": {
+      "kind": "constant",
+      "type": "str",
+      "value": "'(missing)'"
+    },
     "wise.Metric": {
       "bases": [
         "wise.constraints.Constraint"
@@ -2770,6 +2776,36 @@
       ],
       "returns": "Labels"
     },
+    "wise.case_slices": {
+      "kind": "function",
+      "parameters": [
+        {
+          "annotation": "ScoreResult | pd.DataFrame",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "data"
+        },
+        {
+          "annotation": "str | Sequence[str] | Backlog",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "by"
+        },
+        {
+          "annotation": "str | None",
+          "default": "None",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "view"
+        },
+        {
+          "annotation": "str",
+          "default": "'score'",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "score_col"
+        }
+      ],
+      "returns": "pd.DataFrame"
+    },
     "wise.compare_periods": {
       "kind": "function",
       "parameters": [
@@ -2784,6 +2820,12 @@
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "current"
+        },
+        {
+          "annotation": "str | Sequence[str]",
+          "default": "()",
+          "kind": "KEYWORD_ONLY",
+          "name": "intended"
         }
       ],
       "returns": "pd.DataFrame"
