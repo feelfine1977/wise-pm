@@ -43,6 +43,7 @@ NON_INTEGER_COUNTS = [
 ]
 
 
+@pytest.mark.regression
 @pytest.mark.spec("IV-B")
 @pytest.mark.parametrize(("type_name", "params", "message"), NON_INTEGER_COUNTS)
 def test_constraint_from_dict_rejects_non_integer_count_parameters(type_name, params, message):
@@ -50,6 +51,7 @@ def test_constraint_from_dict_rejects_non_integer_count_parameters(type_name, pa
         constraint_from_dict(type_name, params)
 
 
+@pytest.mark.regression
 @pytest.mark.spec("IV-B")
 @pytest.mark.parametrize(("type_name", "params", "message"), NON_INTEGER_COUNTS)
 def test_norm_document_rejects_non_integer_count_parameters(type_name, params, message):
@@ -61,6 +63,7 @@ def test_norm_document_rejects_non_integer_count_parameters(type_name, params, m
         wise.Norm.from_dict(doc)
 
 
+@pytest.mark.regression
 @pytest.mark.spec("IV-B")
 @pytest.mark.parametrize(
     "build",
