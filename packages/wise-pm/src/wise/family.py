@@ -81,7 +81,7 @@ class Evaluation:
         if not self.value.index.equals(self.reason.index):
             raise NormError("an evaluation's values and reasons must share one index")
         if not np.array_equal(self.value.notna().to_numpy(), (self.reason == EVALUATED).to_numpy()):
-            raise NormError(f"an evaluation has a value exactly where its reason is {EVALUATED!r}")
+            raise NormError(f"an evaluation must have a value exactly where its reason is {EVALUATED!r}")
 
     @classmethod
     def _consistent(cls, value: pd.Series, reason: pd.Series) -> Evaluation:
