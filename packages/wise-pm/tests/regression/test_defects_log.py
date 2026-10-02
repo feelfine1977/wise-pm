@@ -86,14 +86,31 @@ def test_log_emptied_by_its_filters_raises_schema_error(p2p_events):
 
 @pytest.mark.regression
 @pytest.mark.spec("IV-A")
-# The event-log side of C7 is fixed (Sec. IV-A: the log is fixed once built): log.events hands out a copy.
-# The ledger entry stays open for the mutable containers of the frozen norm objects (test_defects_norm.py).
+# The event-log side of C7 (Sec. IV-A: the log is fixed once built): log.events hands out a copy. C7 closed 2026-10-02
+# together with the norm side (test_defects_norm.py) and the per-case primitives below.
 def test_mutating_returned_events_frame_leaves_log_unchanged(p2p_events):
     log = build_log(p2p_events)
     original_activities = log.events[log.activity_col].tolist()
     ev = log.events
     ev[log.activity_col] = "ZZZ"
     assert log.events[log.activity_col].tolist() == original_activities
+    assert log.count(GR)["B"] == 4
+
+
+@pytest.mark.regression
+@pytest.mark.spec("IV-A")
+# C7 closed 2026-10-02 (Sec. IV-A): the per-case primitives hand out a copy of what they remember, so writing into one
+# does not change the log's later answers
+def test_writing_into_a_returned_primitive_leaves_log_unchanged(p2p_events):
+    log = build_log(p2p_events)
+    counts, first, last = log.count(GR), log.first_ts(GR), log.last_ts(GR)
+    expected = (counts.copy(), first.copy(), last.copy())
+    counts.iloc[:] = -1.0
+    first.iloc[:] = pd.NaT
+    last.iloc[:] = pd.NaT
+    pd.testing.assert_series_equal(log.count(GR), expected[0])
+    pd.testing.assert_series_equal(log.first_ts(GR), expected[1])
+    pd.testing.assert_series_equal(log.last_ts(GR), expected[2])
     assert log.count(GR)["B"] == 4
 
 

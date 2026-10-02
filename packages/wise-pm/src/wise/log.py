@@ -24,7 +24,7 @@ from __future__ import annotations
 import copy
 import warnings
 from collections.abc import Iterable, Mapping
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -41,7 +41,10 @@ _INT_MAX = np.iinfo(np.int64).max
 _PANDAS_3 = int(pd.__version__.split(".")[0]) >= 3
 
 
-def _copy(frame: pd.DataFrame) -> pd.DataFrame:
+_Pandas = TypeVar("_Pandas", pd.DataFrame, pd.Series)
+
+
+def _copy(frame: _Pandas) -> _Pandas:
     """A copy of ``frame`` whose changes do not reach ``frame``: shallow under
     copy-on-write (always on from pandas 3), which copies no data until it is
     written to; a full copy otherwise, since pandas 2 shares the data."""
@@ -389,7 +392,7 @@ class EventLog:
         key = tuple(sorted(labels))
         if key not in self._count_cache:
             self._count_cache[key] = self._series(self._index.count(labels).astype(float))
-        return self._count_cache[key]
+        return _copy(self._count_cache[key])
 
     def first_ts(self, activities: str | Iterable[str]) -> pd.Series:
         """``t1(a, σ)``: timestamp of the first occurrence, NaT if none."""
@@ -397,7 +400,7 @@ class EventLog:
         key = tuple(sorted(labels))
         if key not in self._first_cache:
             self._first_cache[key] = self._series_dt(self._index.first(labels))
-        return self._first_cache[key]
+        return _copy(self._first_cache[key])
 
     def last_ts(self, activities: str | Iterable[str]) -> pd.Series:
         """Timestamp of the last occurrence, NaT if none."""
@@ -405,7 +408,7 @@ class EventLog:
         key = tuple(sorted(labels))
         if key not in self._last_cache:
             self._last_cache[key] = self._series_dt(self._index.last(labels))
-        return self._last_cache[key]
+        return _copy(self._last_cache[key])
 
     def first_after(
         self,
