@@ -419,7 +419,7 @@ def test_an_unfitted_calibration_is_admitted_in_v3_and_refused_by_scoring(scope_
     result = wise.score(scope_log, fitted)
     assert result.cases["scaled"].tolist() == pytest.approx([1.0, 1 / 3, np.nan], nan_ok=True)
     # an attribute attached beforehand (EventLog.derive divides by the population quantile) is refused all the same
-    assert scope_log.derive(norm.recipes) == ["scaled"]
+    assert scope_log.derive(norm.derived_attributes) == ["scaled"]
     with pytest.raises(NormError, match=r"'scaled' \(quantile_scale\) has an unfitted calibration record"):
         wise.score(scope_log, norm, derive=False)
 
