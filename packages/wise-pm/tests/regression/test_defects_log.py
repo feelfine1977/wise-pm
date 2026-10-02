@@ -85,11 +85,9 @@ def test_log_emptied_by_its_filters_raises_schema_error(p2p_events):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C7: log.events is the live internal frame, so an in-place edit desynchronises it from the index",
-)
+@pytest.mark.spec("IV-A")
+# The event-log side of C7 is fixed (Sec. IV-A: the log is fixed once built): log.events hands out a copy.
+# The ledger entry stays open for the mutable containers of the frozen norm objects (test_defects_norm.py).
 def test_mutating_returned_events_frame_leaves_log_unchanged(p2p_events):
     log = build_log(p2p_events)
     original_activities = log.events[log.activity_col].tolist()

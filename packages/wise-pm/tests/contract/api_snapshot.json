@@ -657,6 +657,11 @@
           ],
           "returns": "pd.Series"
         },
+        "case_attributes": {
+          "kind": "property",
+          "returns": "list[str]",
+          "settable": false
+        },
         "case_ids": {
           "kind": "property",
           "returns": "pd.Index",
@@ -666,6 +671,11 @@
           "kind": "property",
           "returns": "CaseIndex",
           "settable": false
+        },
+        "cases": {
+          "kind": "property",
+          "returns": "pd.DataFrame",
+          "settable": true
         },
         "censoring_end": {
           "kind": "method",
@@ -774,6 +784,11 @@
             }
           ],
           "returns": "list[str]"
+        },
+        "events": {
+          "kind": "property",
+          "returns": "pd.DataFrame",
+          "settable": false
         },
         "first_after": {
           "kind": "method",
@@ -980,6 +995,18 @@
           "kind": "property",
           "returns": "pd.Timestamp",
           "settable": false
+        },
+        "with_case_attributes": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "Mapping[str, pd.Series | Mapping[Any, Any] | np.ndarray]",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "values"
+            }
+          ],
+          "returns": "EventLog"
         }
       }
     },
