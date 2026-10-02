@@ -56,6 +56,7 @@ def test_constraint_from_dict_rejects_non_integer_count_parameters(type_name, pa
 @pytest.mark.parametrize(("type_name", "params", "message"), NON_INTEGER_COUNTS)
 def test_norm_document_rejects_non_integer_count_parameters(type_name, params, message):
     doc = {
+        "schema_version": 2,
         "constraints": [{"id": "c", "layer": "L", "type": type_name, "params": params}],
         "views": [{"name": "v", "layer_weights": {"L": 1}}],
     }

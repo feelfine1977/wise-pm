@@ -116,6 +116,7 @@ def ceiling() -> Iterator[Family[Ceiling]]:
 
 def toy_norm(params: dict[str, Any], type_name: str = "ceil") -> dict[str, Any]:
     return {
+        "schema_version": 2,
         "name": "toy",
         "constraints": [
             {"id": "cap", "layer": "L", "type": type_name, "params": params},

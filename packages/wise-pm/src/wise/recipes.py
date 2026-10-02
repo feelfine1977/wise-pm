@@ -72,6 +72,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
+from ._frozen import thaw
 from .calibration import Calibration, parse_calibration
 from .constraints import TIME_UNITS, Labels
 from .errors import LogSchemaError, NormError
@@ -205,7 +206,7 @@ def _event_column(recipe: Recipe, log: EventLog, column: str) -> pd.Series:
 
 
 def _where_document(where: Selection) -> dict[str, Any] | None:
-    return None if where.rule is None else where.document
+    return None if where.rule is None else thaw(where.document)
 
 
 @dataclass(frozen=True)

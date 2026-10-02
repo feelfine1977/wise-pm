@@ -19,6 +19,7 @@ from wise.errors import NormError
 
 #: Smallest valid norm in dictionary form; tests override one key at a time.
 BASE: dict[str, Any] = {
+    "schema_version": 2,
     "layers": [{"id": "L"}],
     "views": [{"name": "v", "constraint_weights": {"c": 1}}],
     "constraints": [{"id": "c", "layer": "L", "type": "presence", "params": {"activity": "A"}}],
@@ -122,15 +123,12 @@ def test_derive_rejects_lag_recipe_with_unknown_activation(missing_attr_log):
     assert "lag_ab" not in missing_attr_log.cases.columns
 
 
-# --- C7: nested containers of frozen objects are mutable ----------------------------------
+# --- C7: nested containers of frozen objects are read-only --------------------------------
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C7: View.constraint_weights is a plain dict, so item assignment succeeds silently",
-)
+@pytest.mark.spec("IV-C")
+# C7 closed 2026-10-02 (Sec. IV-C: the norm is a versioned artefact, fixed once built): a view's weights are read-only
 def test_view_constraint_weights_cannot_be_assigned_in_place():
     v = wise.View("F", constraint_weights={"c1": 1.0})
     assert v.constraint_weights is not None
@@ -140,17 +138,16 @@ def test_view_constraint_weights_cannot_be_assigned_in_place():
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C7: NormConstraint.applicability holds plain lists, so clear() succeeds silently",
-)
+@pytest.mark.spec("IV-C")
+# C7 closed 2026-10-02 (Sec. IV-C): the values of an applicability rule are read-only, so the rule cannot change
 def test_norm_constraint_applicability_values_cannot_be_cleared_in_place():
     nc = wise.NormConstraint("c", "L", wise.Presence("A"), applicability={"flow_type": ["DF1"]})
     # A frozen value is a tuple (AttributeError on clear) or a frozen list (TypeError).
     with pytest.raises((TypeError, AttributeError)):
         nc.applicability["flow_type"].clear()
     assert list(nc.applicability["flow_type"]) == ["DF1"]
+    cases = pd.DataFrame({"flow_type": ["DF1", "DF2"]}, index=["a", "b"])
+    assert nc.applies_to(cases).tolist() == [True, False]
 
 
 # --- C9: serialisation leaks non-Wise exceptions -----------------------------------------
@@ -185,17 +182,17 @@ def test_from_json_wraps_malformed_text_in_norm_error():
         wise.Norm.from_json("  {not json")
 
 
-# --- C12: fingerprint covers free-form metadata ------------------------------------------
+# --- C12: fingerprint leaves out free-form metadata and descriptions ----------------------
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C12: fingerprint() hashes to_dict() including metadata, so provenance changes it",
-)
+@pytest.mark.spec("decision:0001")
+# C12 closed 2026-10-02 (decision record 0001: a result carries the identity of its norm): the fingerprint covers what
+# the norm measures, not its free-form metadata and descriptions
 def test_fingerprint_is_unchanged_when_only_metadata_changes(p2p_norm):
     assert p2p_norm.replace(metadata={"note": "x"}).fingerprint() == p2p_norm.fingerprint()
+    assert p2p_norm.replace(description="annotated").fingerprint() == p2p_norm.fingerprint()
+    assert p2p_norm.replace_constraint("c1", description="annotated").fingerprint() == p2p_norm.fingerprint()
 
 
 def test_fingerprint_changes_with_within_layer_weight(p2p_norm):
@@ -216,6 +213,52 @@ def _fitted_record(divisor: float) -> dict[str, Any]:
     return wise.Calibration.fitted(
         0.95, divisor, log_fingerprint="0" * 64, size=4, window=("2024-01-01T00:00:00", "2024-01-01T00:00:00")
     ).to_dict()
+
+
+# --- C20: evaluation and validation logic existed twice ---------------------------------
+
+
+def _count_calls(monkeypatch, module, name, calls):
+    original = getattr(module, name)
+
+    def counted(*args, **kwargs):
+        calls.append(args)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(module, name, counted)
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001")
+# C20 closed 2026-10-02 (decision record 0001: one owner per computation): the norm's structure is checked once per
+# construction, Norm.validate() runs that same check, and scoring does not check the norm again
+def test_the_norm_is_checked_once_and_validate_runs_the_same_check(monkeypatch):
+    import wise.norm
+
+    checks: list[Any] = []
+    rules: list[Any] = []
+    _count_calls(monkeypatch, wise.norm, "_check_structure", checks)
+    _count_calls(monkeypatch, wise.norm, "parse", rules)
+    norm = wise.Norm.from_dict(BASE)
+    assert (len(checks), len(rules)) == (1, 1)  # one norm, one constraint with one rule
+    norm.validate()
+    assert (len(checks), len(rules)) == (2, 1)
+    wise.score(make_log([("1", "A", 0, 1.0, "DF1")]), norm)
+    assert (len(checks), len(rules)) == (2, 1)
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001")
+# C20 closed 2026-10-02 (decision record 0001): the lag recipe and the Lag constraint pair activations with responses
+# through the one rule of the Lag family
+def test_the_lag_recipe_and_the_lag_constraint_share_one_pairing_rule(monkeypatch, missing_attr_log):
+    from wise.families import lag as lag_family
+
+    calls: list[Any] = []
+    _count_calls(monkeypatch, lag_family, "pairs", calls)
+    missing_attr_log.derive([LAG_RECIPE])
+    wise.evaluate(wise.Lag("A", "B", delta=1), missing_attr_log)
+    assert [args[1:3] for args in calls] == [(("A",), ("B",)), (("A",), ("B",))]
 
 
 @pytest.mark.regression

@@ -63,6 +63,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias
 
 import pandas as pd
 
+from ._frozen import freeze
 from ._json import jsonable
 from .constraints import as_labels
 from .errors import NormError
@@ -88,6 +89,9 @@ class Compare:
     attr: str
     op: str
     value: Any
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "value", freeze(self.value))
 
 
 @dataclass(frozen=True)
@@ -192,6 +196,9 @@ class Selection:
 
     rule: Rule | None
     document: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "document", freeze(self.document))
 
     @property
     def columns(self) -> tuple[str, ...]:

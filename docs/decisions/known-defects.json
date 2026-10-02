@@ -70,11 +70,12 @@
       "id": "C7",
       "title": "public mutable state: events frame, frozen objects with mutable containers",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C8",
@@ -123,11 +124,12 @@
       "id": "C12",
       "title": "fingerprint includes free-form metadata",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C13",
@@ -207,11 +209,12 @@
       "id": "C20",
       "title": "duplicated evaluation and validation logic",
       "severity": "S3",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C21",

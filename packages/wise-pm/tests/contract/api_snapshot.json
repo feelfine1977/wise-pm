@@ -1870,7 +1870,8 @@
         "description",
         "scoring_mode",
         "derived_attributes",
-        "metadata"
+        "metadata",
+        "schema_version"
       ],
       "init": {
         "parameters": [
@@ -1927,6 +1928,12 @@
             "default": "<factory>",
             "kind": "POSITIONAL_OR_KEYWORD",
             "name": "metadata"
+          },
+          {
+            "annotation": "int",
+            "default": "2",
+            "kind": "KEYWORD_ONLY",
+            "name": "schema_version"
           }
         ],
         "returns": "None"
@@ -2071,8 +2078,9 @@
           "settable": false
         },
         "layer_of": {
-          "kind": "cached_property",
-          "returns": "pd.Series"
+          "kind": "property",
+          "returns": "pd.Series",
+          "settable": false
         },
         "layer_weight_table": {
           "kind": "method",

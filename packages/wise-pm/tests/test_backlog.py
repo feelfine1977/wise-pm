@@ -121,7 +121,7 @@ def test_layer_drivers_take_keys_and_view_from_the_record(p2p_result: wise.Score
 
 
 def test_drivers_refuse_a_record_ranked_on_another_norm(p2p_result: wise.ScoreResult) -> None:
-    other = wise.running_p2p_norm().replace_constraint("c1", description="changed")
+    other = wise.running_p2p_norm().replace_constraint("c1", weight=2.0)
     backlog = wise.prioritize(wise.score(wise.running_p2p_log(), other), "company", view="Finance")
     with pytest.raises(NormError, match="fingerprint"):
         wise.layer_drivers(p2p_result, backlog)

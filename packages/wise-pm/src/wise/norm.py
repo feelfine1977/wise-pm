@@ -3,10 +3,15 @@
 A :class:`Norm` holds the constraint catalogue, the layer partition, the
 stakeholder views, per-constraint applicability conditions, the scoring
 mode, and optional recipes for derived case attributes. It is a versioned
-artefact: its objects are frozen, their inputs are copied on construction,
-the norm is validated on construction and again before every scoring run,
-and :meth:`Norm.dump` / :meth:`Norm.load` round-trip it losslessly so it can
-be reviewed, diffed, and reused.
+artefact: its objects are frozen, their inputs are copied on construction
+into read-only containers (a value read from a norm cannot be written into),
+its structure is checked once, on construction, and it carries the schema
+version of the document format it belongs to.
+
+This module holds the model only. The document format (reading and writing
+JSON documents, the fingerprint) is :mod:`wise.norm_document`;
+:meth:`Norm.load`, :meth:`Norm.dump` and the other serialisation methods
+delegate to it, and both shipped norms round-trip through it byte for byte.
 
 Views
 -----
@@ -26,26 +31,22 @@ under the 0.1.0 missing-value policy.
 
 from __future__ import annotations
 
-import copy
 import dataclasses
-import hashlib
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
 import pandas as pd
 
+from ._frozen import freeze
 from ._json import jsonable as _jsonable
 from ._version import __version__
 from .constraints import (
     CONSTRAINT_TYPES,
     TYPE_ALIASES,
     Constraint,
-    constraint_from_dict,
 )
 from .errors import NormError
 from .family import Inputs, family_of
@@ -53,25 +54,16 @@ from .recipes import Recipe, parse_recipe
 from .selection import LEGACY, CaseTable, Selection, parse
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pathlib import Path
+
     from .log import EventLog
 
+#: The schema version a norm built in Python carries by default.
 SCHEMA_VERSION = 2
+#: The schema versions a norm can carry; both are read and written in the 0.1.0 layout (:mod:`wise.norm_document.v2`).
+SCHEMA_VERSIONS = (1, 2)
 SCORING_MODES = ("layer_balanced", "flat")
 DEFAULT_SCORING_MODE = "layer_balanced"
-
-
-def _json_default(obj: Any) -> Any:
-    out = _jsonable(obj)
-    if out is obj:
-        raise NormError(f"norm metadata holds a value of type {type(obj).__name__} that cannot be serialised to JSON")
-    return out
-
-
-def _parse_json(text: str, source: str) -> Any:
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise NormError(f"{source} is not valid JSON: {exc.msg} (line {exc.lineno}, column {exc.colno})") from exc
 
 
 # ----------------------------------------------------------------------------- layers, views
@@ -121,7 +113,7 @@ class View:
             clean[str(k)] = fv
         if not clean:
             raise NormError(f"view {self.name!r}: {which} is empty")
-        object.__setattr__(self, which, clean)
+        object.__setattr__(self, which, freeze(clean))
 
     @property
     def weights(self) -> dict[str, float]:
@@ -183,15 +175,10 @@ class NormConstraint:
         return self.constraint.type
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "layer": self.layer,
-            "type": self.constraint.type,
-            "params": _jsonable(self.constraint.params()),
-            "weight": self.weight,
-            "applicability": copy.deepcopy(self.applicability),
-            "description": self.description,
-        }
+        """The constraint's entry in a norm document (:func:`wise.norm_document.write_constraint`)."""
+        from . import norm_document
+
+        return norm_document.write_constraint(self)
 
 
 def _inputs(nc: NormConstraint) -> Inputs:
@@ -214,6 +201,8 @@ class Norm:
     scoring_mode: str = DEFAULT_SCORING_MODE
     derived_attributes: tuple[dict[str, Any], ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
+    #: The schema version of the document format; kept by ``replace`` and written back by ``to_dict``.
+    schema_version: int = field(default=SCHEMA_VERSION, kw_only=True)
 
     if TYPE_CHECKING:  # pragma: no cover
         _recipes: ClassVar[tuple[Recipe, ...]]  # set per instance in __post_init__, not a dataclass field
@@ -224,10 +213,10 @@ class Norm:
         object.__setattr__(self, "views", tuple(self.views))
         documents = tuple(self.derived_attributes)
         object.__setattr__(self, "_recipes", tuple(parse_recipe(r) for r in documents))
-        object.__setattr__(self, "derived_attributes", tuple(copy.deepcopy(dict(r)) for r in documents))
-        object.__setattr__(self, "metadata", copy.deepcopy(dict(self.metadata)))
+        object.__setattr__(self, "derived_attributes", tuple(freeze(dict(r)) for r in documents))
+        object.__setattr__(self, "metadata", freeze(dict(self.metadata)))
         object.__setattr__(self, "version", str(self.version))
-        self.validate()
+        _check_structure(self)
 
     # ------------------------------------------------------------ lookups
     @property
@@ -268,9 +257,13 @@ class Norm:
             raise NormError(f"unknown constraint {cid!r}") from None
 
     @cached_property
-    def layer_of(self) -> pd.Series:
-        """``lay: C → Λ`` as a Series indexed by constraint id."""
+    def _layer_of(self) -> pd.Series:
         return pd.Series({c.id: c.layer for c in self.constraints}, name="layer", dtype=object)
+
+    @property
+    def layer_of(self) -> pd.Series:
+        """``lay: C → Λ`` as a Series indexed by constraint id (a copy on every call)."""
+        return self._layer_of.copy()
 
     def constraints_in_layer(self, layer_id: str) -> list[NormConstraint]:
         return [c for c in self.constraints if c.layer == layer_id]
@@ -297,49 +290,11 @@ class Norm:
 
     # ---------------------------------------------------------- validation
     def validate(self) -> None:
-        """Structural validation; raises :class:`NormError`."""
-        ids = self.constraint_ids
-        dup = sorted({i for i in ids if ids.count(i) > 1})
-        if dup:
-            raise NormError(f"duplicate constraint ids: {dup}")
-        if not self.constraints:
-            raise NormError("a norm needs at least one constraint")
-        layer_ids = self.layer_ids
-        if len(set(layer_ids)) != len(layer_ids):
-            raise NormError("duplicate layer ids")
-        for c in self.constraints:
-            if c.layer not in layer_ids:
-                raise NormError(f"constraint {c.id!r} refers to unknown layer {c.layer!r}; layers: {layer_ids}")
-        names = self.view_names
-        if len(set(names)) != len(names):
-            raise NormError("duplicate view names")
-        if not self.views:
-            raise NormError("a norm needs at least one view")
-        for v in self.views:
-            for k, w in v.weights.items():
-                if not isinstance(w, int | float) or not np.isfinite(w) or w < 0:
-                    raise NormError(f"view {v.name!r}: weight {k}={w!r} must be finite and >= 0")
-            if v.layer_weights is not None:
-                unknown = set(v.layer_weights) - set(layer_ids)
-                if unknown:
-                    raise NormError(f"view {v.name!r}: unknown layers {sorted(unknown)}")
-            else:
-                unknown = set(v.constraint_weights or {}) - set(ids)
-                if unknown:
-                    raise NormError(f"view {v.name!r}: unknown constraints {sorted(unknown)}")
-            if not any(w > 0 for w in self._raw_weights(v).values()):
-                raise NormError(f"view {v.name!r}: all constraint weights are zero")
-        for c in self.constraints:
-            if not np.isfinite(c.weight) or c.weight < 0:
-                raise NormError(f"constraint {c.id!r}: within-layer weight must be finite and >= 0")
-            parse(c.applicability, what="applicability")
-        if self.scoring_mode not in SCORING_MODES:
-            raise NormError(f"scoring_mode must be one of {SCORING_MODES}, got {self.scoring_mode!r}")
-        seen: set[str] = set()
-        for r in self.recipes:
-            if r.name in seen:
-                raise NormError(f"duplicate derived attribute {r.name!r}")
-            seen.add(r.name)
+        """Re-run the structural check of construction; raises :class:`NormError`.
+
+        A norm is checked once, when it is built, and cannot change afterwards, so this only repeats that check.
+        """
+        _check_structure(self)
 
     def check(self, log: EventLog) -> list[str]:
         """Check the norm against a log. Returns human-readable issues (empty
@@ -415,7 +370,12 @@ class Norm:
 
     # ---------------------------------------------------------- editing
     def replace(self, **changes: Any) -> Norm:
-        """A copy of the norm with the given top-level fields changed."""
+        """A copy of the norm with the given top-level fields changed; it keeps the schema version."""
+        if "schema_version" in changes and changes["schema_version"] != self.schema_version:
+            raise NormError(
+                f"replace keeps the schema version ({self.schema_version}); "
+                f"a norm changes its schema version only by migration, not to {changes['schema_version']!r}"
+            )
         return dataclasses.replace(self, **changes)
 
     def replace_constraint(self, cid: str, **changes: Any) -> Norm:
@@ -428,50 +388,42 @@ class Norm:
         return self.replace(constraints=tuple(fn(c) for c in self.constraints))
 
     # ----------------------------------------------------------- serialise
+    # The document format lives in :mod:`wise.norm_document`; these methods delegate to it.
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "name": self.name,
-            "version": self.version,
-            "description": self.description,
-            "scoring_mode": self.scoring_mode,
-            "metadata": _jsonable(self.metadata),
-            "layers": [{"id": layer.id, "name": layer.name, "description": layer.description} for layer in self.layers],
-            "views": [
-                {
-                    "name": v.name,
-                    "description": v.description,
-                    **({"layer_weights": dict(v.layer_weights)} if v.layer_weights is not None else {}),
-                    **({"constraint_weights": dict(v.constraint_weights)} if v.constraint_weights is not None else {}),
-                }
-                for v in self.views
-            ],
-            "derived_attributes": [copy.deepcopy(r) for r in self.derived_attributes],
-            "constraints": [c.to_dict() for c in self.constraints],
-        }
+        """The norm document (plain containers, independent of the norm)."""
+        from . import norm_document
+
+        return norm_document.write(self)
 
     def dumps(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False, default=_json_default)
+        from . import norm_document
+
+        return norm_document.dumps(self, indent)
 
     def dump(self, path: str | Path, indent: int = 2) -> Path:
-        p = Path(path)
-        p.write_text(self.dumps(indent) + "\n", encoding="utf-8")
-        return p
+        from . import norm_document
+
+        return norm_document.dump(self, path, indent)
 
     @classmethod
     def loads(cls, text: str) -> Norm:
-        return cls.from_dict(_parse_json(text, "norm text"))
+        from . import norm_document
+
+        return norm_document.loads(text)
 
     @classmethod
     def load(cls, path: str | Path) -> Norm:
-        return cls.from_dict(_parse_json(Path(path).read_text(encoding="utf-8"), str(path)))
+        from . import norm_document
+
+        return norm_document.load(path)
 
     def to_json(self, path: str | Path | None = None, indent: int = 2) -> str:
         """JSON text; also written to ``path`` if given (alias of dumps/dump)."""
-        text = self.dumps(indent)
+        from . import norm_document
+
         if path is not None:
-            Path(path).write_text(text + "\n", encoding="utf-8")
-        return text
+            norm_document.dump(self, path, indent)
+        return norm_document.dumps(self, indent)
 
     @classmethod
     def from_json(cls, source: str | Path) -> Norm:
@@ -483,93 +435,21 @@ class Norm:
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> Norm:
-        """Build from the dictionary form of :meth:`to_dict`.
+        """Build from a norm document, the dictionary form of :meth:`to_dict`.
 
-        Unknown keys and malformed structures raise :class:`NormError` so
-        that a typo cannot silently change the meaning of a norm.
+        The document must give its ``schema_version``. Unknown keys and
+        malformed structures raise :class:`NormError` so that a typo cannot
+        silently change the meaning of a norm.
         """
-        try:
-            return cls._from_dict(d)
-        except NormError:
-            raise
-        except (TypeError, KeyError, AttributeError, ValueError) as exc:
-            raise NormError(f"malformed norm: {exc}") from exc
+        from . import norm_document
 
-    @classmethod
-    def _from_dict(cls, d: Mapping[str, Any]) -> Norm:
-        if not isinstance(d, Mapping):
-            raise NormError(f"a norm must be a mapping, got {type(d).__name__}")
-        version = int(d.get("schema_version", SCHEMA_VERSION))
-        if version > SCHEMA_VERSION:
-            raise NormError(f"norm schema_version {version} is newer than supported ({SCHEMA_VERSION})")
-        unknown = set(d) - _TOP_KEYS
-        if unknown:
-            raise NormError(f"unknown top-level keys in norm: {sorted(unknown)}")
-
-        layers_raw = d.get("layers", [])
-        if isinstance(layers_raw, Mapping):
-            layers_raw = [{"id": k, **(v if isinstance(v, Mapping) else {"name": str(v)})} for k, v in layers_raw.items()]
-        layers = [
-            Layer(id=str(layer["id"]), name=str(layer.get("name", "")), description=str(layer.get("description", "")))
-            for layer in layers_raw
-        ]
-
-        views_raw = d.get("views", [])
-        if isinstance(views_raw, Mapping):
-            views_raw = [{"name": k, **v} for k, v in views_raw.items()]
-        views = []
-        for v in views_raw:
-            unknown_v = set(v) - {"name", "description", "layer_weights", "constraint_weights"}
-            if unknown_v:
-                raise NormError(f"view {v.get('name')!r}: unknown keys {sorted(unknown_v)}")
-            views.append(
-                View(
-                    name=str(v["name"]),
-                    layer_weights=v.get("layer_weights"),
-                    constraint_weights=v.get("constraint_weights"),
-                    description=str(v.get("description", "")),
-                )
-            )
-
-        constraints = []
-        for c in d.get("constraints", []):
-            unknown_c = set(c) - _CONSTRAINT_KEYS
-            if unknown_c:
-                raise NormError(
-                    f"constraint {c.get('id')!r}: unknown keys {sorted(unknown_c)}; allowed {sorted(_CONSTRAINT_KEYS)}"
-                )
-            if "type" not in c:
-                raise NormError(f"constraint {c.get('id')!r}: missing 'type'")
-            if "layer" not in c:
-                raise NormError(f"constraint {c.get('id')!r}: missing 'layer'")
-            constraints.append(
-                NormConstraint(
-                    id=str(c["id"]),
-                    layer=str(c["layer"]),
-                    constraint=constraint_from_dict(str(c["type"]), c.get("params", {}) or {}),
-                    weight=c.get("weight", 1.0),
-                    applicability=c.get("applicability", {}) or {},
-                    description=str(c.get("description", "")),
-                )
-            )
-        if not layers:
-            layers = [Layer(id=lid) for lid in dict.fromkeys(c.layer for c in constraints)]
-        return cls(
-            constraints=tuple(constraints),
-            layers=tuple(layers),
-            views=tuple(views),
-            name=str(d.get("name", "norm")),
-            version=str(d.get("version", "1")),
-            description=str(d.get("description", "")),
-            scoring_mode=str(d.get("scoring_mode", DEFAULT_SCORING_MODE)),
-            derived_attributes=tuple(d.get("derived_attributes", []) or []),
-            metadata=dict(d.get("metadata", {}) or {}),
-        )
+        return norm_document.read(d)
 
     def fingerprint(self) -> str:
-        """SHA-256 of the canonical JSON form (provenance for score results)."""
-        canonical = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=_json_default)
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        """SHA-256 of the norm's document without metadata and descriptions (:func:`wise.norm_document.fingerprint`)."""
+        from . import norm_document
+
+        return norm_document.fingerprint(self)
 
     def describe(self) -> pd.DataFrame:
         """One row per constraint: layer, type, params, weight, applicability."""
@@ -595,19 +475,50 @@ class Norm:
         )
 
 
-_TOP_KEYS = {
-    "schema_version",
-    "name",
-    "version",
-    "description",
-    "scoring_mode",
-    "metadata",
-    "layers",
-    "views",
-    "constraints",
-    "derived_attributes",
-}
-_CONSTRAINT_KEYS = {"id", "layer", "type", "params", "weight", "applicability", "description"}
+def _check_structure(norm: Norm) -> None:
+    """The structural check of a norm, run once on construction (and by :meth:`Norm.validate`).
+
+    Each layer, view and constraint checks its own fields when it is built; this checks what only the norm as a
+    whole can: unique ids and names, references between constraints, layers and views, a non-zero weight in every
+    view, the scoring mode, the schema version and the names of the derived attributes.
+    """
+    ids = norm.constraint_ids
+    dup = sorted({i for i in ids if ids.count(i) > 1})
+    if dup:
+        raise NormError(f"duplicate constraint ids: {dup}")
+    if not norm.constraints:
+        raise NormError("a norm needs at least one constraint")
+    layer_ids = norm.layer_ids
+    if len(set(layer_ids)) != len(layer_ids):
+        raise NormError("duplicate layer ids")
+    for c in norm.constraints:
+        if c.layer not in layer_ids:
+            raise NormError(f"constraint {c.id!r} refers to unknown layer {c.layer!r}; layers: {layer_ids}")
+    names = norm.view_names
+    if len(set(names)) != len(names):
+        raise NormError("duplicate view names")
+    if not norm.views:
+        raise NormError("a norm needs at least one view")
+    for v in norm.views:
+        if v.layer_weights is not None:
+            unknown = set(v.layer_weights) - set(layer_ids)
+            if unknown:
+                raise NormError(f"view {v.name!r}: unknown layers {sorted(unknown)}")
+        else:
+            unknown = set(v.constraint_weights or {}) - set(ids)
+            if unknown:
+                raise NormError(f"view {v.name!r}: unknown constraints {sorted(unknown)}")
+        if not any(w > 0 for w in norm.raw_weights(v).values()):
+            raise NormError(f"view {v.name!r}: all constraint weights are zero")
+    if norm.scoring_mode not in SCORING_MODES:
+        raise NormError(f"scoring_mode must be one of {SCORING_MODES}, got {norm.scoring_mode!r}")
+    if type(norm.schema_version) is not int or norm.schema_version not in SCHEMA_VERSIONS:
+        raise NormError(f"schema_version must be one of {list(SCHEMA_VERSIONS)}, got {norm.schema_version!r}")
+    seen: set[str] = set()
+    for r in norm.recipes:
+        if r.name in seen:
+            raise NormError(f"duplicate derived attribute {r.name!r}")
+        seen.add(r.name)
 
 
 def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:
@@ -618,6 +529,7 @@ def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:
 __all__ = [
     "CONSTRAINT_TYPES",
     "SCHEMA_VERSION",
+    "SCHEMA_VERSIONS",
     "SCORING_MODES",
     "TYPE_ALIASES",
     "Layer",
