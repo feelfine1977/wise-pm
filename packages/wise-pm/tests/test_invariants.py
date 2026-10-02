@@ -100,7 +100,7 @@ def test_score_invariants(seed, mode):
     )
     pd.testing.assert_frame_equal(wise.score(shuffled, norm, mode=mode).violations, res.violations)
     # sum rule: Σ_s n_s μ_s = |Σ| μ̄  (γ = 0, case volume)
-    b = wise.prioritize(res, "region", view="A")
+    b = wise.prioritize(res, "region", view="A").table
     assert (b["n_cases"] * b["mean_score"]).sum() == pytest.approx(res.scores["A"].dropna().sum())
     assert (b["PI"] >= 0).all()
     # JSON round trip preserves scores

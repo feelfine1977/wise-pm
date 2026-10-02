@@ -58,7 +58,7 @@ def test_section_v_scores(result):
 
 def test_table_xi_focus_slices(result):
     by = ["case Company", "case Spend area text"]
-    backlog = wise.prioritize(result, by, view="Automation", gamma=20)
+    backlog = wise.prioritize(result, by, view="Automation", gamma=20).table
     expected = {FOCUS[0]: (109_199, 0.0087, 945.7), FOCUS[1]: (5_242, 0.0561, 294.2), FOCUS[2]: (583, 0.0869, 50.6)}
     for key, (n, gap, pi) in expected.items():
         assert backlog.loc[key, "n_cases"] == n
@@ -72,6 +72,6 @@ def test_table_x_and_figure_4(result):
     assert agreement.loc[("Finance", "Compliance"), "top20_overlap"] == pytest.approx(0.481, abs=5e-3)
     assert agreement.loc[("Finance", "Automation"), "top20_overlap"] == pytest.approx(0.081, abs=5e-3)
     assert agreement.loc[("Finance", "Compliance"), "score_correlation"] == pytest.approx(0.817, abs=5e-3)
-    concentration = wise.concentration(wise.prioritize(result, doc, view="Compliance", gamma=20))
+    concentration = wise.concentration(wise.prioritize(result, doc, view="Compliance", gamma=20).table)
     assert concentration.loc[0.8, "share_of_slices"] == pytest.approx(0.023, abs=1e-3)
     assert concentration.loc[0.95, "share_of_slices"] == pytest.approx(0.092, abs=1e-3)

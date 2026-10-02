@@ -44,7 +44,7 @@ log = wise.running_p2p_log()
 norm = wise.running_p2p_norm()
 result = wise.score(log, norm)
 backlog = wise.prioritize(result, by="company", view="Finance", gamma=1.0)
-print(backlog)
+print(backlog.table)  # backlog.spec holds the parameters it was ranked with
 result.check_decomposition()
 print(wise.constraint_drivers(result, "Finance", {"company": "B"}))
 ```

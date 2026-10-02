@@ -143,6 +143,33 @@ snapshot writes the version as a placeholder and is unchanged.
   and `scoring` share `wise.selection.select_cases`. In the import layers
   `wise.selection` moved below `wise.derive`. Delta on the golden dataset:
   none.
+- `prioritize()` returns a `wise.Backlog` record instead of a DataFrame
+  (return annotation `pd.DataFrame` -> `Backlog`). `Backlog.table` is,
+  column for column and row for row, the frame 0.1.0 returned (the golden
+  backlog and hotspot records are unchanged); `Backlog.spec` is a frozen
+  `wise.BacklogSpec` with `by`, `view` (the resolved view, `None` for a
+  per-case frame), `gamma`, `volume`, `baseline` (as requested, `None` for the
+  global mean), `global_mean` (the realised `μ̄`), `min_cases`, `z`,
+  `norm_fingerprint` (`None` for a per-case frame) and `score_col`. The
+  parameters are no longer written into `DataFrame.attrs` (see `Fixed: C19`).
+  The helpers take the record: `layer_drivers(data, by=<Backlog>)` and
+  `view_agreement(result, by=<Backlog>)` use its slice keys and view (and,
+  for `view_agreement`, its `gamma`, `volume`, `baseline`, `min_cases` and `z`);
+  `constraint_drivers(result, view=<Backlog>)` and
+  `penalty_mass(result, view=<Backlog>)` use its view and slice keys
+  (`penalty_mass`'s `by` now defaults to `None` and is required unless a
+  record is given); `pareto`, `concentration`, `hotspot_table` and
+  `compare_periods` accept a record (a record is not re-checked for the
+  backlog columns); `top_k_overlap` matches the slices of two records on
+  their slice keys (records sliced by different keys are refused with
+  `NormError`, and `as_index=False` backlogs are now matched by key instead
+  of by row position). A record ranked on another norm than the result it is
+  used with (different norm fingerprint), or a `view=` that is not the
+  record's, is refused with `NormError`. Frames are accepted as before. The
+  contract snapshot records the new return type, the widened parameter
+  annotations and the two new classes; every output column is unchanged.
+  `wise.backlog` sits directly below `wise.prioritization` in the import
+  layers. Delta on the golden dataset: none.
 
 ### Added
 
@@ -302,6 +329,19 @@ snapshot writes the version as a placeholder and is unchanged.
   use `add_case_attribute` or `with_case_attributes`). The assigned table
   must have the log's case ids as its index, in order, or a `LogSchemaError`
   is raised. The log keeps a copy of it.
+- Using the `Backlog` returned by `prioritize()` as a DataFrame (indexing,
+  column assignment, `len`, iteration, `in`, and any DataFrame attribute such
+  as `.loc`, `.index`, `.reset_index()` or `.attrs`) still works and emits a
+  `DeprecationWarning` naming `Backlog.table` and `Backlog.spec`; removed in
+  1.0. A frame obtained this way carries the 0.1.0 `attrs` (`view`, `gamma`,
+  `baseline` = the realised global mean, `volume`, `by`), so code that filters
+  the backlog and reads `attrs["baseline"]` keeps working; the record's own
+  table carries none. `np.asarray(backlog)` gives the frame's values. Column
+  assignment reaches the record's table; any other in-place change on this
+  path (`backlog.loc[...] = ...`, `inplace=True`) acts on a copy and must be
+  made on `backlog.table`. `isinstance(backlog, pd.DataFrame)` and pandas functions
+  that take a frame (`pd.concat`, `pd.testing.assert_frame_equal`) need
+  `backlog.table`.
 
 ### Fixed
 
@@ -372,6 +412,14 @@ snapshot writes the version as a placeholder and is unchanged.
 - Fixed: C27 — `prioritize()` refuses a negative or non-finite `z`; a negative multiplier turned `PI_lower` into an upper bound. Delta on the golden dataset: none.
 - Fixed: C28 — `prioritize()` refuses a fractional, negative or non-finite `min_cases` instead of truncating it (an integral float such as `5.0` is still accepted). Delta on the golden dataset: none.
 - Fixed: C9 — every public entry point raises a `WiseError` subclass for a bad argument: `EventLog` refuses an unknown `missing_timestamps` option, a reversed observation window and an unknown `exposure_agg` with `LogSchemaError` (the first two were bare `ValueError`s, the last an `AttributeError` from pandas); `Norm.dumps()`/`fingerprint()` serialise numpy arrays and pandas `Timedelta` metadata and raise `NormError` for anything else (was `TypeError`); `Norm.loads()`/`load()`/`from_json()` raise `NormError` for malformed JSON (was `json.JSONDecodeError`); `hotspot_table()` and `compare_periods()` refuse frames that are not backlogs with `NormError` (was `KeyError`); `timestamp_outliers()` accepts a half-open window `(None, end)` or `(start, None)` (was `TypeError`). Delta on the golden dataset: none.
+- Fixed: C19 — the ranking parameters of a backlog rode in `DataFrame.attrs`,
+  which pandas drops or merges in many operations. `prioritize()` now returns
+  a record whose frozen specification is a field of its own; it survives
+  copying and pickling and any operation on the table (decision record 0001,
+  Consequences). Delta on the golden dataset: none (every table is unchanged;
+  the committed backlog and hotspot parquet records still carry the 0.1.0
+  attrs in their metadata until the next regeneration on the record host,
+  and the golden comparison does not read attrs).
 - Fixed: C11 — `LogSchemaError` no longer inherits `KeyError`, and `NormError` and `NotScoredError` no longer inherit `ValueError`; an `except KeyError:` or `except ValueError:` in a caller cannot swallow a library error any more. Callers that relied on the builtin bases must catch the `wise` classes (or `WiseError`); the workbench already does. The public-API snapshot records the new bases. Delta on the golden dataset: none.
 
 ## [0.1.0] — 2026-09-05

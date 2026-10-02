@@ -5,6 +5,9 @@ Regression tests pin the *desired* behaviour and are strict xfails until the
 fix lands; characterisation tests pass today and must keep passing.
 """
 
+import copy
+import pickle
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -129,7 +132,7 @@ def test_prioritize_sorts_by_stable_pi_then_n_cases_then_key():
     # p: PI 1.0 | r: PI 0.5 (n=2) | q: PI 0.5 (n=1) | b, a, c: PI 0 with n=3, 2, 2 | z: PI 0, n=1
     scores = {"p": [0.0, 0.0], "q": [0.0], "r": [0.25, 0.25], "a": [0.5, 0.5], "b": [0.5] * 3, "c": [0.5, 0.5], "z": [0.75]}
     df = pd.DataFrame([{"slice": s, "score": v} for s, vals in scores.items() for v in vals])
-    backlog = wise.prioritize(df, "slice", baseline=0.5)
+    backlog = wise.prioritize(df, "slice", baseline=0.5).table
     assert list(backlog.index) == ["p", "r", "q", "b", "a", "c", "z"]
     assert backlog.loc["r", "stable_PI"] == backlog.loc["q", "stable_PI"] == 0.5
 
@@ -141,7 +144,7 @@ def test_prioritize_sorts_by_stable_pi_then_n_cases_then_key():
     ids=["company", "vendor", "case", "company-vendor"],
 )
 def test_pi_is_non_negative_for_every_slice_of_the_running_example(p2p_result, by, view):
-    backlog = wise.prioritize(p2p_result, by, view=view, gamma=1.0)
+    backlog = wise.prioritize(p2p_result, by, view=view, gamma=1.0).table
     assert (backlog["PI"] >= 0).all()
     assert (backlog["stable_PI"] >= 0).all()
     above_baseline = backlog["mean_score"] >= backlog["global_mean"]
@@ -152,7 +155,7 @@ def test_pi_is_non_negative_for_every_slice_of_the_running_example(p2p_result, b
 @pytest.mark.parametrize("seed", [0, 1, 2])
 def test_pi_is_non_negative_for_every_slice_of_random_frames(seed):
     df = _random_frame(seed)
-    backlog = wise.prioritize(df, "slice", gamma=5.0)
+    backlog = wise.prioritize(df, "slice", gamma=5.0).table
     assert (backlog["PI"] >= 0).all()
     assert (backlog["stable_PI"] >= 0).all()
     assert (backlog["gap"] == (backlog["global_mean"] - backlog["mean_score"]).clip(lower=0.0)).all()
@@ -160,22 +163,23 @@ def test_pi_is_non_negative_for_every_slice_of_random_frames(seed):
 
 @pytest.mark.spec("IV-E")
 def test_prioritize_with_fixed_baseline_reports_it_as_global_mean(p2p_result):
-    backlog = wise.prioritize(p2p_result, "company", view="Finance", baseline=1.0)
+    ranked = wise.prioritize(p2p_result, "company", view="Finance", baseline=1.0)
+    backlog = ranked.table
     assert (backlog["global_mean"] == 1.0).all()
-    assert backlog.attrs["baseline"] == 1.0
+    assert ranked.spec.baseline == ranked.spec.global_mean == 1.0
     pd.testing.assert_series_equal(backlog["gap"], 1.0 - backlog["mean_score"], check_names=False)
 
 
 @pytest.mark.parametrize("k", [1, 2, 20])
 @pytest.mark.parametrize("by", ["case", ["company", "vendor"]], ids=["single-key", "two-keys"])
 def test_top_k_overlap_of_backlog_with_itself_is_one(p2p_result, by, k):
-    backlog = wise.prioritize(p2p_result, by, view="Finance")
+    backlog = wise.prioritize(p2p_result, by, view="Finance").table
     assert (backlog["stable_PI"] > 0).any()
     assert wise.top_k_overlap(backlog, backlog, k=k) == 1.0
 
 
 def test_compare_periods_of_backlog_with_itself_reports_no_change(p2p_result):
-    backlog = wise.prioritize(p2p_result, "company", view="Finance")
+    backlog = wise.prioritize(p2p_result, "company", view="Finance").table
     change = wise.compare_periods(backlog, backlog)
     assert set(change.index) == set(backlog.index)
     assert (change["PI_change"] == 0.0).all()
@@ -192,6 +196,34 @@ def test_compare_periods_of_backlog_with_itself_reports_no_change(p2p_result):
 def test_estimate_gamma_is_infinite_when_slice_means_coincide(per_slice_scores):
     df = pd.DataFrame({"slice": ["a"] * 4 + ["b"] * 4 + ["c"] * 4, "score": per_slice_scores * 3})
     assert wise.estimate_gamma(df, "slice") == float("inf")
+
+
+# ---------------------------------------------------------------- C19: parameters carried in DataFrame.attrs
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001")
+# C19 closed 2026-10-02: the backlog is a record carrying its specification (decision record 0001, Consequences)
+def test_backlog_parameters_survive_operations_that_drop_dataframe_attrs(p2p_result):
+    backlog = wise.prioritize(p2p_result, "company", view="Finance", gamma=2.0, baseline=1.0, z=1.96, min_cases=2)
+    assert backlog.table.attrs == {}, "the specification lives on the record, not in DataFrame.attrs"
+    other = wise.prioritize(p2p_result, "company", view="Logistics")
+    combined = pd.concat([backlog.table, other.table])
+    assert combined.attrs == {}  # pandas keeps no parameters when the inputs differ
+    expected = wise.BacklogSpec(
+        by=("company",),
+        view="Finance",
+        gamma=2.0,
+        volume="cases",
+        baseline=1.0,
+        global_mean=1.0,
+        min_cases=2,
+        z=1.96,
+        norm_fingerprint=p2p_result.norm.fingerprint(),
+        score_col="score",
+    )
+    for record in (backlog, copy.deepcopy(backlog), pickle.loads(pickle.dumps(backlog))):
+        assert record.spec == expected
 
 
 # ---------------------------------------------------------------- C24: period comparison invents zeros

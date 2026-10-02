@@ -702,7 +702,7 @@ def load_event_log(path: Path) -> wise.EventLog:
 
 def mode_outputs(result: wise.ScoreResult) -> dict[str, pd.DataFrame]:
     """Every mode-dependent golden frame, keyed by output name."""
-    backlog_company = wise.prioritize(result, "company", view=VIEW, gamma=GAMMA)
+    backlog_company = wise.prioritize(result, "company", view=VIEW, gamma=GAMMA).table
     drivers = wise.layer_drivers(result, "company", view=VIEW)
     out: dict[str, pd.DataFrame] = {
         "violations": result.violations,
@@ -710,7 +710,7 @@ def mode_outputs(result: wise.ScoreResult) -> dict[str, pd.DataFrame]:
         "scores": result.scores,
         **{f"contributions_{v}": result.contributions[v] for v in VIEW_NAMES},
         "backlog_company": backlog_company,
-        "backlog_company_vendor": wise.prioritize(result, ["company", "vendor"], view=VIEW, gamma=GAMMA),
+        "backlog_company_vendor": wise.prioritize(result, ["company", "vendor"], view=VIEW, gamma=GAMMA).table,
         "layer_drivers_company": drivers,
         "constraint_drivers_all": wise.constraint_drivers(result, VIEW),
         "penalty_mass_vendor": wise.penalty_mass(result, VIEW, "vendor"),

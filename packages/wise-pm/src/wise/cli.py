@@ -111,7 +111,7 @@ def _run(args: argparse.Namespace) -> int:
         log = _read_log(args)
         result = score(log, norm, views=[args.view] if args.view else None, mode=args.mode)
         view = args.view or result.views[0]
-        backlog = prioritize(result, args.by, view=view, gamma=args.gamma, volume=args.volume, min_cases=args.min_cases)
+        backlog = prioritize(result, args.by, view=view, gamma=args.gamma, volume=args.volume, min_cases=args.min_cases).table
         text = backlog.reset_index().to_csv(index=False)
         if args.out == "-":
             sys.stdout.write(text)

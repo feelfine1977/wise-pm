@@ -35,7 +35,7 @@ def digests(result: wise.ScoreResult) -> dict[str, str]:
         "violations": digest(result.violations),
         "scores": digest(result.scores),
         **{f"contributions_{v}": digest(result.contributions[v]) for v in result.views},
-        "backlog_automation_gamma20": digest(backlog[BACKLOG_COLUMNS]),
+        "backlog_automation_gamma20": digest(backlog.table[BACKLOG_COLUMNS]),
     }
 
 

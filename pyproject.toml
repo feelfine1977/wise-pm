@@ -120,6 +120,7 @@ layers = [
   "wise.cli | wise.datasets",
   "wise.diagnostics",
   "wise.prioritization",
+  "wise.backlog",
   "wise.scoring",
   "wise.norm",
   "wise.log",

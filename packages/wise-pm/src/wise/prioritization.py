@@ -14,8 +14,12 @@ observed gap. ``γ`` is therefore in units of cases and should be chosen
 relative to typical slice size; :func:`estimate_gamma` offers a data-driven
 diagnostic.
 
-All aggregations return DataFrames indexed by the slice key(s) so they can
-be joined with ``.loc``; pass ``as_index=False`` to get the keys as columns.
+:func:`prioritize` returns a :class:`~wise.backlog.Backlog`: the ranked table
+plus the specification it was ranked with. The helpers that work on a backlog
+take that record and read the slice keys, view and parameters from its
+specification. All aggregations return DataFrames indexed by the slice key(s)
+so they can be joined with ``.loc``; pass ``as_index=False`` to get the keys as
+columns.
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
+from .backlog import Backlog, BacklogSpec
 from .constraints import as_list
 from .errors import NormError, NotScoredError
 from .scoring import ScoreResult
@@ -100,13 +105,57 @@ def _check_baseline(baseline: Any) -> float | None:
     return value
 
 
-def _check_backlog(frame: pd.DataFrame, what: str) -> None:
-    """Refuse a frame that is not a backlog from :func:`prioritize` with a :class:`NormError` (C9)."""
+def _check_backlog(frame: Backlog | pd.DataFrame, what: str) -> pd.DataFrame:
+    """The table of a backlog record; a frame is checked for the backlog columns (C9).
+
+    A :class:`Backlog` is a backlog by construction, so its table is taken as it is.
+    """
+    if isinstance(frame, Backlog):
+        return frame.table
     if not isinstance(frame, pd.DataFrame):
         raise NormError(f"{what} must be a backlog DataFrame from prioritize(), got {type(frame).__name__}")
     missing = [c for c in BACKLOG_COLUMNS if c not in frame.columns]
     if missing:
         raise NormError(f"{what} is not a backlog from prioritize(): missing columns {missing}")
+    return frame
+
+
+def _table(backlog: Backlog | pd.DataFrame) -> tuple[pd.DataFrame, BacklogSpec | None]:
+    """The ranked table and, for a record, its specification."""
+    if isinstance(backlog, Backlog):
+        return backlog.table, backlog.spec
+    return backlog, None
+
+
+def _from_spec(result: ScoreResult | pd.DataFrame, backlog: Backlog, view: str | None) -> tuple[list[str], str | None]:
+    """Slice keys and view of a backlog record, checked against the scores they are used with.
+
+    A record ranked on another norm, or a view given that is not the record's, is refused.
+    """
+    spec = backlog.spec
+    if view is not None and spec.view is not None and view != spec.view:
+        raise NormError(f"view {view!r} differs from the backlog's view {spec.view!r}")
+    if (
+        isinstance(result, ScoreResult)
+        and spec.norm_fingerprint is not None
+        and result.norm_fingerprint
+        and spec.norm_fingerprint != result.norm_fingerprint
+    ):
+        raise NormError(
+            f"the backlog was ranked on another norm (fingerprint {spec.norm_fingerprint[:12]}…, "
+            f"result {result.norm_fingerprint[:12]}…)"
+        )
+    return list(spec.by), view if spec.view is None else spec.view
+
+
+def _view_of(result: ScoreResult, view: str | Backlog) -> str:
+    """The view argument of a driver helper: a view name or a backlog record ranked on ``result``."""
+    if not isinstance(view, Backlog):
+        return view
+    _, name = _from_spec(result, view, None)
+    if name is None:
+        raise NormError("the backlog was ranked from a per-case frame and names no view; pass the view name")
+    return name
 
 
 def prioritize(
@@ -120,7 +169,7 @@ def prioritize(
     score_col: str = "score",
     baseline: float | None = None,
     as_index: bool = True,
-) -> pd.DataFrame:
+) -> Backlog:
     """Aggregate scored cases into a ranked slice backlog.
 
     Parameters
@@ -151,11 +200,13 @@ def prioritize(
 
     Returns
     -------
-    DataFrame indexed by ``by`` (unless ``as_index=False``), sorted by
-    ``stable_PI`` (ties: larger ``n_cases`` first, then key order), with
-    ``n_cases, volume, [exposure], mean_score, gap, PI, stable_mean,
-    stable_gap, stable_PI, [se, gap_lower, PI_lower], global_mean`` and the
-    parameters in ``DataFrame.attrs``.
+    A :class:`~wise.backlog.Backlog`. Its ``table`` is a DataFrame indexed by
+    ``by`` (unless ``as_index=False``), sorted by ``stable_PI`` (ties: larger
+    ``n_cases`` first, then key order), with ``n_cases, mean_score, volume,
+    [exposure], gap, PI, stable_mean, stable_gap, stable_PI, [se, gap_lower,
+    PI_lower], global_mean``. Its ``spec`` holds the slice keys, the view,
+    ``gamma``, ``volume``, the requested ``baseline`` and the realised global
+    mean, ``min_cases``, ``z``, the score column and the norm fingerprint.
     """
     by = _keys(by)
     try:
@@ -168,6 +219,11 @@ def prioritize(
     z_value = _check_z(z)
     baseline_value = _check_baseline(baseline)
     df, score_col = _frame(data, view, score_col, by)
+    if isinstance(data, ScoreResult):
+        view = view if view is not None else data.views[0]
+        fingerprint: str | None = data.norm_fingerprint or None
+    else:
+        view, fingerprint = None, None
     d = df.dropna(subset=[score_col])
     if d.empty:
         raise NotScoredError("no scored cases to aggregate")
@@ -202,25 +258,38 @@ def prioritize(
 
     agg = agg[agg["n_cases"] >= min_cases]
     agg = agg.sort_index().sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
-    agg.attrs.update({"view": view, "gamma": float(gamma), "baseline": mu_bar, "volume": volume, "by": by})
-    return agg if as_index else agg.reset_index()
+    spec = BacklogSpec(
+        by=tuple(by),
+        view=view,
+        gamma=float(gamma),
+        volume=volume,
+        baseline=baseline_value,
+        global_mean=mu_bar,
+        min_cases=min_cases,
+        z=z_value,
+        norm_fingerprint=fingerprint,
+        score_col=score_col,
+    )
+    return Backlog(agg if as_index else agg.reset_index(), spec)
 
 
 def layer_drivers(
     data: ScoreResult | pd.DataFrame,
-    by: str | Sequence[str],
+    by: str | Sequence[str] | Backlog,
     view: str | None = None,
     layers: Sequence[str] | None = None,
     as_index: bool = True,
 ) -> pd.DataFrame:
     """Mean layer contribution ``Δ_λ`` per slice and its delta to the global mean.
 
-    Returns a DataFrame indexed by slice with ``n_cases``, per layer
+    ``by`` is the slice key(s) or a backlog record from :func:`prioritize`,
+    whose slice keys and view are used (a record ranked on another norm is
+    refused). Returns a DataFrame indexed by slice with ``n_cases``, per layer
     ``<layer>`` (mean contribution) and ``<layer>__delta`` (minus the global
     mean), and ``dominant_layer`` (the largest positive delta). Positive
     deltas mark mechanisms more pronounced in the slice than in the log.
     """
-    by = _keys(by)
+    by, view = _from_spec(data, by, view) if isinstance(by, Backlog) else (_keys(by), view)
     df, score_col = _frame(data, view, "score", by)
     prefix = "contrib__"
     if isinstance(data, ScoreResult):
@@ -248,12 +317,13 @@ def layer_drivers(
 
 def constraint_drivers(
     result: ScoreResult,
-    view: str,
+    view: str | Backlog,
     where: dict[str, Any] | pd.Series | None = None,
 ) -> pd.DataFrame:
     """Which constraints carry the penalty inside a slice (or the whole log)?
 
-    ``where`` is ``{attribute: value}`` (equality) or ``{attribute: [values]}``
+    ``view`` is a view name or a backlog record from :func:`prioritize` ranked
+    on ``result`` (its view is used). ``where`` is ``{attribute: value}`` (equality) or ``{attribute: [values]}``
     (membership), the case id allowed under the name of the case index, a rule
     of the selection grammar (:mod:`wise.selection`), or a boolean mask over
     cases. Returns one row per constraint with the mean effective
@@ -261,6 +331,7 @@ def constraint_drivers(
     evaluated cases with a non-zero violation, the share of cases in scope,
     and the share actually evaluated.
     """
+    view = _view_of(result, view)
     mask = select_cases(result.cases, where, log=result.log) & result.scores[view].notna()
     V = result.violations[mask]
     S = result.in_scope[mask]
@@ -288,14 +359,21 @@ def constraint_drivers(
 
 def penalty_mass(
     result: ScoreResult,
-    view: str,
-    by: str | Sequence[str],
+    view: str | Backlog,
+    by: str | Sequence[str] | None = None,
     where: dict[str, Any] | pd.Series | None = None,
     as_index: bool = True,
 ) -> pd.DataFrame:
     """Sum of case penalties ``1 − S`` per slice (optionally within a filter),
     with ``share``, ``cum_share`` and ``rank`` — the vendor Pareto of the paper.
-    ``where`` filters cases as in :func:`constraint_drivers`."""
+    ``view`` is a view name or a backlog record ranked on ``result``, whose
+    view and (unless ``by`` is given) slice keys are used. ``where`` filters
+    cases as in :func:`constraint_drivers`."""
+    if isinstance(view, Backlog) and by is None:
+        by = list(view.spec.by)
+    view = _view_of(result, view)
+    if by is None:
+        raise NormError("penalty_mass needs the slice keys: pass by=... or a backlog record as view")
     by = _keys(by)
     f, score_col = _frame(result, view, "score", by)
     mask = select_cases(result.cases, where, log=result.log).to_numpy() & f[score_col].notna().to_numpy()
@@ -313,8 +391,9 @@ def penalty_mass(
     return out if as_index else out.reset_index()
 
 
-def pareto(backlog: pd.DataFrame, metric: str = "stable_PI") -> pd.DataFrame:
+def pareto(backlog: Backlog | pd.DataFrame, metric: str = "stable_PI") -> pd.DataFrame:
     """Add ``rank``, ``share`` and ``cum_share`` of ``metric`` mass (index kept)."""
+    backlog, _ = _table(backlog)
     if metric not in backlog.columns:
         raise NormError(f"metric {metric!r} not in backlog")
     out = backlog.sort_values(metric, ascending=False, kind="mergesort").copy()
@@ -326,7 +405,7 @@ def pareto(backlog: pd.DataFrame, metric: str = "stable_PI") -> pd.DataFrame:
 
 
 def concentration(
-    backlog: pd.DataFrame, thresholds: float | Sequence[float] = (0.8, 0.95), metric: str = "stable_PI"
+    backlog: Backlog | pd.DataFrame, thresholds: float | Sequence[float] = (0.8, 0.95), metric: str = "stable_PI"
 ) -> pd.DataFrame:
     """How many top-ranked slices carry ``threshold`` of total ``metric`` mass?"""
     p = pareto(backlog, metric)
@@ -346,32 +425,62 @@ def _top_keys(backlog: pd.DataFrame, k: int, metric: str, by: Sequence[str] | No
 
 
 def top_k_overlap(
-    backlog_a: pd.DataFrame,
-    backlog_b: pd.DataFrame,
+    backlog_a: Backlog | pd.DataFrame,
+    backlog_b: Backlog | pd.DataFrame,
     k: int = 20,
     metric: str = "stable_PI",
     by: Sequence[str] | None = None,
 ) -> float:
-    """Jaccard overlap of the top-``k`` positive-mass slices of two backlogs."""
-    a, b = _top_keys(backlog_a, k, metric, by), _top_keys(backlog_b, k, metric, by)
+    """Jaccard overlap of the top-``k`` positive-mass slices of two backlogs.
+
+    Slices are matched on ``by``, by default on the slice keys of the backlog
+    records (two records sliced by different keys are refused) or else on the
+    index of the frames."""
+    table_a, spec_a = _table(backlog_a)
+    table_b, spec_b = _table(backlog_b)
+    if by is None and spec_a is not None and spec_b is not None:
+        if spec_a.by != spec_b.by:
+            raise NormError(f"the backlogs have different slice keys: {list(spec_a.by)} and {list(spec_b.by)}")
+        by = list(spec_a.by)
+    a, b = _top_keys(table_a, k, metric, by), _top_keys(table_b, k, metric, by)
     return len(a & b) / len(a | b) if (a | b) else float("nan")
 
 
 def view_agreement(
     result: ScoreResult,
-    by: str | Sequence[str],
+    by: str | Sequence[str] | Backlog,
     k: int = 20,
     gamma: float = 0.0,
     method: Literal["pearson", "spearman", "kendall"] = "pearson",
     metric: str = "stable_PI",
 ) -> pd.DataFrame:
     """Pairwise top-``k`` Jaccard overlap of backlogs and case-score correlation
-    across views. ``method`` is ``"pearson"`` (default), ``"spearman"`` or
+    across views. ``by`` is the slice key(s) or a backlog record ranked on
+    ``result``; with a record every view is ranked with the record's slice
+    keys, ``gamma``, ``volume``, ``baseline``, ``min_cases`` and ``z`` (so
+    ``metric="PI_lower"`` works; ``gamma`` is then ignored). ``method`` is ``"pearson"`` (default), ``"spearman"`` or
     ``"kendall"``; the latter two need SciPy (``pip install "wise-pm[stats]"``)."""
-    by = _keys(by)
     if method not in ("pearson", "spearman", "kendall"):
         raise NormError(f"method must be 'pearson', 'spearman' or 'kendall', got {method!r}")
-    backlogs = {v: prioritize(result, by, view=v, gamma=gamma) for v in result.views}
+    if isinstance(by, Backlog):
+        spec = by.spec
+        keys, _ = _from_spec(result, by, None)
+        backlogs = {
+            v: prioritize(
+                result,
+                keys,
+                view=v,
+                gamma=spec.gamma,
+                volume=spec.volume,
+                min_cases=spec.min_cases,
+                z=spec.z,
+                baseline=spec.baseline,
+            )
+            for v in result.views
+        }
+    else:
+        keys = _keys(by)
+        backlogs = {v: prioritize(result, keys, view=v, gamma=gamma) for v in result.views}
     rows = []
     views = result.views
     for i, a in enumerate(views):
@@ -380,7 +489,7 @@ def view_agreement(
                 {
                     "view_a": a,
                     "view_b": b,
-                    f"top{k}_overlap": top_k_overlap(backlogs[a], backlogs[b], k, metric),
+                    f"top{k}_overlap": top_k_overlap(backlogs[a].table, backlogs[b].table, k, metric),
                     "score_correlation": _corr(result.scores[a], result.scores[b], method),
                 }
             )
@@ -393,7 +502,7 @@ def _corr(a: pd.Series, b: pd.Series, method: Literal["pearson", "spearman", "ke
         return float(a.corr(b, method=method))
 
 
-def hotspot_table(backlog: pd.DataFrame, top: int = 12, drivers: pd.DataFrame | None = None) -> pd.DataFrame:
+def hotspot_table(backlog: Backlog | pd.DataFrame, top: int = 12, drivers: pd.DataFrame | None = None) -> pd.DataFrame:
     """Attach the paper's hotspot typology to the top of a backlog.
 
     Among the top-``top`` slices with positive stable PI, the slice with the
@@ -403,8 +512,8 @@ def hotspot_table(backlog: pd.DataFrame, top: int = 12, drivers: pd.DataFrame | 
     *mechanism* hotspots. If ``drivers`` (from :func:`layer_drivers`, same
     index) is given, ``dominant_layer`` is joined in.
     """
-    _check_backlog(backlog, "backlog")
-    pos = backlog[backlog["stable_PI"] > 0].head(top).copy()
+    table = _check_backlog(backlog, "backlog")
+    pos = table[table["stable_PI"] > 0].head(top).copy()
     pos["hotspot"] = "mechanism"
     if len(pos) >= 2:
         vr = pos["n_cases"].rank(method="average")
@@ -421,11 +530,11 @@ def hotspot_table(backlog: pd.DataFrame, top: int = 12, drivers: pd.DataFrame | 
     return pos
 
 
-def compare_periods(previous: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
+def compare_periods(previous: Backlog | pd.DataFrame, current: Backlog | pd.DataFrame) -> pd.DataFrame:
     """Join two backlogs (same ``by``) and report the change in gap and PI per
     slice. Use a common ``baseline`` in :func:`prioritize` for comparability."""
-    _check_backlog(previous, "previous")
-    _check_backlog(current, "current")
+    previous = _check_backlog(previous, "previous")
+    current = _check_backlog(current, "current")
     cols = list(BACKLOG_COLUMNS)
     p = previous[cols].add_suffix("_prev")
     c = current[cols].add_suffix("_now")

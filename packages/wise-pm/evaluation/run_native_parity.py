@@ -316,7 +316,7 @@ def main():
         primary_signed = {}
         wide = pd.DataFrame(index=primary.scores.index)
         for view in views:
-            ng = wise.prioritize(primary, by="assessment_group", view=view)
+            ng = wise.prioritize(primary, by="assessment_group", view=view).table
             ng.to_csv(d / f"groups_{view}.csv")
             drivers = wise.layer_drivers(primary, by="assessment_group", view=view)
             drivers.to_csv(d / f"layer_drivers_{view}.csv")
@@ -366,7 +366,7 @@ def main():
                         reference_signed = oracle.signed_components(layer_penalties, groups)
                         rr["native_layer_signed_excess"] = residual(primary_signed[view], reference_signed)
                     for gamma in [0.0, 20.0]:
-                        ng = wise.prioritize(native, by="assessment_group", view=view, gamma=gamma)
+                        ng = wise.prioritize(native, by="assessment_group", view=view, gamma=gamma).table
                         eg = oracle.group_priorities(reference["score"], groups, gamma=gamma)
                         rr.update({f"gamma{gamma:g}_{c}": z for c, z in group_residual(ng, eg).items()})
                     differential.append({"mode": mode, "view": view, "residuals": rr})

@@ -259,7 +259,7 @@ def pipeline(events: pd.DataFrame, norm: wise.Norm, watch: Stopwatch) -> Outputs
     with watch.step("score"):
         result = wise.score(log, norm)
     with watch.step("prioritize"):
-        backlog = wise.prioritize(result, list(SLICE), view=VIEW, gamma=GAMMA)
+        backlog = wise.prioritize(result, list(SLICE), view=VIEW, gamma=GAMMA).table
     with watch.step("drivers"):
         layers = wise.layer_drivers(result, list(SLICE), view=VIEW)
         company, vendor = backlog.index[0]

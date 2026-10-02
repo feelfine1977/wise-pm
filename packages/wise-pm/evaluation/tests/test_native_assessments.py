@@ -39,7 +39,7 @@ def test_scope_missingness_modes_and_roundtrip(tmp_path):
     assert weighted_coverage(result, "Equal")["outside"] == 1.0
     layered = wise.score(log, norm, mode="layer_balanced")
     assert layered.scores.loc["partial", "Equal"] == pytest.approx(1 / 3)
-    backlog = wise.prioritize(result, by="assessment_group", view="Equal", gamma=20)
+    backlog = wise.prioritize(result, by="assessment_group", view="Equal", gamma=20).table
     assert int(backlog.n_cases.sum()) == 3
     assert result.check_decomposition() < 1e-12
 
@@ -90,7 +90,7 @@ def test_native_layer_drivers_retain_negative_offsets():
     signed = drivers.loc["A", ["L1__delta", "L2__delta"]] * drivers.loc["A", "n_cases"]
     assert signed["L1__delta"] == pytest.approx(1 / 3)
     assert signed["L2__delta"] == pytest.approx(-4 / 15)
-    priority = wise.prioritize(result, by="assessment_group", view="Equal").loc["A", "PI"]
+    priority = wise.prioritize(result, by="assessment_group", view="Equal").table.loc["A", "PI"]
     assert max(float(signed.sum()), 0) == pytest.approx(priority)
     assert signed.clip(lower=0).sum() > priority
 
