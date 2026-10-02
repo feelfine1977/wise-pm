@@ -11,11 +11,17 @@ referenced from the CHANGELOG, lists the rows that differ. There are none:
 the norm's only applicability rule is a membership rule, under which 0.1.0
 already left a case without the attribute out of scope, its lag states its
 bound, and it has no recipes.
+
+The committed copy is what ``wise.migrate`` makes of the original, and the
+golden norm (``tests/data/golden/norm.json``) is migrated here and scored
+beside its schema version 2 record in the same way; the migration report
+names the corrections that may explain a differing row.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -73,6 +79,12 @@ def norms() -> dict[int, wise.Norm]:
     return {2: wise.Norm.load(EXAMPLES / "running_p2p_norm.json"), 3: wise.Norm.load(EXAMPLES / "running_p2p_norm_v3.json")}
 
 
+def test_the_v3_copy_is_the_migrated_original() -> None:
+    migration = wise.migrate(json.loads((EXAMPLES / "running_p2p_norm.json").read_text(encoding="utf-8")))
+    assert migration.dumps() + "\n" == (EXAMPLES / "running_p2p_norm_v3.json").read_text(encoding="utf-8")
+    assert migration.report.corrections == ("C4", "C25")
+
+
 def test_the_v3_copy_differs_from_the_original_only_in_its_schema(norms: dict[int, wise.Norm]) -> None:
     original, copy = norms[2].to_dict(), norms[3].to_dict()
     assert (original.pop("schema_version"), copy.pop("schema_version")) == (2, 3)
@@ -97,17 +109,21 @@ def _differing_rows(left: pd.DataFrame, right: pd.DataFrame) -> list[str]:
     return [str(case) for case in left.index[~same.all(axis=1)]]
 
 
-@pytest.mark.parametrize("mode", ["flat", "layer_balanced"])
-@pytest.mark.parametrize("dataset", ["running_example", "golden"])
-def test_rows_that_differ_from_v2_carry_their_correction(
-    norms: dict[int, wise.Norm], logs: dict[str, wise.EventLog], dataset: str, mode: str
-) -> None:
-    log = logs[dataset]
-    legacy, corrected = (wise.score(log, norms[v], mode=mode) for v in (2, 3))
+def _explained_rows(norm: wise.Norm, log: wise.EventLog | None, corrections: tuple[str, ...]) -> list[str]:
+    """The cases whose rows a correction named in a migration report may change: under three-valued applicability
+    (C4, C25) the cases whose scope is unknown; no other correction changes a row of a norm that scores."""
+    assert log is not None
+    if not {"C4", "C25"} & set(corrections):
+        return []
     unknown = pd.DataFrame(
-        {nc.id: wise.evaluate(nc, log, semantics=norms[3].semantics).reason == SCOPE_UNKNOWN for nc in norms[3].constraints}
+        {nc.id: wise.evaluate(nc, log, semantics=norm.semantics).reason == SCOPE_UNKNOWN for nc in norm.constraints}
     )
-    explained = [str(case) for case in unknown.index[unknown.any(axis=1)]]
+    return [str(case) for case in unknown.index[unknown.any(axis=1)]]
+
+
+def _assert_rows_differ_only_by_correction(
+    legacy: wise.ScoreResult, corrected: wise.ScoreResult, explained: list[str], declared: list[str]
+) -> None:
     frames = [("violations", legacy.violations, corrected.violations), ("in_scope", legacy.in_scope, corrected.in_scope)]
     frames += [("scores", legacy.scores, corrected.scores)]
     frames += [(f"contributions[{v}]", legacy.contributions[v], corrected.contributions[v]) for v in legacy.views]
@@ -118,7 +134,33 @@ def test_rows_that_differ_from_v2_carry_their_correction(
         differing.update(rows)
         if not rows:
             pd.testing.assert_frame_equal(left, right, check_exact=True, obj=name)
-    assert sorted(differing) == DECLARED_DELTA[(dataset, mode)]
+    assert sorted(differing) == declared
+
+
+@pytest.mark.parametrize("mode", ["flat", "layer_balanced"])
+def test_the_migrated_golden_norm_differs_from_its_v2_record_only_by_named_corrections(
+    logs: dict[str, wise.EventLog], mode: str
+) -> None:
+    """The golden tier proves the v2 norm reproduces the committed record; its migrated norm is compared with it here."""
+    mg = _generator()
+    migration = wise.migrate(json.loads((DATA / mg.GOLDEN_SUBDIR / mg.NORM_FILE).read_text(encoding="utf-8")))
+    assert [r.rule for r in migration.report.rewrites] == ["missing_values"]
+    log = logs["golden"]
+    legacy = wise.score(log, wise.Norm.load(DATA / mg.GOLDEN_SUBDIR / mg.NORM_FILE), mode=mode)
+    corrected = wise.score(log, migration.norm, mode=mode)
+    explained = _explained_rows(migration.norm, corrected.log, migration.report.corrections)
+    _assert_rows_differ_only_by_correction(legacy, corrected, explained, declared=[])
+
+
+@pytest.mark.parametrize("mode", ["flat", "layer_balanced"])
+@pytest.mark.parametrize("dataset", ["running_example", "golden"])
+def test_rows_that_differ_from_v2_carry_their_correction(
+    norms: dict[int, wise.Norm], logs: dict[str, wise.EventLog], dataset: str, mode: str
+) -> None:
+    log = logs[dataset]
+    legacy, corrected = (wise.score(log, norms[v], mode=mode) for v in (2, 3))
+    explained = _explained_rows(norms[3], corrected.log, ("C4", "C25"))
+    _assert_rows_differ_only_by_correction(legacy, corrected, explained, DECLARED_DELTA[(dataset, mode)])
 
 
 def test_the_delta_report_is_referenced_from_the_changelog() -> None:

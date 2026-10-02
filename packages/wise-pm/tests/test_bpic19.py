@@ -48,6 +48,25 @@ def test_content_hashes_match_the_recorded_oracle(result):
     assert digests(result) == oracle["digests"]
 
 
+@pytest.mark.spec("decision:0001/4")
+def test_the_migrated_norm_fitted_on_the_log_reproduces_the_oracle():
+    """The schema version 3 norm migrated from the shipped one, with its calibration fitted on the challenge log,
+    gives the recorded tables: no rewrite of its report changes a row of this log."""
+    oracle_path = Path(__file__).resolve().parent / "data" / "bpic19_oracle.json"
+    if not oracle_path.exists():
+        pytest.skip("no recorded oracle; run packages/wise-pm/scripts/record_bpic19_oracle.py with the CSV")
+    sys.path.insert(0, str(EXAMPLES))
+    sys.path.insert(0, str(EXAMPLES.parent / "scripts"))
+    from bpic19_evaluation import load
+    from record_bpic19_oracle import digests
+
+    log = load(CSV)
+    migration = wise.migrate(json.loads((EXAMPLES / "bpic19_norm.json").read_text(encoding="utf-8")))
+    fitted = wise.fit_calibration(migration.norm, log)
+    oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+    assert digests(wise.score(log, fitted)) == oracle["digests"]
+
+
 def test_section_v_scores(result):
     assert len(result.scores) == 251_734
     assert result.applicability_density(scope=False) == pytest.approx(0.762, abs=1e-3)

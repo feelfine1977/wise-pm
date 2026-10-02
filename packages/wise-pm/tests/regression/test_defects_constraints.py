@@ -5,12 +5,12 @@ until the fix lands; characterisation tests guard behaviour that is already
 right. See ``01-findings-classic-main.md`` and decision 3 of 2026-09-26.
 """
 
+import json
 from typing import Any
 
 import pytest
 
 import wise
-from _support.builders import evaluate
 from wise.constraints import constraint_from_dict
 from wise.errors import NormError
 
@@ -88,31 +88,52 @@ def test_constraint_from_dict_accepts_integer_valued_m(m):
 
 
 # --- C2: Lag without a time bound silently defaults to delta=0, width=0 ------------------
+# C2 closed 2026-10-02 for schema version 3 documents (decision 0001, section 3): a v3 lag states its bound, so a lag
+# without one is refused when the document is read and nothing is scored with it; migrate() writes the bound 0.1.0
+# read a bare lag with, delta 0 and width 0, into the document and recommends reviewing it. A schema version 2 document
+# keeps the 0.1.0 reading under the legacy profile (section 4), and so does a Lag built in Python, whose default cannot
+# be told apart from an explicit delta=0.
+
+C2_LAG = {"id": "lag", "layer": "L", "type": "lag", "params": {"a": GR, "b": INV}}
+C2_DOCUMENT: dict[str, Any] = {
+    "schema_version": 2,
+    "name": "c2",
+    "views": [{"name": "v", "constraint_weights": {"lag": 1}}],
+    "constraints": [C2_LAG],
+}
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C2: Lag defaults to delta=0, width=0; decision 3 (2026-09-26) requires delta or the unbounded form",
+@pytest.mark.spec("decision:0001/3")
+@pytest.mark.parametrize(
+    "params", [{"a": GR, "b": INV}, {"a": GR, "b": INV, "width": 5}, {"a": GR, "b": INV, "delta": None}], ids=str
 )
-def test_lag_without_delta_is_rejected():
-    with pytest.raises(NormError):
-        wise.Lag("A", "B")
+def test_lag_without_delta_is_rejected(params):
+    document = {**C2_DOCUMENT, "schema_version": 3, "missing_values": "three_valued"}
+    document["constraints"] = [{**C2_LAG, "params": params}]
+    with pytest.raises(NormError, match=r"constraint 'lag' \(lag\): a lag states its bound in schema version 3"):
+        wise.Norm.from_dict(document)
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C2: with the silent default the 8-day GR->INV lag of running-example case B scores as a full violation (1.0)",
-)
+@pytest.mark.spec("decision:0001/3")
+@pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
 def test_default_lag_cannot_be_evaluated_on_running_example(p2p_log):
-    # Case B: four goods receipts on days 0-3, invoice on day 8. A lag with
-    # no declared bound must not be evaluable at all, rather than turning
-    # that ordinary delay into nu = 1.0.
-    with pytest.raises(NormError):
-        evaluate(p2p_log, wise.Lag(GR, INV))
+    # Case B: four goods receipts on days 0-3, invoice on day 8. Under 0.1.0 a lag with no declared bound turns that
+    # ordinary delay into nu = 1.0; schema version 2 keeps that reading.
+    legacy = wise.score(p2p_log, wise.Norm.from_dict(C2_DOCUMENT))
+    assert legacy.violations.loc["B", "lag"] == 1.0
+    # The migration does not keep the default silent: it writes it into the document and asks for a review.
+    migration = wise.migrate(C2_DOCUMENT)
+    assert migration.document["constraints"][0]["params"] == {"a": GR, "b": INV, "delta": 0, "width": 0}
+    (rewrite,) = [r for r in migration.report.rewrites if r.rule == "lag_bound"]
+    assert (rewrite.subject, rewrite.corrections) == ("lag", ("C2",))
+    assert rewrite.recommendation is not None
+    assert "any delay between the activities is a full violation" in rewrite.recommendation
+    # The bound the review settles on is what a v3 norm evaluates: here an unbounded lag, which B satisfies.
+    reviewed = json.loads(migration.dumps())
+    reviewed["constraints"][0]["params"] = {"a": GR, "b": INV, "unbounded": True}
+    assert wise.score(p2p_log, wise.Norm.from_dict(reviewed)).violations.loc["B", "lag"] == 0.0
 
 
 @pytest.mark.spec("decision:2026-09-26/3")

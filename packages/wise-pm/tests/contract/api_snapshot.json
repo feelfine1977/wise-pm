@@ -1866,6 +1866,133 @@
         }
       }
     },
+    "wise.Migration": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "document",
+        "norm",
+        "report"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "Mapping[str, Any]",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "document"
+          },
+          {
+            "annotation": "Norm",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "norm"
+          },
+          {
+            "annotation": "MigrationReport",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "report"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "dumps": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "int",
+              "default": "2",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "indent"
+            }
+          ],
+          "returns": "str"
+        }
+      }
+    },
+    "wise.MigrationReport": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "norm",
+        "source_version",
+        "target_version",
+        "rewrites"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "str",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "norm"
+          },
+          {
+            "annotation": "int",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "source_version"
+          },
+          {
+            "annotation": "int",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "target_version"
+          },
+          {
+            "annotation": "tuple[Rewrite, ...]",
+            "default": "()",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "rewrites"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "corrections": {
+          "kind": "property",
+          "returns": "tuple[str, ...]",
+          "settable": false
+        },
+        "from_dict": {
+          "kind": "classmethod",
+          "parameters": [
+            {
+              "annotation": "Mapping[str, Any]",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "document"
+            }
+          ],
+          "returns": "MigrationReport"
+        },
+        "to_dict": {
+          "kind": "method",
+          "parameters": [],
+          "returns": "dict[str, Any]"
+        },
+        "to_json": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "int | None",
+              "default": "2",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "indent"
+            }
+          ],
+          "returns": "str"
+        }
+      }
+    },
     "wise.Norm": {
       "bases": [
         "object"
@@ -3458,6 +3585,18 @@
         }
       ],
       "returns": "pd.Series"
+    },
+    "wise.migrate": {
+      "kind": "function",
+      "parameters": [
+        {
+          "annotation": "Norm | Mapping[str, Any]",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "source"
+        }
+      ],
+      "returns": "Migration"
     },
     "wise.norm.DEFAULT_SCORING_MODE": {
       "kind": "constant",
