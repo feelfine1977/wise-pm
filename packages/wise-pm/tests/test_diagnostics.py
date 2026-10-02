@@ -61,6 +61,19 @@ def test_event_replication(p2p_log):
     assert rep2.loc["B", "n_distinct_ts"] == 7
 
 
+def test_event_replication_leaves_missing_timestamps_out():
+    # day 0 twice, two events without a timestamp, day 1: 3 timestamps, 2 of them distinct,
+    # and only the two day-0 events share theirs.
+    df = pd.DataFrame({"case": ["x"] * 5, "activity": list("abcde"), "day": [0, 0, None, None, 1]})
+    df["time"] = pd.Timestamp("2024-01-01") + pd.to_timedelta(df["day"], unit="D")
+    log = wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time", missing_timestamps="keep")
+    rep = wise.event_replication(log)
+    assert rep.loc["x", "n_events"] == 5
+    assert rep.loc["x", "n_distinct_ts"] == 2
+    assert rep.loc["x", "replication_ratio"] == 1.5
+    assert rep.loc["x", "replicated_share"] == pytest.approx(2 / 5)
+
+
 def test_cross_case_replication():
     rows = [
         ("d1_i1", "PO", 0, 1, "F"),
