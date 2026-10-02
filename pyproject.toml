@@ -125,5 +125,6 @@ layers = [
   "wise.log",
   "wise.derive",
   "wise.constraints",
+  "wise.case_index",
   "wise.errors | wise._version",
 ]

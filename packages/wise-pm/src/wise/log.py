@@ -10,7 +10,8 @@ constraint semantics are written in:
 * ``tot_α(A, σ)``                → :meth:`EventLog.total`
 * ``att_β(σ)``, ``exp(σ)``       → :attr:`EventLog.cases`
 
-Internally the log is stored as integer case codes and activity codes sorted
+Internally the log is held by an immutable :class:`~wise.case_index.CaseIndex`
+(:attr:`EventLog.case_index`): integer case codes and activity codes sorted
 by ``(case, timestamp, order)``; every primitive is a numpy operation on
 those codes, so a log with a few million events scores in about a second.
 
@@ -27,10 +28,10 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
+from .case_index import NAT, CaseIndex, event_order
 from .constraints import Labels, as_labels, as_list
 from .errors import LogSchemaError
 
-_INT_MIN = np.iinfo(np.int64).min
 _INT_MAX = np.iinfo(np.int64).max
 
 CASE_COL = "case:concept:name"
@@ -194,23 +195,11 @@ class EventLog:
             if self.tz is None
             else ts.dt.tz_convert("UTC").dt.tz_localize(None).to_numpy("datetime64[ns]").view("int64")
         )
-        valid = ts_int != _INT_MIN
-        sort_ts = np.where(valid, ts_int, _INT_MAX)
 
         # ---- order: (case, timestamp, tie-break) ------------------------------------------
-        if order_col is not None:
-            tie = pd.factorize(df[order_col], sort=True)[0]
-        else:
-            tie = np.arange(len(df))
-        order = np.lexsort((tie, sort_ts, codes))
-
-        self._codes = codes[order]
-        self._ts = ts_int[order]
-        self._valid = valid[order]
+        tie = pd.factorize(df[order_col], sort=True)[0] if order_col is not None else None
+        order = event_order(codes, ts_int, tie)
         n_cases = len(uniques)
-        self._n_cases = n_cases
-        self._starts = np.searchsorted(self._codes, np.arange(n_cases))
-        counts = np.bincount(self._codes, minlength=n_cases)
 
         cols = list(df.columns)
         if keep_columns is not None:
@@ -229,8 +218,9 @@ class EventLog:
             act_codes, act_uniques = pd.factorize(act, sort=False)
             act_codes = act_codes.astype(np.int64)
             act_labels = pd.Index(pd.Index(act_uniques).astype(str))
-        self._act_codes = np.where(act_codes < 0, len(act_labels), act_codes)
-        self._act_labels = act_labels
+        sorted_codes, sorted_ts = codes[order], ts_int[order]
+        sorted_codes.flags.writeable = sorted_ts.flags.writeable = False  # the index keeps views of them
+        self._index = CaseIndex(sorted_codes, sorted_ts, act_codes, act_labels, n_cases=n_cases, tz=self.tz)
 
         self.case_col, self.activity_col, self.timestamp_col = case_col, activity_col, timestamp_col
         self.case_attributes = case_attributes
@@ -240,9 +230,9 @@ class EventLog:
         # ---- case table -----------------------------------------------------------------
         index = pd.Index(uniques, name=case_col)
         cases = pd.DataFrame(index=index)
-        cases["n_events"] = counts
-        cases["first_ts"] = self._dt_values(self._first_from_mask(self._valid))
-        cases["last_ts"] = self._dt_values(self._last_from_mask(self._valid))
+        cases["n_events"] = self._index.count()
+        cases["first_ts"] = self._index.to_datetime(self._index.first())
+        cases["last_ts"] = self._index.to_datetime(self._index.last())
         for attr in case_attributes:
             cases[attr] = ev[attr].groupby(self._codes).first().reindex(range(n_cases)).to_numpy()
         if exposure_col is not None:
@@ -262,7 +252,7 @@ class EventLog:
 
         self.window: tuple[pd.Timestamp | None, pd.Timestamp | None] | None = None
         if window is not None:
-            start, end = (self._to_ts(window[0]), self._to_ts(window[1]))
+            start, end = (self.to_timestamp(window[0]), self.to_timestamp(window[1]))
             if start is not None and end is not None and start > end:
                 raise LogSchemaError(f"window start must not be after window end, got {window!r}")
             self.window = (start, end)
@@ -311,13 +301,36 @@ class EventLog:
 
     # ------------------------------------------------------------------ basics
     def __len__(self) -> int:
-        return self._n_cases
+        return self._index.n_cases
 
     def __repr__(self) -> str:
         return (
             f"EventLog({len(self.events):,} events, {len(self):,} cases, "
-            f"{len(self._act_labels)} activities, attributes={self.case_attributes})"
+            f"{len(self._index.activity_labels)} activities, attributes={self.case_attributes})"
         )
+
+    @property
+    def case_index(self) -> CaseIndex:
+        """The immutable per-case index the primitives are computed on; its
+        events are in the row order of :attr:`events`."""
+        return self._index
+
+    # Read-only views of the index, kept for callers of 0.1.0.
+    @property
+    def _codes(self) -> np.ndarray:
+        return self._index.case_codes
+
+    @property
+    def _ts(self) -> np.ndarray:
+        return self._index.timestamps
+
+    @property
+    def _valid(self) -> np.ndarray:
+        return self._index.valid
+
+    @property
+    def _starts(self) -> np.ndarray:
+        return self._index.starts
 
     @property
     def case_ids(self) -> pd.Index:
@@ -325,7 +338,7 @@ class EventLog:
 
     @property
     def activity_labels(self) -> list[str]:
-        return list(self._act_labels)
+        return list(self._index.activity_labels)
 
     @property
     def window_end(self) -> pd.Timestamp:
@@ -379,58 +392,26 @@ class EventLog:
             )
         return end
 
+    def to_timestamp(self, value: Any) -> pd.Timestamp | None:
+        """``value`` as a :class:`pandas.Timestamp` comparable with the log's
+        timestamps: a naive value is localised to the log's time zone, an
+        aware value on a naive log is converted to naive UTC. ``None`` stays
+        ``None``."""
+        return self._index.to_timestamp(value)
+
     def _to_ts(self, value: Any) -> pd.Timestamp | None:
-        if value is None:
-            return None
-        t = pd.Timestamp(value)
-        if self.tz is not None and t.tzinfo is None:
-            t = t.tz_localize(self.tz)
-        elif self.tz is None and t.tzinfo is not None:
-            t = t.tz_convert("UTC").tz_localize(None)
-        return t
-
-    def _ts_to_int(self, t: pd.Timestamp) -> int:
-        t = self._to_ts(t)  # type: ignore[assignment]
-        if self.tz is not None:
-            t = t.tz_convert("UTC").tz_localize(None)  # type: ignore[union-attr]
-        return int(np.datetime64(t, "ns").view("int64"))  # type: ignore[arg-type]
-
-    def _dt_values(self, values: np.ndarray) -> pd.DatetimeIndex:
-        idx = pd.DatetimeIndex(values.view("datetime64[ns]"))
-        if self.tz is not None:
-            idx = idx.tz_localize("UTC").tz_convert(self.tz)
-        return idx
+        warnings.warn(
+            "EventLog._to_ts is deprecated and will be removed in 1.0; use EventLog.to_timestamp",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.to_timestamp(value)
 
     def _series_dt(self, values: np.ndarray) -> pd.Series:
-        return pd.Series(self._dt_values(values), index=self.case_ids)
+        return pd.Series(self._index.to_datetime(values), index=self.case_ids)
 
     def _series(self, values: np.ndarray) -> pd.Series:
         return pd.Series(values, index=self.case_ids)
-
-    # ------------------------------------------------------------------ masks
-    def _mask(self, labels: Labels) -> np.ndarray:
-        lut = np.zeros(len(self._act_labels) + 1, dtype=bool)
-        idx = self._act_labels.get_indexer(list(labels))
-        lut[idx[idx >= 0]] = True
-        return lut[self._act_codes]
-
-    def _first_from_mask(self, mask: np.ndarray) -> np.ndarray:
-        """Timestamp (int64 ns, NaT = int64 min) of the first masked event per case."""
-        c, t = self._codes[mask], self._ts[mask]
-        out = np.full(len(self), _INT_MIN, dtype=np.int64)
-        if len(c):
-            first = np.r_[True, c[1:] != c[:-1]]
-            out[c[first]] = t[first]
-        return out
-
-    def _last_from_mask(self, mask: np.ndarray) -> np.ndarray:
-        m = mask & self._valid
-        c, t = self._codes[m], self._ts[m]
-        out = np.full(len(self), _INT_MIN, dtype=np.int64)
-        if len(c):
-            last = np.r_[c[1:] != c[:-1], True]
-            out[c[last]] = t[last]
-        return out
 
     # ------------------------------------------------------------------ primitives
     def count(self, activities: str | Iterable[str]) -> pd.Series:
@@ -438,8 +419,7 @@ class EventLog:
         labels = as_labels(activities)
         key = tuple(sorted(labels))
         if key not in self._count_cache:
-            cnt = np.bincount(self._codes[self._mask(labels)], minlength=len(self)).astype(float)
-            self._count_cache[key] = self._series(cnt)
+            self._count_cache[key] = self._series(self._index.count(labels).astype(float))
         return self._count_cache[key]
 
     def first_ts(self, activities: str | Iterable[str]) -> pd.Series:
@@ -447,7 +427,7 @@ class EventLog:
         labels = as_labels(activities)
         key = tuple(sorted(labels))
         if key not in self._first_cache:
-            self._first_cache[key] = self._series_dt(self._first_from_mask(self._mask(labels)))
+            self._first_cache[key] = self._series_dt(self._index.first(labels))
         return self._first_cache[key]
 
     def last_ts(self, activities: str | Iterable[str]) -> pd.Series:
@@ -455,7 +435,7 @@ class EventLog:
         labels = as_labels(activities)
         key = tuple(sorted(labels))
         if key not in self._last_cache:
-            self._last_cache[key] = self._series_dt(self._last_from_mask(self._mask(labels)))
+            self._last_cache[key] = self._series_dt(self._index.last(labels))
         return self._last_cache[key]
 
     def first_after(
@@ -471,31 +451,30 @@ class EventLog:
         With ``response="first_overall"`` ``t_b`` is the first ``b`` in the
         case regardless of order. ``t_b`` is NaT when undefined.
         """
+        idx = self._index
         la, lb = as_labels(a, what="a"), as_labels(b, what="b")
-        t_a_int = self._first_from_mask(self._mask(la)) if activation == "first" else self._last_from_mask(self._mask(la))
+        t_a_int = idx.first(la) if activation == "first" else idx.last(la)
         if response == "first_overall":
             return self._series_dt(t_a_int), self.first_ts(lb)
-        anchor = np.where(t_a_int == _INT_MIN, _INT_MAX, t_a_int)
-        mask_b = self._mask(lb) & self._valid & (self._ts >= anchor[self._codes])
-        return self._series_dt(t_a_int), self._series_dt(self._first_from_mask(mask_b))
+        anchor = np.where(t_a_int == NAT, _INT_MAX, t_a_int)
+        mask_b = idx.mask(lb) & (idx.timestamps >= anchor[idx.case_codes])
+        return self._series_dt(t_a_int), self._series_dt(idx.first(mask_b))
 
     def activation_lags(self, a: str | Iterable[str], b: str | Iterable[str]) -> pd.DataFrame:
         """One row per ``a`` event: its case code, timestamp, and the timestamp
         of the first ``b`` event at or after it in the same case (NaT if none)."""
+        idx = self._index
+        codes, ts = idx.case_codes, idx.timestamps
         la, lb = as_labels(a, what="a"), as_labels(b, what="b")
-        a_pos = np.flatnonzero(self._mask(la) & self._valid)
-        b_pos = np.flatnonzero(self._mask(lb) & self._valid)
+        a_pos = np.flatnonzero(idx.mask(la) & idx.valid)
+        b_pos = np.flatnonzero(idx.mask(lb) & idx.valid)
         # first position of the run of events sharing (case, timestamp) with each a event
-        new_run = np.r_[True, (self._codes[1:] != self._codes[:-1]) | (self._ts[1:] != self._ts[:-1])]
-        run_start = np.maximum.accumulate(np.where(new_run, np.arange(len(self._codes)), 0))
-        j = np.searchsorted(b_pos, run_start[a_pos])
+        j = np.searchsorted(b_pos, idx.run_starts()[a_pos])
         has = j < len(b_pos)
         bp = b_pos[np.minimum(j, max(len(b_pos) - 1, 0))] if len(b_pos) else np.zeros(len(a_pos), dtype=int)
-        ok = has & (len(b_pos) > 0) & (self._codes[bp] == self._codes[a_pos])
-        t_b = np.where(ok, self._ts[bp], _INT_MIN)
-        out = pd.DataFrame(
-            {"code": self._codes[a_pos], "t_a": self._ts[a_pos].view("datetime64[ns]"), "t_b": t_b.view("datetime64[ns]")}
-        )
+        ok = has & (len(b_pos) > 0) & (codes[bp] == codes[a_pos])
+        t_b = np.where(ok, ts[bp], NAT)
+        out = pd.DataFrame({"code": codes[a_pos], "t_a": ts[a_pos].view("datetime64[ns]"), "t_b": t_b.view("datetime64[ns]")})
         return out
 
     def count_scoped(
@@ -508,17 +487,19 @@ class EventLog:
         """Count of ``activities`` per case, restricted to events strictly after
         the first ``after`` activity and/or strictly before the first ``before``
         activity. NaN where an anchor activity is absent."""
-        mask = self._mask(as_labels(activities)) & self._valid
+        idx = self._index
+        codes, ts = idx.case_codes, idx.timestamps
+        mask = idx.mask(as_labels(activities)) & idx.valid
         undefined = np.zeros(len(self), dtype=bool)
         if after is not None:
-            t_after = self._first_from_mask(self._mask(as_labels(after, what="after")))
-            undefined |= t_after == _INT_MIN
-            mask &= self._ts > np.where(t_after == _INT_MIN, _INT_MAX, t_after)[self._codes]
+            t_after = idx.first(as_labels(after, what="after"))
+            undefined |= t_after == NAT
+            mask &= ts > np.where(t_after == NAT, _INT_MAX, t_after)[codes]
         if before is not None:
-            t_before = self._first_from_mask(self._mask(as_labels(before, what="before")))
-            undefined |= t_before == _INT_MIN
-            mask &= self._ts < np.where(t_before == _INT_MIN, _INT_MIN, t_before)[self._codes]
-        cnt = np.bincount(self._codes[mask], minlength=len(self)).astype(float)
+            t_before = idx.first(as_labels(before, what="before"))
+            undefined |= t_before == NAT
+            mask &= ts < np.where(t_before == NAT, NAT, t_before)[codes]
+        cnt = idx.count(mask).astype(float)
         cnt[undefined] = np.nan
         return self._series(cnt)
 
@@ -543,12 +524,11 @@ class EventLog:
         """
         if attribute not in self.events.columns:
             raise LogSchemaError(f"event attribute {attribute!r} not in log")
-        mask = self._mask(as_labels(activities))
         vals = pd.to_numeric(self.events[attribute], errors="coerce").fillna(0.0).to_numpy(dtype=float)
-        if agg == "sum":
-            return self._series(np.bincount(self._codes[mask], weights=vals[mask], minlength=len(self)))
-        s = pd.Series(vals[mask]).groupby(self._codes[mask]).agg(agg)
-        return self._series(s.reindex(range(len(self))).fillna(0.0).to_numpy())
+        out = self._index.aggregate(vals, as_labels(activities), how=agg, empty=0.0)
+        if agg != "sum":
+            out[np.isnan(out)] = 0.0
+        return self._series(out)
 
     def attribute(self, name: str) -> pd.Series:
         """Numeric case attribute from :attr:`cases`, NaN where missing."""
@@ -606,15 +586,12 @@ class EventLog:
         start, end = self.observation_window(q)
         ts = self.events[self.timestamp_col]
         outliers = int(((ts < start) | (ts > end)).sum())
-        same_prev = (self._codes[1:] == self._codes[:-1]) & (self._ts[1:] == self._ts[:-1]) & self._valid[1:]
-        tied = np.zeros(len(self._codes), dtype=bool)
-        tied[1:] |= same_prev
-        tied[:-1] |= same_prev
+        tied = self._index.tied()
         cases_with_ties = len(np.unique(self._codes[tied]))
         report: dict[str, Any] = {
             "n_events": len(self.events),
             "n_cases": len(self),
-            "n_activities": len(self._act_labels),
+            "n_activities": len(self._index.activity_labels),
             "window_start": start,
             "window_end": end,
             "raw_max_timestamp": ts.max(),

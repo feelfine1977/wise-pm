@@ -37,7 +37,7 @@ def observation_window(log: EventLog, q: float = 0.001) -> tuple[pd.Timestamp, p
 
 def timestamp_outliers(log: EventLog, window: tuple[Any, Any] | None = None, q: float = 0.001) -> pd.Series:
     """Boolean per event: timestamp outside the observation window."""
-    start, end = (log._to_ts(window[0]), log._to_ts(window[1])) if window is not None else log.observation_window(q)
+    start, end = (log.to_timestamp(window[0]), log.to_timestamp(window[1])) if window is not None else log.observation_window(q)
     ts = log.events[log.timestamp_col]
     out = pd.Series(False, index=ts.index)
     if start is not None:
@@ -49,7 +49,7 @@ def timestamp_outliers(log: EventLog, window: tuple[Any, Any] | None = None, q: 
 
 def _resolve_end(log: EventLog, window_end: Any, window: pd.Timedelta, q: float) -> pd.Timestamp:
     if window_end is not None:
-        return log._to_ts(window_end)  # type: ignore[return-value]
+        return log.to_timestamp(window_end)  # type: ignore[return-value]
     return log.censoring_end(tolerance=window, q=q)
 
 
@@ -96,7 +96,7 @@ def left_truncated(
     the log."""
     win = pd.Timedelta(window)
     start = (
-        log._to_ts(window_start)
+        log.to_timestamp(window_start)
         if window_start is not None
         else (log.window[0] if log.window and log.window[0] is not None else log.observation_window(q)[0])
     )

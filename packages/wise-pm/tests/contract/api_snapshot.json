@@ -656,6 +656,11 @@
           "returns": "pd.Index",
           "settable": false
         },
+        "case_index": {
+          "kind": "property",
+          "returns": "CaseIndex",
+          "settable": false
+        },
         "censoring_end": {
           "kind": "method",
           "parameters": [
@@ -894,6 +899,18 @@
           "kind": "method",
           "parameters": [],
           "returns": "pd.DataFrame"
+        },
+        "to_timestamp": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "Any",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "value"
+            }
+          ],
+          "returns": "pd.Timestamp | None"
         },
         "total": {
           "kind": "method",

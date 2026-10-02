@@ -38,6 +38,20 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Added
 
+- `wise.case_index.CaseIndex`, the immutable per-case index behind the event
+  log: case codes, timestamps, validity, activity codes and case starts held
+  in read-only arrays, with counts for an activity set or an event mask,
+  first and last timestamps, the per-case aggregate of an event column, runs
+  of equal timestamps and timestamp conversion. `EventLog` computes
+  `count`, `first_ts`, `last_ts`, `first_after`, `activation_lags`,
+  `count_scoped`, `count_before`, `count_after` and `total` through it; their
+  results are unchanged, and building the log copies the event table no more
+  often than before.
+- `EventLog.case_index` (property) returns that index;
+  `EventLog.to_timestamp(value)` converts a value to a timestamp comparable
+  with the log's (naive values are localised to the log's time zone, aware
+  values become naive UTC on a naive log, `None` stays `None`).
+
 - Tests for `scripts/check_release.py`: a tag that agrees with the package,
   `CITATION.cff` and the changelog passes; a development version, the
   previous release tag and a tag without the `v` prefix are refused.
@@ -84,6 +98,13 @@ snapshot writes the version as a placeholder and is unchanged.
   `scripts/check_release.py`.
 - The release workflow now runs the full CI gate for the release commit
   before building.
+
+### Deprecated
+
+- `EventLog._to_ts` emits a `DeprecationWarning` and delegates to
+  `EventLog.to_timestamp`; it is removed in 1.0. The arrays `EventLog._codes`,
+  `_ts`, `_valid` and `_starts` remain readable, but are now read-only views
+  of the case index.
 
 ### Fixed
 
