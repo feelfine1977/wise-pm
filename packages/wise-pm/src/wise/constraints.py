@@ -8,8 +8,10 @@ threshold–saturation rule::
     sat(z; ϑ, W) = 0                     if z ≤ ϑ
                  = min((z − ϑ) / W, 1)   if z > ϑ
 
-Constraint objects are frozen dataclasses holding parameters only; they are
-evaluated on an :class:`~wise.log.EventLog` by :mod:`wise.scoring`.
+Constraint objects are frozen dataclasses holding parameters only. Each type
+belongs to a constraint family (:mod:`wise.family`, built-ins in
+:mod:`wise.families`) that parses its parameters from a norm document, states
+the inputs it reads and evaluates it on an :class:`~wise.log.EventLog`.
 
 Activity parameters accept one label or a list of labels. A list is treated
 as *one* merged activity: counts are summed and first timestamps are taken
@@ -32,6 +34,9 @@ import numpy as np
 import pandas as pd
 
 from .errors import NormError
+from .family import CONSTRAINT_TYPES as CONSTRAINT_TYPES
+from .family import TYPE_ALIASES as TYPE_ALIASES
+from .family import family
 
 Labels = tuple[str, ...]
 Activities = str | Sequence[str]
@@ -431,43 +436,14 @@ class Metric(Constraint):
             raise NormError("metric: direction must be 'high' or 'low'")
 
 
-CONSTRAINT_TYPES: dict[str, type[Constraint]] = {
-    cls.type: cls for cls in (Presence, Exclusion, Singularity, Lag, Precedence, Balance, Metric)
-}
-
-#: Short type names accepted in norm files (the paper's vocabulary).
-TYPE_ALIASES: dict[str, str] = {
-    "pres": "presence",
-    "excl": "exclusion",
-    "sing": "singularity",
-    "bal": "balance",
-    "order": "precedence",
-}
-
-_NUMERIC_PARAMS = {"m", "k", "K", "delta", "width", "tau", "eps", "threshold"}
-
-
 def constraint_from_dict(type_name: str, params: Mapping[str, Any]) -> Constraint:
     """Build a constraint from its type name and a parameter mapping.
 
-    Unknown types and unknown parameters raise :class:`NormError`; numeric
-    parameters given as strings are coerced, and the constructor then refuses
-    what is out of range, including a non-integer count such as ``m=1.5`` (C1).
+    The family registered under ``type_name`` (or one of its aliases, see
+    :mod:`wise.family`) parses the parameters. Unknown types and unknown
+    parameters raise :class:`NormError`; numeric parameters given as strings
+    are coerced, and the constructor then refuses what is out of range,
+    including a non-integer count such as ``m=1.5`` (C1).
     """
-    key = TYPE_ALIASES.get(type_name, type_name)
-    if key not in CONSTRAINT_TYPES:
-        raise NormError(f"unknown constraint type {type_name!r}; known: {sorted(CONSTRAINT_TYPES)}")
-    cls = CONSTRAINT_TYPES[key]
-    allowed = {f.name for f in fields(cls)}
-    unknown = set(params) - allowed
-    if unknown:
-        raise NormError(f"{key}: unknown parameters {sorted(unknown)}; allowed {sorted(allowed)}")
-    clean: dict[str, Any] = {}
-    for k, v in params.items():
-        if k in _NUMERIC_PARAMS and isinstance(v, str):
-            try:
-                v = float(v)
-            except ValueError as exc:
-                raise NormError(f"{key}: parameter {k}={v!r} is not numeric") from exc
-        clean[k] = v
-    return cls(**clean)
+    constraint: Constraint = family(type_name).parse(params)
+    return constraint

@@ -17,6 +17,7 @@ Typical use::
 """
 
 from . import datasets
+from . import families as families  # registers the built-in constraint families
 from ._version import __version__
 from .constraints import (
     CONSTRAINT_TYPES,
@@ -44,6 +45,7 @@ from .diagnostics import (
     validation_table,
 )
 from .errors import LogSchemaError, NormError, NotScoredError, WiseError
+from .family import Evaluation
 from .log import EventLog
 from .log_schema import LogSchema, ParsedLog, parse
 from .norm import SCHEMA_VERSION, Layer, Norm, NormConstraint, View
@@ -60,13 +62,14 @@ from .prioritization import (
     top_k_overlap,
     view_agreement,
 )
-from .scoring import ScoreResult, evaluate_constraint, score, violation_matrix
+from .scoring import ScoreResult, evaluate, evaluate_constraint, score, violation_matrix
 
 __all__ = [
     "CONSTRAINT_TYPES",
     "SCHEMA_VERSION",
     "Balance",
     "Constraint",
+    "Evaluation",
     "EventLog",
     "Exclusion",
     "Lag",
@@ -94,6 +97,7 @@ __all__ = [
     "cross_case_replication",
     "datasets",
     "estimate_gamma",
+    "evaluate",
     "evaluate_constraint",
     "event_replication",
     "gap_retained",
