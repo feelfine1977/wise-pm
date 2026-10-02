@@ -26,7 +26,8 @@ Each recipe is a mapping with a ``name`` and a ``kind``:
 ``lag``
     ``{"kind": "lag", "a": [...], "b": [...], "unit": "D", "activation":
     "first", "response": "first_after"}`` — time from ``a`` to ``b`` (NaN when
-    undefined), for use with a :class:`~wise.Metric` constraint. With
+    undefined), for use with a :class:`~wise.Metric` constraint. The pairing
+    is the one of :class:`~wise.Lag` (:func:`wise.families.lag.pairs`). With
     ``response: "first_overall"`` a ``b`` before ``a`` gives NaN unless
     ``"allow_negative": true``.
 ``ratio``
@@ -58,8 +59,9 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from .constraints import _UNITS, as_labels, in_units
+from .constraints import _UNITS, as_labels
 from .errors import LogSchemaError, NormError
+from .families import lag as lag_family
 from .selection import LEGACY, EventTable, parse_recipe_where
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -149,16 +151,20 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
         eps = float(recipe.get("eps", 1e-9))
         return per_case((std / mean.abs().clip(lower=eps)).to_numpy(dtype=float))
     if kind == "lag":
-        t_a, t_b = log.first_after(
-            recipe["a"], recipe["b"], activation=recipe.get("activation", "first"), response=recipe.get("response", "first_after")
-        )
         unit = str(recipe.get("unit", "D"))
         if unit not in _UNITS:
             raise NormError(f"derived attribute {recipe['name']!r}: unknown unit {unit!r}")
-        lag = in_units(t_b - t_a, unit)
-        if recipe.get("response", "first_after") == "first_overall" and not recipe.get("allow_negative", False):
-            lag = lag.where(lag >= 0)
-        return lag
+        # as in 0.1.0, any activation other than "first" is the last a, any response other than "first_overall" the first b after it
+        pairing = lag_family.pairs(
+            log,
+            recipe["a"],
+            recipe["b"],
+            activation="first" if recipe.get("activation", "first") == "first" else "last",
+            response="first_overall" if recipe.get("response", "first_after") == "first_overall" else "first_after",
+            unit=unit,
+            negative=bool(recipe.get("allow_negative", False)),
+        )
+        return per_case(pairing.per_case())
     if kind == "ratio":
         num = log.attribute(recipe["numerator"])
         den = log.attribute(recipe["denominator"])
