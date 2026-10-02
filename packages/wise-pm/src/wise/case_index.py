@@ -105,7 +105,11 @@ class CaseIndex:
         codes = np.asarray(case_codes, dtype=np.int64)
         ts = np.asarray(timestamps, dtype=np.int64)
         acts = np.asarray(activity_codes, dtype=np.int64)
-        labels = activity_labels if isinstance(activity_labels, pd.Index) else pd.Index([str(v) for v in activity_labels], dtype=object)
+        labels = (
+            activity_labels
+            if isinstance(activity_labels, pd.Index)
+            else pd.Index([str(v) for v in activity_labels], dtype=object)
+        )
         if not (codes.ndim == ts.ndim == acts.ndim == 1 and len(codes) == len(ts) == len(acts)):
             raise LogSchemaError("case codes, timestamps and activity codes must be one-dimensional and of the same length")
         n = int(codes.max()) + 1 if n_cases is None and len(codes) else int(n_cases or 0)
@@ -237,7 +241,9 @@ class CaseIndex:
             out[c[tail]] = t[tail]
         return out
 
-    def aggregate(self, values: ArrayLike | pd.Series, select: Select = None, *, how: str = "sum", empty: float = np.nan) -> NDArray[np.float64]:
+    def aggregate(
+        self, values: ArrayLike | pd.Series, select: Select = None, *, how: str = "sum", empty: float = np.nan
+    ) -> NDArray[np.float64]:
         """Per-case aggregate of an event column over the selected events.
 
         ``values`` holds one entry per event in index order. ``how`` is

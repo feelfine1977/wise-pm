@@ -130,7 +130,9 @@ def test_a_mask_of_the_wrong_shape_or_type_is_refused() -> None:
         (None, [1, 5, None], [2, 7, None]),
     ],
 )
-def test_first_and_last_timestamps_ignore_events_without_one(select: Any, first: list[int | None], last: list[int | None]) -> None:
+def test_first_and_last_timestamps_ignore_events_without_one(
+    select: Any, first: list[int | None], last: list[int | None]
+) -> None:
     idx = small_index()
     _eq(idx.first(select), list(_days(*first)))
     _eq(idx.last(select), list(_days(*last)))
