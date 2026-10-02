@@ -36,7 +36,7 @@ class Pairs:
     """The activations of a log, each paired with its response.
 
     One row per activation: ``case`` is the position of its case in the log,
-    ``t_a`` its timestamp and ``lag`` the time to its response in the unit of
+    ``t_a`` its timestamp (in the log's time zone) and ``lag`` the time to its response in the unit of
     the pairing, NaN where no response is paired with it. With activation
     ``"first"`` or ``"last"`` a case has at most one row; with ``"each"`` one
     row per ``a`` event. A case without a row has no activation.
@@ -93,7 +93,8 @@ def pairs(
             raise NormError("lag: activation='each' requires response='first_after'")
         rows = log.activation_lags(a, b)
         lag = in_units(rows["t_b"] - rows["t_a"], unit)
-        return Pairs(rows["code"].to_numpy(dtype=np.intp), rows["t_a"], lag, len(log), one_per_case=False)
+        t_a = rows["t_a"] if log.tz is None else rows["t_a"].dt.tz_localize("UTC").dt.tz_convert(log.tz)
+        return Pairs(rows["code"].to_numpy(dtype=np.intp), t_a, lag, len(log), one_per_case=False)
     t_a, t_b = log.first_after(a, b, activation=activation, response=response)
     lag = in_units(t_b - t_a, unit)
     if response == "first_overall" and not negative:
@@ -120,9 +121,7 @@ def evaluate(c: Lag, log: EventLog) -> Evaluation:
     if c.missing_b == "violate":
         v = v.where(~open_, 1.0)
     elif c.missing_b == "censor" and c.delta is not None:
-        end = pd.Timestamp(log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit))
-        if end.tzinfo is not None and getattr(p.t_a.dt, "tz", None) is None:
-            end = end.tz_convert("UTC").tz_localize(None)  # activation_lags gives naive UTC timestamps
+        end = log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit)
         so_far = in_units(end - p.t_a, c.unit)
         v = v.where(~open_, sat(so_far, c.delta, c.width))
         censored = open_.to_numpy()

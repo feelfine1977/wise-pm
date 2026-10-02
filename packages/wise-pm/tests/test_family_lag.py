@@ -271,3 +271,26 @@ def test_the_pairs_of_a_log_without_activations_are_empty(log: wise.EventLog) ->
         assert len(p.case) == 0
         assert p.lag.dtype == float
     assert np.isnan(lag_family.pairs(log, "Z", "B").per_case()).all()
+
+
+@pytest.mark.spec("IV-B.lag")
+def test_pairs_and_censoring_follow_the_time_zone_of_the_log() -> None:
+    # the seven cases in Berlin across the switch to summer time: an open activation on day 7 has still waited 3 days
+    naive = seven_cases()
+    events = naive.events.copy()
+    events["time"] = (events["time"] + pd.Timedelta(days=83)).dt.tz_localize("Europe/Berlin")
+    start = pd.Timestamp("2024-03-24", tz="Europe/Berlin")
+    aware = wise.EventLog(
+        events,
+        case_col="case",
+        activity_col="activity",
+        timestamp_col="time",
+        case_attributes=["flow"],
+        window=(start, start + pd.Timedelta(days=10)),
+    )
+    for activation in ("first", "last", "each"):
+        p = lag_family.pairs(aware, "A", "B", activation=activation)
+        assert str(p.t_a.dt.tz) == "Europe/Berlin"
+        ev = run({"activation": activation, "missing_b": "censor"}, aware)
+        assert ev.value.tolist() == run({"activation": activation, "missing_b": "censor"}, naive).value.tolist()
+        assert ev.value["4"] == 0.25
