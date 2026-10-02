@@ -262,7 +262,7 @@ def parse(rule: Any, *, what: str = "selection") -> Selection:
         short[str(attr)] = [jsonable(v) for v in values]
         if not short[str(attr)]:
             raise NormError(f"{what} for {attr!r} is an empty list (nothing would apply)")
-        leaves.append(Compare(str(attr), "in", short[str(attr)]))
+        leaves.append(Compare(str(attr), "in", list(short[str(attr)])))
     return Selection(AllOf(tuple(leaves)), short)
 
 
@@ -291,7 +291,7 @@ def _parse_rule(rule: Any, what: str) -> Rule:
         if len(ops) != 1 or not ops <= set(LEAF_OPERATORS):
             raise NormError(f"{what} leaf {dict(rule)} needs exactly one operator from {sorted(LEAF_OPERATORS)}")
         (op,) = ops
-        return Compare(str(rule["attr"]), op, rule[op])
+        return Compare(str(rule["attr"]), op, copy.deepcopy(rule[op]))
     raise NormError(f"{what} rule {dict(rule)} is neither a short form nor a rule")
 
 

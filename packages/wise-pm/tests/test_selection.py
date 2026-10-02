@@ -182,6 +182,23 @@ def test_rule_form_document_is_a_copy() -> None:
     assert sel.document == {"any": [{"attr": "ft", "in": ["X"]}]}
 
 
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda values: {"attr": "ft", "in": values},
+        lambda values: {"not": {"attr": "ft", "not_in": values}},
+        lambda values: {"ft": values},
+    ],
+    ids=["rule form", "nested rule form", "short form"],
+)
+def test_changing_the_source_after_parsing_changes_nothing(log: wise.EventLog, make: Any) -> None:
+    values = ["X"]
+    nc = wise.NormConstraint("c", "L", wise.Presence("A"), applicability=make(values))
+    values.append("Y")
+    assert nc.applies_to(log.cases, log).tolist() == [T, F, F]
+    assert nc.applicability == make(["X"])
+
+
 #: Every rule 0.1.0 refused, with the class it refused them with.
 REFUSED: list[Any] = [
     ["ft"],
