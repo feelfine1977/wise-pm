@@ -171,6 +171,20 @@ snapshot writes the version as a placeholder and is unchanged.
   `wise.backlog` sits directly below `wise.prioritization` in the import
   layers. Delta on the golden dataset: none.
 
+- Recipes are parsed when the norm is built (or, for `EventLog.derive` and
+  `compute_recipe`, before the first one is computed, so a malformed recipe
+  leaves the log as it was). A where-clause without an operator is refused
+  then with `NormError`; a clause that also named an unknown event column
+  raised `LogSchemaError` when computed. Every refusal names the recipe and
+  its kind (`derived attribute 'x' (lag): ...`). An unknown event column or
+  case attribute is still refused when the recipe is computed, as before.
+  An attribute derived by a recipe is reused for an equivalent document
+  (`"activities": "A"` and `["A"]`, an omitted option and its default).
+  Every recipe computes exactly what it computed before: on the golden log
+  and on 150 random logs (naive and Europe/Berlin, events without timestamp
+  kept) every kind with every valid option, 21 745 results, are identical to
+  0.1.0. Delta on the golden dataset: none.
+
 ### Added
 
 - `wise.evaluate(constraint, log)` evaluates a constraint, or a
@@ -192,6 +206,22 @@ snapshot writes the version as a placeholder and is unchanged.
   `family`, `family_of`, `families`). A new constraint type takes one module
   with its parameter class and its `Family`, and one `register` call; scoring,
   the norm document and the norm's check then know it.
+
+- `wise.recipes`: a derived-attribute recipe is parsed into one frozen record
+  per kind (`CountRecipe`, `CountEventsRecipe`, `NuniqueRecipe`, `AggRecipe`,
+  `CvRecipe`, `LagRecipe`, `RatioRecipe`, `QuantileScaleRecipe`,
+  `IndicatorTimesRecipe`, and the new kind `column`, `ColumnRecipe`, which
+  exposes an existing case-table column as a number) by `parse_recipe`. A
+  record states what it reads (`requires()` returns the `wise.family.Inputs`
+  of activities, case attributes and event columns) and computes one value
+  per case through the log's kernel (`compute(log)`); `to_dict()` gives its
+  canonical document. `Norm.recipes` holds the records of a norm, in the
+  order of `derived_attributes`, which keeps the document form unchanged (the
+  public-API snapshot gains this property and nothing else). The norm's
+  validation and `Norm.check` ask the records and no longer read recipe keys;
+  `check` also reports the activities a recipe where-clause tests with
+  `has`/`lacks`. `wise.derive.compute_recipe`, `derived_log`, `apply_recipes`
+  and `EventLog.derive` accept records as well as documents.
 
 - `wise.selection` grows the leaf operator `regex` (the value's text searched
   with the pattern, as in the recipe where-clauses of 0.1.0; an invalid
@@ -357,6 +387,31 @@ snapshot writes the version as a placeholder and is unchanged.
   `ValueError`. Delta on the golden dataset: none (its counts are integers;
   every table is unchanged).
 
+- Fixed: C5 — recipe options were not validated: an unknown key (a typo
+  such as `activitis`) was ignored, the `lag` recipe read any `activation`
+  other than `"first"` (including `"each"`) as the last activation and any
+  `response` other than `"first_overall"` as `"first_after"`, `agg` handed any
+  string to pandas (`"describe"` failed deep inside it), and
+  `allow_negative: "false"` meant true. Each recipe is now parsed strictly
+  into its typed record (decision 0001, section 3) and the norm is refused
+  with a `NormError` that names the recipe and the key: an unknown key (the
+  allowed keys are listed), an unknown option value (`activation` is `first`
+  or `last`, `response` `first_after` or `first_overall`, `unit` a time unit
+  of `Lag`, `agg` one of the reductions of `ExposureAggregation`, `q` within
+  `[0, 1]`) and a value of the wrong type (labels must be strings, numbers
+  must be finite numbers and not text, flags booleans). Norms that relied
+  on a lenient reading must be corrected. Delta on the golden dataset: none
+  (its one recipe is valid; every table is unchanged).
+- Fixed: C16 — an `eval` recipe executed the pandas expression of a norm
+  file. Under schema version 2 an `eval` recipe is accepted only when its
+  expression is a single case-table column name (`n_events`, or a
+  back-quoted name) and is then the `column` recipe of that column (decision
+  0001, section 4); any other expression is refused when the norm is loaded,
+  with the recipe named. No expression is evaluated. The one shipped use,
+  `total_events` (`n_events`) in the BPIC'19 norm, gives the same values,
+  and both shipped norms load and round-trip byte-identically. Delta on the
+  golden dataset: none (its norm has no `eval` recipe; every table is
+  unchanged).
 - Fixed: C29 — a list value in `where=` (`ScoreResult.worst_cases`,
   `constraint_drivers`, `penalty_mass`) is a membership test, as in the
   short form of the selection grammar (decision 0001: one owner for

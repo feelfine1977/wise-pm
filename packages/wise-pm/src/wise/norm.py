@@ -45,12 +45,11 @@ from .constraints import (
     CONSTRAINT_TYPES,
     TYPE_ALIASES,
     Constraint,
-    as_labels,
     constraint_from_dict,
 )
-from .derive import validate_recipe
 from .errors import NormError
 from .family import Inputs, family_of
+from .recipes import Recipe, parse_recipe
 from .selection import LEGACY, CaseTable, Selection, parse
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -216,16 +215,26 @@ class Norm:
     derived_attributes: tuple[dict[str, Any], ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    if TYPE_CHECKING:  # pragma: no cover
+        _recipes: ClassVar[tuple[Recipe, ...]]  # set per instance in __post_init__, not a dataclass field
+
     def __post_init__(self) -> None:
         object.__setattr__(self, "constraints", tuple(self.constraints))
         object.__setattr__(self, "layers", tuple(self.layers))
         object.__setattr__(self, "views", tuple(self.views))
-        object.__setattr__(self, "derived_attributes", tuple(copy.deepcopy(dict(r)) for r in self.derived_attributes))
+        documents = tuple(self.derived_attributes)
+        object.__setattr__(self, "_recipes", tuple(parse_recipe(r) for r in documents))
+        object.__setattr__(self, "derived_attributes", tuple(copy.deepcopy(dict(r)) for r in documents))
         object.__setattr__(self, "metadata", copy.deepcopy(dict(self.metadata)))
         object.__setattr__(self, "version", str(self.version))
         self.validate()
 
     # ------------------------------------------------------------ lookups
+    @property
+    def recipes(self) -> tuple[Recipe, ...]:
+        """The derived attributes as typed records (:mod:`wise.recipes`), in the order of ``derived_attributes``."""
+        return self._recipes
+
     @property
     def constraint_ids(self) -> list[str]:
         return [c.id for c in self.constraints]
@@ -327,11 +336,10 @@ class Norm:
         if self.scoring_mode not in SCORING_MODES:
             raise NormError(f"scoring_mode must be one of {SCORING_MODES}, got {self.scoring_mode!r}")
         seen: set[str] = set()
-        for r in self.derived_attributes:
-            validate_recipe(r)
-            if r["name"] in seen:
-                raise NormError(f"duplicate derived attribute {r['name']!r}")
-            seen.add(r["name"])
+        for r in self.recipes:
+            if r.name in seen:
+                raise NormError(f"duplicate derived attribute {r.name!r}")
+            seen.add(r.name)
 
     def check(self, log: EventLog) -> list[str]:
         """Check the norm against a log. Returns human-readable issues (empty
@@ -340,17 +348,16 @@ class Norm:
         Reports activities that never occur in the log, case attributes that
         are missing (unless a recipe derives them), and event columns that a
         constraint reads but the log lacks (e.g. balance attributes). What a
-        constraint reads is stated by its family (:mod:`wise.family`).
+        constraint reads is stated by its family (:mod:`wise.family`), what a
+        recipe reads by its record (:mod:`wise.recipes`).
         """
         issues: list[str] = []
         labels = set(log.activity_labels)
-        derived = {r["name"] for r in self.derived_attributes}
-        for r in self.derived_attributes:
-            for key in ("activities", "a", "b", "after", "before"):
-                if key in r:
-                    for a in as_labels(r[key]):
-                        if a not in labels:
-                            issues.append(f"derived attribute {r['name']!r}: activity {a!r} never occurs in the log")
+        derived = {r.name for r in self.recipes}
+        for r in self.recipes:
+            for a in r.requires().activities:
+                if a not in labels:
+                    issues.append(f"derived attribute {r.name!r}: activity {a!r} never occurs in the log")
         case_columns = log.cases.columns
         event_columns = log.events.columns
         for c in self.constraints:

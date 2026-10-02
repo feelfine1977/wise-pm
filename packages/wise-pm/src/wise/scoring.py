@@ -290,7 +290,7 @@ def score(
     if mode not in SCORING_MODES:
         raise NormError(f"mode must be one of {SCORING_MODES}, got {mode!r}")
     if derive and norm.derived_attributes:
-        log = derived_log(log, norm.derived_attributes)
+        log = derived_log(log, norm.recipes)
 
     V, S = violation_matrix(log, norm, return_scope=True)
     M = V.notna().to_numpy(dtype=float)

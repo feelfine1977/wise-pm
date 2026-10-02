@@ -120,6 +120,8 @@ Norm schema version 2 supports JSON round trips and `norm.fingerprint()`.
 `score()` leaves its input log unchanged: norm-derived attributes are computed for the
 run and returned in `result.cases` and `result.log`. `EventLog.derive` attaches them to a log
 explicitly, and a recipe named like a case attribute it did not produce is refused.
+Each recipe is parsed strictly into a typed record (`wise.recipes`): an unknown key, option value or
+type is refused when the norm is built, and an `eval` recipe may only name one case-table column.
 
 ## Command line and validation
 

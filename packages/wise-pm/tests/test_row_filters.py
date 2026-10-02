@@ -100,7 +100,8 @@ def test_recipe_where_clause_accepts_the_selection_grammar(log: wise.EventLog) -
     ("where", "error", "match"),
     [
         ({"column": "nope", "in": [1]}, LogSchemaError, "unknown event column 'nope'"),
-        ({"column": "nope", "note": 1}, LogSchemaError, "unknown event column 'nope'"),
+        # a clause without an operator is refused when the recipe is parsed, before any log is seen
+        ({"column": "nope", "note": 1}, NormError, "needs one of in/not_in/regex/eq"),
         ({"in": ["A"]}, LogSchemaError, "unknown event column"),
         ({"column": "activity"}, NormError, "needs one of in/not_in/regex/eq"),
         ({"column": "activity", "regex": "("}, NormError, "regex"),
