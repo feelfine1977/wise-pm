@@ -1,7 +1,7 @@
 """Scoring defects from the ledger (C3, C10, C13) and the scoring behaviour that must stay.
 
 Regression tests pin the desired behaviour and are ``xfail(strict=True)`` until the
-fix lands; characterisation tests are plain tests that already pass.
+fix lands, then assert it; characterisation tests are plain tests that already pass.
 """
 
 import pandas as pd
@@ -26,36 +26,30 @@ def norm_with_recipe_n_gr() -> wise.Norm:
 
 # ------------------------------------------------------------------ regression
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C3a: score() adds the derived column to log.cases and appends it to log.case_attributes",
-)
+@pytest.mark.spec("IV-D")
+# C3 closed 2026-10-02: a score is a function of the log and the norm (Sec. IV-D); the derived attributes
+# are computed for the run and returned with the result, the input log is left as it was
 def test_score_leaves_log_columns_and_case_attributes_unchanged(p2p_log):
     columns_before = list(p2p_log.cases.columns)
     attributes_before = list(p2p_log.case_attributes)
 
-    wise.score(p2p_log, norm_with_recipe_n_gr())
+    result = wise.score(p2p_log, norm_with_recipe_n_gr())
 
     assert list(p2p_log.cases.columns) == columns_before
     assert list(p2p_log.case_attributes) == attributes_before
+    assert result.cases["n_gr"].tolist() == [1, 4, 1, 1, 1]
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C3b: score() silently overwrites a user case attribute that shares a recipe name",
-)
+@pytest.mark.spec("IV-D")
+# C3 closed 2026-10-02 (Sec. IV-D): a recipe that would replace a case attribute it did not produce is refused
 def test_user_case_attribute_sharing_recipe_name_is_not_silently_overwritten(p2p_log):
     p2p_log.add_case_attribute("n_gr", pd.Series(99.0, index=p2p_log.case_ids))
 
-    try:
+    with pytest.raises(NormError, match="derived attribute 'n_gr' would replace the case attribute 'n_gr'"):
         wise.score(p2p_log, norm_with_recipe_n_gr())
-    except NormError:
-        pass  # refusing the clash is the other acceptable resolution
-    else:
-        assert (p2p_log.cases["n_gr"] == 99.0).all()
+
+    assert (p2p_log.cases["n_gr"] == 99.0).all()
 
 
 @pytest.mark.regression

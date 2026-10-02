@@ -35,6 +35,7 @@ import pandas as pd
 
 from ._version import __version__
 from .constraints import Balance, Exclusion, Lag, Metric, Precedence, Presence, Singularity, in_units, sat
+from .derive import derived_log
 from .errors import NormError, NotScoredError
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
@@ -165,7 +166,8 @@ class ScoreResult:
     Attributes
     ----------
     cases
-        Case attributes (index = case id), incl. ``exposure`` if provided.
+        Case attributes (index = case id), incl. ``exposure`` if provided and
+        the norm's derived attributes.
     violations
         ``V`` matrix, NaN where not applicable or not evaluable.
     in_scope
@@ -175,7 +177,9 @@ class ScoreResult:
     contributions
         ``{view: cases × layers}`` with ``Δ_λ^(p)(σ)``.
     log
-        The scored :class:`EventLog` (for drill-down to traces).
+        The :class:`EventLog` the norm was evaluated on (for drill-down to
+        traces): the scored log itself, or, when the run derived attributes,
+        a log that shares its events and adds them.
     """
 
     norm: Norm
@@ -346,9 +350,13 @@ def score(
     mode
         ``"layer_balanced"`` or ``"flat"``; default ``norm.scoring_mode``.
     derive
-        Compute the norm's ``derived_attributes`` on the log first. A recipe
-        that was already computed on this log is reused; a changed recipe
-        is recomputed and replaces the attribute of the same name.
+        Compute the norm's ``derived_attributes`` for this run (see
+        :func:`wise.derive.derived_log`); the result carries them in
+        ``cases`` and ``log``. ``log`` itself is never changed. An attribute
+        that :meth:`EventLog.derive` attached with the same recipe is reused;
+        a recipe named like any other case attribute of ``log`` raises
+        :class:`~wise.errors.NormError`. With ``derive=False`` the attributes
+        must already be on ``log``.
     """
     norm.validate()
     views = [views] if isinstance(views, str) else list(dict.fromkeys(views or norm.view_names))
@@ -358,7 +366,7 @@ def score(
     if mode not in SCORING_MODES:
         raise NormError(f"mode must be one of {SCORING_MODES}, got {mode!r}")
     if derive and norm.derived_attributes:
-        log.derive(norm.derived_attributes, overwrite=False)
+        log = derived_log(log, norm.derived_attributes)
 
     V, S = violation_matrix(log, norm, return_scope=True)
     M = V.notna().to_numpy(dtype=float)
@@ -386,7 +394,7 @@ def score(
     scores = pd.DataFrame(np.column_stack(score_cols) if score_cols else np.empty((len(V), 0)), index=V.index, columns=views)
     return ScoreResult(
         norm=norm,
-        cases=log.cases.copy(),
+        cases=log.cases,
         violations=V,
         in_scope=S,
         scores=scores,

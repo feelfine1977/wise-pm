@@ -21,6 +21,7 @@ Column names default to the pm4py / XES conventions ``case:concept:name``,
 
 from __future__ import annotations
 
+import copy
 import warnings
 from collections.abc import Iterable, Mapping
 from typing import Any, Literal
@@ -30,12 +31,21 @@ import pandas as pd
 
 from .case_index import NAT, CaseIndex
 from .constraints import Labels, as_labels
+from .derive import apply_recipes, forget
 from .errors import LogSchemaError
 from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, UntimedEvents, check_attribute_name, parse
 
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
 _INT_MAX = np.iinfo(np.int64).max
+_PANDAS_3 = int(pd.__version__.split(".")[0]) >= 3
+
+
+def _copy(frame: pd.DataFrame) -> pd.DataFrame:
+    """A copy of ``frame`` whose changes do not reach ``frame``: shallow under
+    copy-on-write (always on from pandas 3), which copies no data until it is
+    written to; a full copy otherwise, since pandas 2 shares the data."""
+    return frame.copy(deep=not (_PANDAS_3 or pd.options.mode.copy_on_write is True))
 
 
 class EventLog:
@@ -106,6 +116,12 @@ class EventLog:
     Raises :class:`~wise.errors.LogSchemaError` for input that cannot form a
     log, among them a frame without rows, a null lifecycle transition and a
     log whose filters leave no event (see :func:`~wise.log_schema.parse`).
+
+    :attr:`events`, :attr:`cases` and :attr:`case_attributes` hand out copies
+    (copy-on-write, so no data is copied until the copy is written to): what
+    is done to them changes no later answer of the log. Only
+    :meth:`add_case_attribute` and :meth:`derive` change a log;
+    :meth:`with_case_attributes` returns a new one.
     """
 
     def __init__(
@@ -156,12 +172,12 @@ class EventLog:
         parsed = parse(events, schema)
 
         self._schema = schema
-        self.events = parsed.events
+        self._events = parsed.events
         self._index = parsed.index
-        self.cases = parsed.cases
+        self._cases = parsed.cases
         self.tz = parsed.tz
         self.case_col, self.activity_col, self.timestamp_col = schema.case_col, schema.activity_col, schema.timestamp_col
-        self.case_attributes = list(schema.case_attributes)
+        self._case_attributes = list(schema.case_attributes)
         self.exposure_col, self.order_col, self.event_id_col = schema.exposure_col, schema.order_col, schema.event_id_col
         self.n_missing_timestamps = parsed.n_missing_timestamps
         self.n_null_activities = parsed.n_null_activities
@@ -211,7 +227,7 @@ class EventLog:
 
     def to_pm4py(self) -> pd.DataFrame:
         """The events with pm4py's standard column names."""
-        return self.events.rename(
+        return self._events.rename(
             columns={self.case_col: CASE_COL, self.activity_col: ACTIVITY_COL, self.timestamp_col: TIMESTAMP_COL}
         )
 
@@ -221,9 +237,41 @@ class EventLog:
 
     def __repr__(self) -> str:
         return (
-            f"EventLog({len(self.events):,} events, {len(self):,} cases, "
-            f"{len(self._index.activity_labels)} activities, attributes={self.case_attributes})"
+            f"EventLog({len(self._events):,} events, {len(self):,} cases, "
+            f"{len(self._index.activity_labels)} activities, attributes={self._case_attributes})"
         )
+
+    @property
+    def events(self) -> pd.DataFrame:
+        """The events in the order of :attr:`case_index` (by case, timestamp and
+        order). A copy: changing it does not change the log."""
+        return _copy(self._events)
+
+    @property
+    def cases(self) -> pd.DataFrame:
+        """The case table (index = case id): ``n_events``, ``first_ts``,
+        ``last_ts``, ``exposure`` if the log has one, then the case attributes.
+        A copy: changing it does not change the log."""
+        return _copy(self._cases)
+
+    @cases.setter
+    def cases(self, table: pd.DataFrame) -> None:
+        warnings.warn(
+            "assigning EventLog.cases is deprecated and will be removed in 1.0; use EventLog.add_case_attribute "
+            "or EventLog.with_case_attributes",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if not table.index.equals(self.case_ids):
+            raise LogSchemaError("an assigned case table must have the log's case ids as its index, in the same order")
+        old, self._cases = self._cases, _copy(table)
+        forget(self, [c for c in old.columns if c not in table.columns or not table[c].equals(old[c])])
+
+    @property
+    def case_attributes(self) -> list[str]:
+        """Names of the case attributes: the schema's, then those added by
+        :meth:`add_case_attribute` and :meth:`derive`. A copy."""
+        return list(self._case_attributes)
 
     @property
     def schema(self) -> LogSchema:
@@ -255,7 +303,7 @@ class EventLog:
 
     @property
     def case_ids(self) -> pd.Index:
-        return self.cases.index
+        return self._cases.index
 
     @property
     def activity_labels(self) -> list[str]:
@@ -268,13 +316,13 @@ class EventLog:
         :meth:`observation_window`)."""
         if self.window is not None and self.window[1] is not None:
             return self.window[1]
-        return pd.Timestamp(self.events[self.timestamp_col].max())
+        return pd.Timestamp(self._events[self.timestamp_col].max())
 
     @property
     def window_start(self) -> pd.Timestamp:
         if self.window is not None and self.window[0] is not None:
             return self.window[0]
-        return pd.Timestamp(self.events[self.timestamp_col].min())
+        return pd.Timestamp(self._events[self.timestamp_col].min())
 
     def observation_window(self, q: float = 0.001) -> tuple[pd.Timestamp, pd.Timestamp]:
         """Observation window ``(start, end)``.
@@ -287,7 +335,7 @@ class EventLog:
         """
         if self.window is not None and None not in self.window:
             return self.window  # type: ignore[return-value]
-        first, last = self.cases["first_ts"].dropna(), self.cases["last_ts"].dropna()
+        first, last = self._cases["first_ts"].dropna(), self._cases["last_ts"].dropna()
         if len(last) == 0:
             return pd.NaT, pd.NaT  # type: ignore[return-value]
         if q * (len(last) - 1) < 0.5:
@@ -304,7 +352,7 @@ class EventLog:
         if self.window is not None and self.window[1] is not None:
             return self.window[1]
         end = self.observation_window(q)[1]
-        raw_max = pd.Timestamp(self.events[self.timestamp_col].max())
+        raw_max = pd.Timestamp(self._events[self.timestamp_col].max())
         if tolerance is not None and raw_max - end > tolerance:
             warnings.warn(
                 f"log ends at {raw_max} but the observation window ends at {end}; using the latter. "
@@ -449,9 +497,9 @@ class EventLog:
         Sums over empty sets are 0; other aggregations give 0 as well when
         no event matches. Non-numeric values count as 0.
         """
-        if attribute not in self.events.columns:
+        if attribute not in self._events.columns:
             raise LogSchemaError(f"event attribute {attribute!r} not in log")
-        vals = pd.to_numeric(self.events[attribute], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        vals = pd.to_numeric(self._events[attribute], errors="coerce").fillna(0.0).to_numpy(dtype=float)
         out = self._index.aggregate(vals, as_labels(activities), how=agg, empty=0.0)
         if agg != "sum":
             out[np.isnan(out)] = 0.0
@@ -459,15 +507,38 @@ class EventLog:
 
     def attribute(self, name: str) -> pd.Series:
         """Numeric case attribute from :attr:`cases`, NaN where missing."""
-        if name not in self.cases.columns:
+        if name not in self._cases.columns:
             raise LogSchemaError(
                 f"case attribute {name!r} not available; pass it via case_attributes, "
                 f"derive it with EventLog.derive, or add it with add_case_attribute"
             )
-        return pd.to_numeric(self.cases[name], errors="coerce")
+        return pd.to_numeric(self._cases[name], errors="coerce")
 
     def add_case_attribute(self, name: str, values: pd.Series | Mapping[Any, Any] | np.ndarray) -> None:
-        """Attach an engineered case-level attribute (aligned on case id)."""
+        """Attach an engineered case-level attribute (aligned on case id) to
+        this log.
+
+        Changes the log: the attribute is added to :attr:`cases`, or replaces
+        the attribute of the same name, and is appended to
+        :attr:`case_attributes`. An attribute :meth:`derive` produced counts as
+        the user's own afterwards, so :func:`~wise.score` refuses a recipe that
+        would replace it. :meth:`with_case_attributes` leaves the log alone.
+        """
+        self._attach(name, values)
+        forget(self, (name,))
+
+    def with_case_attributes(self, values: Mapping[str, pd.Series | Mapping[Any, Any] | np.ndarray]) -> EventLog:
+        """A log with ``values`` attached as case attributes (in the order
+        given, aligned as by :meth:`add_case_attribute`); this log is not
+        changed. The new log shares the events and the case index with this
+        one."""
+        out = copy.copy(self)
+        for name, column in values.items():
+            out._attach(name, column)
+        return out
+
+    def _attach(self, name: str, values: pd.Series | Mapping[Any, Any] | np.ndarray) -> None:
+        # a new case table and attribute list, so that a log sharing the old ones keeps them
         check_attribute_name(name)
         if isinstance(values, Mapping):
             values = pd.Series(values)
@@ -480,26 +551,35 @@ class EventLog:
             if len(arr) != len(self):
                 raise LogSchemaError(f"values for {name!r} must have one entry per case ({len(self)})")
             aligned = pd.Series(arr, index=self.case_ids)
-        self.cases[name] = aligned
-        if name not in self.case_attributes:
-            self.case_attributes.append(name)
+        cases = self._cases.copy(deep=False)
+        cases[name] = aligned
+        self._cases = cases
+        if name not in self._case_attributes:
+            self._case_attributes = [*self._case_attributes, name]
 
     def derive(self, recipes: Iterable[Mapping[str, Any]], *, overwrite: bool = True) -> list[str]:
         """Compute derived case attributes from declarative recipes (see
-        :mod:`wise.derive`) and attach them. Returns the attribute names."""
-        from .derive import apply_recipes
+        :mod:`wise.derive`) and attach them to this log, as
+        :meth:`add_case_attribute` does. Returns the attribute names.
 
+        Changes the log. The log records which recipe produced each attribute:
+        with ``overwrite=False`` an attribute produced by the same recipe is
+        kept, and :func:`~wise.score` reuses it instead of computing it again.
+        :func:`~wise.score` itself never calls this method; it computes the
+        norm's attributes for the run and leaves the log alone.
+        """
         return apply_recipes(self, recipes, overwrite=overwrite)
 
     def trace(self, case_id: Any) -> pd.DataFrame:
-        """Events of one case in timestamp order (for drill-down)."""
+        """Events of one case in timestamp order (for drill-down). A copy, as
+        :attr:`events` is."""
         pos = self.case_ids.get_loc(case_id)
         if not isinstance(pos, int | np.integer):
             raise LogSchemaError(f"case id {case_id!r} is not unique")
         i = int(pos)
         start = int(self._starts[i])
-        n = int(self.cases["n_events"].to_numpy()[i])
-        return self.events.iloc[start : start + n]
+        n = int(self._cases["n_events"].to_numpy()[i])
+        return _copy(self._events.iloc[start : start + n])
 
     # ------------------------------------------------------------------ validation
     def validate(self, q: float = 0.001) -> pd.Series:
@@ -513,12 +593,12 @@ class EventLog:
         Nothing here raises; read it before trusting a score.
         """
         start, end = self.observation_window(q)
-        ts = self.events[self.timestamp_col]
+        ts = self._events[self.timestamp_col]
         outliers = int(((ts < start) | (ts > end)).sum())
         tied = self._index.tied()
         cases_with_ties = len(np.unique(self._codes[tied]))
         report: dict[str, Any] = {
-            "n_events": len(self.events),
+            "n_events": len(self._events),
             "n_cases": len(self),
             "n_activities": len(self._index.activity_labels),
             "window_start": start,
@@ -532,6 +612,6 @@ class EventLog:
         }
         for attr, n_var in self._varying.items():
             report[f"varying_within_case[{attr}]"] = n_var
-        if "exposure" in self.cases.columns:
-            report["zero_exposure_cases"] = int((self.cases["exposure"] == 0).sum())
+        if "exposure" in self._cases.columns:
+            report["zero_exposure_cases"] = int((self._cases["exposure"] == 0).sum())
         return pd.Series(report, name="log_validation")

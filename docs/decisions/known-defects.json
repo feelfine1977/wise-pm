@@ -26,11 +26,12 @@
       "id": "C3",
       "title": "score() mutates the input log and overwrites a same-named user attribute",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C4",

@@ -54,6 +54,39 @@ snapshot writes the version as a placeholder and is unchanged.
   attribute attached later with `add_case_attribute` or `derive` whose name is
   also an event column is no longer compared with that column. Delta on the
   golden dataset: none.
+- `score()` no longer writes into the log it is given. The norm's derived
+  attributes are computed for the run (`wise.derive.derived_log`) and
+  returned with the result: `ScoreResult.cases` holds them, and
+  `ScoreResult.log` is the log the norm was evaluated on, i.e. the scored log
+  itself when nothing had to be derived, otherwise a new log that shares its
+  events and case index and adds the derived attributes. Afterwards the scored log's
+  case table, attribute list and recipe record are as they were. An attribute
+  attached with `EventLog.derive` by the same recipe is still reused, and
+  attributes computed by a run are remembered for that log until its case
+  table changes, so scoring twice computes them once. A recipe named like a
+  case attribute it did not produce is refused (see `Fixed: C3`).
+  `EventLog.derive` and `EventLog.add_case_attribute` still change the log they
+  are called on; their docstrings say so. An attribute that `add_case_attribute`
+  replaces no longer counts as produced by a recipe.
+- `EventLog.events`, `EventLog.cases` and `EventLog.case_attributes` are now
+  properties that hand out a copy (for the two frames a shallow copy under
+  copy-on-write, always on from pandas 3, so no data is copied until it is
+  written to; a full copy on pandas 2 without copy-on-write, which would share
+  the data otherwise); `EventLog.trace` hands out a copy the same way; `events` and
+  `case_attributes` cannot be assigned, assigning `cases` is deprecated.
+  Writing into a frame obtained from a log, adding a column to it or
+  appending to the attribute list no longer changes the log's later answers
+  (the event-log side of C7; the entry stays open for the norm objects).
+  Code that added an event column through `log.events[...] = ...` or a case
+  column through `log.cases[...] = ...` must build the column into the input
+  frame, call `add_case_attribute`, or use `with_case_attributes`.
+  `log.events = ...` raises `AttributeError`. `add_case_attribute` gives the
+  log a new case table instead of writing into the old one, so a
+  `copy.copy` of a log no longer shares added attributes with the original.
+  Cost on the 1.6 M-event benchmark: within run-to-run noise (build 1.79 → 1.80 s,
+  score 1.12 → 1.07 s, total 3.99 → 4.10 s, peak 0.3197 → 0.3198 GB; medians of three runs, pandas 3);
+  on pandas 2.3.3 with full copies also within noise (score 2.03 and 2.66 s → 2.25 and 2.21 s in two
+  runs each, peak 0.4678 → 0.4698 GB).
 
 ### Added
 
@@ -70,6 +103,12 @@ snapshot writes the version as a placeholder and is unchanged.
   `EventLog.to_timestamp(value)` converts a value to a timestamp comparable
   with the log's (naive values are localised to the log's time zone, aware
   values become naive UTC on a naive log, `None` stays `None`).
+
+- `EventLog.with_case_attributes(values)` returns a new log with the given
+  case attributes attached; the log it is called on is not changed, and the
+  two share their events and case index. `wise.derive.derived_log(log,
+  recipes)` returns the log a norm is evaluated on, with the recipes'
+  attributes added the same way.
 
 - `wise.LogSchema`, `wise.parse` and `wise.ParsedLog` (module
   `wise.log_schema`): building a log is separate from querying it. A frozen
@@ -174,6 +213,10 @@ snapshot writes the version as a placeholder and is unchanged.
   `EventLog.to_timestamp`; it is removed in 1.0. The arrays `EventLog._codes`,
   `_ts`, `_valid` and `_starts` remain readable, but are now read-only views
   of the case index.
+- Assigning `EventLog.cases` emits a `DeprecationWarning` (removed in 1.0;
+  use `add_case_attribute` or `with_case_attributes`). The assigned table
+  must have the log's case ids as its index, in order, or a `LogSchemaError`
+  is raised. The log keeps a copy of it.
 
 ### Fixed
 
@@ -210,6 +253,15 @@ snapshot writes the version as a placeholder and is unchanged.
   primitive, in the schema (`UntimedEvents`) and in the table of
   `docs/semantics/log-policies.md`, which a test checks against the kernel
   row by row. Delta on the golden dataset: none.
+- Fixed: C3 — `score()` left the derived attributes in the input log's case
+  table and attribute list, and silently overwrote a user case attribute of
+  the same name as a recipe. A score is a function of the log and the norm
+  (Sec. IV-D): the log is now left as it was, and a recipe named like a case
+  attribute that the same recipe did not produce (a user attribute, a built-in
+  column such as `n_events`, or an attribute derived by a different recipe)
+  is refused with a `NormError` naming the attribute. Delta on the golden
+  dataset: none (its recipe `manual_touches` clashes with no case attribute;
+  every table is unchanged).
 - Fixed: C26 — `prioritize()` refuses `baseline=NaN` (and any non-finite baseline) with a `NormError` instead of returning null gaps and priorities. Delta on the golden dataset: none (the input was refused; every valid number is unchanged).
 - Fixed: C27 — `prioritize()` refuses a negative or non-finite `z`; a negative multiplier turned `PI_lower` into an upper bound. Delta on the golden dataset: none.
 - Fixed: C28 — `prioritize()` refuses a fractional, negative or non-finite `min_cases` instead of truncating it (an integral float such as `5.0` is still accepted). Delta on the golden dataset: none.
