@@ -38,6 +38,14 @@ from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, check_
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
 _INT_MAX = np.iinfo(np.int64).max
+_PANDAS_3 = int(pd.__version__.split(".")[0]) >= 3
+
+
+def _copy(frame: pd.DataFrame) -> pd.DataFrame:
+    """A copy of ``frame`` whose changes do not reach ``frame``: shallow under
+    copy-on-write (always on from pandas 3), which copies no data until it is
+    written to; a full copy otherwise, since pandas 2 shares the data."""
+    return frame.copy(deep=not (_PANDAS_3 or pd.options.mode.copy_on_write is True))
 
 
 class EventLog:
@@ -233,14 +241,14 @@ class EventLog:
     def events(self) -> pd.DataFrame:
         """The events in the order of :attr:`case_index` (by case, timestamp and
         order). A copy: changing it does not change the log."""
-        return self._events.copy(deep=False)
+        return _copy(self._events)
 
     @property
     def cases(self) -> pd.DataFrame:
         """The case table (index = case id): ``n_events``, ``first_ts``,
         ``last_ts``, ``exposure`` if the log has one, then the case attributes.
         A copy: changing it does not change the log."""
-        return self._cases.copy(deep=False)
+        return _copy(self._cases)
 
     @cases.setter
     def cases(self, table: pd.DataFrame) -> None:
@@ -252,7 +260,7 @@ class EventLog:
         )
         if not table.index.equals(self.case_ids):
             raise LogSchemaError("an assigned case table must have the log's case ids as its index, in the same order")
-        old, self._cases = self._cases, table.copy(deep=False)
+        old, self._cases = self._cases, _copy(table)
         forget(self, [c for c in old.columns if c not in table.columns or not table[c].equals(old[c])])
 
     @property
@@ -553,14 +561,15 @@ class EventLog:
         return apply_recipes(self, recipes, overwrite=overwrite)
 
     def trace(self, case_id: Any) -> pd.DataFrame:
-        """Events of one case in timestamp order (for drill-down)."""
+        """Events of one case in timestamp order (for drill-down). A copy, as
+        :attr:`events` is."""
         pos = self.case_ids.get_loc(case_id)
         if not isinstance(pos, int | np.integer):
             raise LogSchemaError(f"case id {case_id!r} is not unique")
         i = int(pos)
         start = int(self._starts[i])
         n = int(self._cases["n_events"].to_numpy()[i])
-        return self._events.iloc[start : start + n]
+        return _copy(self._events.iloc[start : start + n])
 
     # ------------------------------------------------------------------ validation
     def validate(self, q: float = 0.001) -> pd.Series:

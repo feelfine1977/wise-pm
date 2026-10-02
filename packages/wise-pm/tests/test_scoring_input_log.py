@@ -181,6 +181,8 @@ def test_changing_the_event_frame_handed_out_changes_no_answer_of_the_log() -> N
     handed["amount"] = 1e6
     handed["extra"] = 1
     handed.index.name = "renamed"
+    trace = log.trace("B")
+    trace.loc[trace.index[0], "activity"] = "tampered"
 
     pd.testing.assert_frame_equal(log.events, events, check_exact=True)
     assert log.count(GR).tolist() == counts

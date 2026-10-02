@@ -64,8 +64,10 @@ snapshot writes the version as a placeholder and is unchanged.
   are called on; their docstrings say so. An attribute that `add_case_attribute`
   replaces no longer counts as produced by a recipe.
 - `EventLog.events`, `EventLog.cases` and `EventLog.case_attributes` are now
-  properties that hand out a copy (for the two frames a pandas copy-on-write
-  shallow copy, so no data is copied until it is written to); `events` and
+  properties that hand out a copy (for the two frames a shallow copy under
+  copy-on-write, always on from pandas 3, so no data is copied until it is
+  written to; a full copy on pandas 2 without copy-on-write, which would share
+  the data otherwise); `EventLog.trace` hands out a copy the same way; `events` and
   `case_attributes` cannot be assigned, assigning `cases` is deprecated.
   Writing into a frame obtained from a log, adding a column to it or
   appending to the attribute list no longer changes the log's later answers
@@ -77,7 +79,9 @@ snapshot writes the version as a placeholder and is unchanged.
   log a new case table instead of writing into the old one, so a
   `copy.copy` of a log no longer shares added attributes with the original.
   Cost on the 1.6 M-event benchmark: within run-to-run noise (build 1.79 → 1.80 s,
-  score 1.12 → 1.07 s, total 3.99 → 4.10 s, peak 0.3197 → 0.3198 GB; medians of three runs).
+  score 1.12 → 1.07 s, total 3.99 → 4.10 s, peak 0.3197 → 0.3198 GB; medians of three runs, pandas 3);
+  on pandas 2.3.3 with full copies also within noise (score 2.03 and 2.66 s → 2.25 and 2.21 s in two
+  runs each, peak 0.4678 → 0.4698 GB).
 
 ### Added
 
