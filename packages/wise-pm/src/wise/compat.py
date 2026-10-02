@@ -87,7 +87,8 @@ PATHS: Mapping[str, CompatPath] = MappingProxyType(
             "deprecated",
             "wise.prioritize(...).table and .spec",
             ("wise.compat.prioritize", "the returned Backlog used as a DataFrame"),
-            "wise.prioritize returns a Backlog record; wise.compat.prioritize returns the 0.1.0 DataFrame with its attrs",
+            "wise.prioritize returns a Backlog record; wise.compat.prioritize returns the 0.1.0 DataFrame with its attrs "
+            "(view as passed); the record used as a DataFrame has the attrs of its spec (view as resolved)",
         ),
         "wise.norm.Norm.from_dict": CompatPath(
             "deprecated",
@@ -184,22 +185,25 @@ def prioritize(
     as_index: bool = True,
 ) -> pd.DataFrame:
     """:func:`wise.prioritize` returning the 0.1.0 DataFrame: the record's table
-    with the ranking parameters in ``DataFrame.attrs`` (``view``, ``gamma``,
-    ``baseline`` = the realised global mean, ``volume``, ``by``). Deprecated."""
+    with the ranking parameters in ``DataFrame.attrs`` (``view`` as passed, as in
+    0.1.0, ``gamma``, ``baseline`` = the realised global mean, ``volume``, ``by``).
+    Deprecated."""
     _deprecated("wise.prioritization.prioritize", "wise.prioritize")
     backlog = _prioritize(data, by, view, gamma, volume, min_cases, z, score_col, baseline, as_index)
-    return legacy_frame(backlog)
+    frame = legacy_frame(backlog)
+    frame.attrs["view"] = view
+    return frame
 
 
-def norm_from_dict(document: Mapping[str, Any]) -> Norm:
+def norm_from_dict(d: Mapping[str, Any]) -> Norm:
     """:meth:`wise.Norm.from_dict` reading a document without ``schema_version`` as
     schema version 2, as 0.1.0 did. A document that states its version is read as
     it is. Deprecated; a schema version 2 norm also announces its legacy semantics
     with a :class:`~wise.LegacySemanticsWarning`."""
     _deprecated("wise.norm.Norm.from_dict", "wise.Norm.from_dict")
-    if "schema_version" not in document:
-        document = {**document, "schema_version": LEGACY_DEFAULT_SCHEMA_VERSION}
-    return Norm.from_dict(document)
+    if "schema_version" not in d:
+        d = {**d, "schema_version": LEGACY_DEFAULT_SCHEMA_VERSION}
+    return Norm.from_dict(d)
 
 
 def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:

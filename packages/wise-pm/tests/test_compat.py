@@ -25,7 +25,7 @@ import pytest
 import wise
 import wise.compat
 import wise.norm
-from _support.api_shapes import Shape, canonical, compatible, shapes
+from _support.api_shapes import Shape, _signature, canonical, compatible, shapes
 from _support.consumer_usage import BASELINE, DATA, RECORD, Usage, member_names, scan
 from wise.compat import PATHS
 from wise.log import EventLog
@@ -76,6 +76,32 @@ def _prioritize() -> None:
     column = _warned_once(lambda: legacy["stable_PI"], "Backlog.table")
     pd.testing.assert_series_equal(column, backlog.table["stable_PI"], check_exact=True)
     assert _warned_once(lambda: legacy.attrs, "Backlog.spec") == frame.attrs
+
+
+def test_the_0_1_0_frame_carries_the_view_as_it_was_passed() -> None:
+    # 0.1.0 resolved the view only to read the scores; its attrs held the argument unchanged
+    result = wise.score(wise.running_p2p_log(), wise.running_p2p_norm())
+    scored = result.cases.join(result.scores)
+    with pytest.warns(DeprecationWarning, match="wise.prioritize"):
+        frame = wise.compat.prioritize(scored, "company", view="Finance", score_col="Finance")
+    assert frame.attrs["view"] == "Finance"
+    document = wise.running_p2p_norm().to_dict()
+    document["views"] = document["views"][:1]
+    with pytest.warns(wise.LegacySemanticsWarning):
+        single = wise.Norm.from_dict(document)
+    with pytest.warns(DeprecationWarning, match="wise.prioritize"):
+        frame = wise.compat.prioritize(wise.score(wise.running_p2p_log(), single), "company")
+    assert frame.attrs["view"] is None
+
+
+def test_the_served_functions_take_the_0_1_0_arguments() -> None:
+    for name, served in [
+        ("wise.prioritization.prioritize", "prioritize"),
+        ("wise.norm.Norm.from_dict", "norm_from_dict"),
+        ("wise.norm._rule_attributes", "_rule_attributes"),
+    ]:
+        params = _signature(getattr(wise.compat, served))["params"]
+        assert [p[:3] for p in params] == [p[:3] for p in OLD[name]["params"]], name
 
 
 def _norm_from_dict() -> None:
