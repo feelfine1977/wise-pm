@@ -71,16 +71,21 @@ MISSING_KEY = "(missing)"
 
 
 def _label_missing(df: pd.DataFrame, by: Sequence[str]) -> tuple[pd.DataFrame, bool]:
-    """``df`` with every missing value of a slice key replaced by :data:`MISSING_KEY`, and whether any was.
+    """``df`` with every missing value of a slice key replaced by :data:`MISSING_KEY`, and whether a key holds the label.
 
     A categorical key gains the label as its last category; another key column becomes ``object``
     unless it holds strings. A key that already has the value :data:`MISSING_KEY` next to missing
-    values is refused, since the two slices could not be told apart.
+    values is refused, since the two slices could not be told apart. A key labelled before (from
+    :func:`case_slices`) counts as labelled when it mixes the label with non-string values, which
+    only the key-function sort can order; a string key holding the value is sorted as before.
     """
     labelled: dict[str, pd.Series] = {}
+    relabelled = False
     for col in by:
         values = df[col]
         if not values.isna().any():
+            if values.dtype == object and (values == MISSING_KEY).any():
+                relabelled |= not all(isinstance(v, str) for v in values)
             continue
         categorical = isinstance(values.dtype, pd.CategoricalDtype)
         if (MISSING_KEY in values.cat.categories) if categorical else (values == MISSING_KEY).any():
@@ -90,7 +95,7 @@ def _label_missing(df: pd.DataFrame, by: Sequence[str]) -> tuple[pd.DataFrame, b
         else:
             base = values if pd.api.types.is_string_dtype(values.dtype) else values.astype(object)
             labelled[col] = base.where(values.notna(), MISSING_KEY)
-    return (df.assign(**labelled), True) if labelled else (df, False)
+    return (df.assign(**labelled), True) if labelled else (df, relabelled)
 
 
 def _missing_last(level: pd.Index) -> pd.Index:

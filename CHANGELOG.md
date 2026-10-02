@@ -200,7 +200,9 @@ snapshot writes the version as a placeholder and is unchanged.
 - `wise.case_slices(data, by, view=None, score_col="score")`: the slice each
   case falls in, as `prioritize` forms it (missing keys labelled), and its
   score, one row per case indexed like the cases; `by` may be a backlog
-  record, whose keys, view and score column are used. `wise.MISSING_KEY`.
+  record, whose keys, view and score column are used; its frame can be
+  ranked again, also when a numeric key mixes numbers and the label.
+  `wise.MISSING_KEY`.
   The contract snapshot gains these two names.
 - `wise.evaluate(constraint, log)` evaluates a constraint, or a
   `NormConstraint` with its applicability, on every case and returns a

@@ -245,3 +245,34 @@ def test_case_slices_gives_each_case_its_slice_and_score(p2p_result):
     assert slices["slice"].tolist() == ["a", "(missing)"]
     assert slices["s"].iloc[0] == 0.5
     assert pd.isna(slices["s"].iloc[1])
+
+
+@pytest.mark.spec("IV-E")
+def test_case_slices_with_a_numeric_key_can_be_ranked_again(p2p_result):
+    # the labelled numeric key mixes numbers and the label; ranking it again must order it as prioritize did
+    df = pd.DataFrame({"slice": [2, None, 1], "score": [0.5] * 3})
+    slices = wise.case_slices(df, "slice")
+    assert wise.prioritize(slices, "slice").table.index.tolist() == [1.0, 2.0, wise.MISSING_KEY]
+
+
+@pytest.mark.spec("IV-E")
+def test_diagnostics_label_a_missing_numeric_key(p2p_log, p2p_norm):
+    events = p2p_log.events
+    events["plant"] = events["case"].map({"A": 1, "B": 2, "C": 1, "D": 2})
+    log = wise.EventLog(
+        events,
+        case_col="case",
+        activity_col="activity",
+        timestamp_col="time",
+        case_attributes=["company", "vendor", "flow_type", "plant"],
+    )
+    result = wise.score(log, p2p_norm)
+    # Finance scores: A 0.6625 and C 0.87 (plant 1), B 29/30 and D 0.9 (plant 2), E 0.15 (no plant);
+    # excluding A keeps E in the missing slice, re-ranked against the same baseline: its gap is retained whole
+    retained = wise.gap_retained(result, "Finance", "plant", exclude=pd.Series({"A": True}))
+    assert retained.index.tolist() == [wise.MISSING_KEY, 1.0, 2.0]
+    assert retained["n_kept"].tolist() == [1, 1, 2]
+    assert retained.loc[wise.MISSING_KEY, "retained"] == 1.0
+    table = wise.validation_table(result, "Finance", "plant", censored=pd.Series({"A": True}))
+    assert table.loc[wise.MISSING_KEY, "censored_share"] == 0.0
+    assert table.loc[1.0, "censored_share"] == 0.5
