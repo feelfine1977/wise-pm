@@ -242,8 +242,10 @@ def test_replace_and_its_variants_keep_the_schema_version() -> None:
 
 
 @pytest.mark.spec("decision:0001/4")
-@pytest.mark.parametrize("value", [0, 3, True, "2", None])
+@pytest.mark.parametrize("value", [0, 3, True, "2", None, 2.0, 1.0, np.int64(2)])
 def test_the_constructor_refuses_an_unknown_schema_version(p2p_norm: wise.Norm, value: Any) -> None:
+    """Only a plain ``int`` is a schema version: a float such as ``2.0`` would be written as ``2.0``, which no
+    reader accepts."""
     with pytest.raises(NormError, match=r"schema_version must be one of \[1, 2\]"):
         wise.Norm(p2p_norm.constraints, p2p_norm.layers, p2p_norm.views, schema_version=value)
 

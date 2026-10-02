@@ -512,7 +512,7 @@ def _check_structure(norm: Norm) -> None:
             raise NormError(f"view {v.name!r}: all constraint weights are zero")
     if norm.scoring_mode not in SCORING_MODES:
         raise NormError(f"scoring_mode must be one of {SCORING_MODES}, got {norm.scoring_mode!r}")
-    if isinstance(norm.schema_version, bool) or norm.schema_version not in SCHEMA_VERSIONS:
+    if type(norm.schema_version) is not int or norm.schema_version not in SCHEMA_VERSIONS:
         raise NormError(f"schema_version must be one of {list(SCHEMA_VERSIONS)}, got {norm.schema_version!r}")
     seen: set[str] = set()
     for r in norm.recipes:
