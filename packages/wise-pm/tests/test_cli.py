@@ -112,7 +112,9 @@ def test_migrate_never_overwrites_its_input(tmp_path, capsys, monkeypatch):
     link = tmp_path / "link.json"
     link.symlink_to(source)
     monkeypatch.chdir(tmp_path)
-    for out in (str(source), "norm.json", "./norm.json", str(link)):
+    hard = tmp_path / "hard.json"
+    hard.hardlink_to(source)
+    for out in (str(source), "norm.json", "./norm.json", str(link), str(hard)):
         assert main(["migrate", str(source), "--out", out]) == 1
         assert "error: migrate does not overwrite its input" in capsys.readouterr().err
     assert source.read_bytes() == before

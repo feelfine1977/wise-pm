@@ -136,7 +136,7 @@ def _run(args: argparse.Namespace) -> int:
 
 def _migrate(source: Path, out: Path | None) -> int:
     target = out if out is not None else source.with_name(f"{source.stem}_v3{source.suffix or '.json'}")
-    if target.resolve() == source.resolve():
+    if target.resolve() == source.resolve() or (target.exists() and target.samefile(source)):
         raise WiseError(f"migrate does not overwrite its input {str(source)!r}; give another path with --out")
     migration = migrate(load_document(source))
     target.write_text(migration.dumps() + "\n", encoding="utf-8")
