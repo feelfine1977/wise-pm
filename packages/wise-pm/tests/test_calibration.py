@@ -169,12 +169,15 @@ def test_a_norm_without_population_dependent_recipes_is_returned_as_it_is(log: w
 
 
 def test_a_recipe_on_a_scaled_attribute_is_fitted_on_the_values_of_the_fitted_record(log: wise.EventLog) -> None:
-    # halved: n_events / 8 clipped -> A .5, B .875, C .5, D .5, E .25; its maximum is .875
-    halved = {"name": "halved", "kind": "quantile_scale", "attribute": "n_events", "q": 1.0}
-    again = {"name": "again", "kind": "quantile_scale", "attribute": "halved", "q": 1.0}
-    norm = wise.running_p2p_norm().replace(derived_attributes=(halved, again))
-    fitted = wise.fit_calibration(norm, log)
-    assert [r.calibration.divisor for r in fitted.recipes] == [7.0, 1.0]  # type: ignore[attr-defined]
+    # fitted on all cases, scaled is n_events / 4 clipped: A 1, B 1, C 1, D 1, E .5, so the median of scaled is 1;
+    # with the record fitted on B and E (divisor 4.5) scaled would be 8/9, 1, 8/9, 8/9, 4/9, whose median is 8/9
+    again = {"name": "again", "kind": "quantile_scale", "attribute": "scaled", "q": 0.5}
+    norm = wise.running_p2p_norm().replace(derived_attributes=(SCALED, again))
+    on_sub = wise.fit_calibration(norm, _cases(log, ["B", "E"]))
+    assert on_sub.recipes[0].calibration.divisor == 4.5  # type: ignore[attr-defined]
+    for start in (norm, on_sub):
+        fitted = wise.fit_calibration(start, log)
+        assert [r.calibration.divisor for r in fitted.recipes] == [4.0, 1.0]  # type: ignore[attr-defined]
 
 
 def test_no_shipped_norm_carries_a_fitted_divisor() -> None:
