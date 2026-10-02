@@ -35,6 +35,12 @@ snapshot writes the version as a placeholder and is unchanged.
   dependency audit, and a tag-driven release workflow that refuses a tag whose
   version disagrees with the package, `CITATION.cff` or this changelog.
 - New optional extra `io` (pyarrow) for parquet input.
+- Derived-attribute recipes and the diagnostics compute through the public
+  interface of the event log and its case index only; their results are
+  unchanged. The record of which recipe produced a derived attribute, used to
+  reuse an unchanged recipe, moved from the private `EventLog._recipe_cache`
+  into `wise.derive`; reuse behaves as before. `wise.observation_window` is
+  documented as an alias of `EventLog.observation_window`.
 
 ### Added
 
