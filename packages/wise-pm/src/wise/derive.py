@@ -59,7 +59,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from .constraints import _UNITS, as_labels
+from .constraints import TIME_UNITS, as_labels
 from .errors import LogSchemaError, NormError
 from .families import lag as lag_family
 from .selection import LEGACY, EventTable, parse_recipe_where
@@ -152,7 +152,7 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
         return per_case((std / mean.abs().clip(lower=eps)).to_numpy(dtype=float))
     if kind == "lag":
         unit = str(recipe.get("unit", "D"))
-        if unit not in _UNITS:
+        if unit not in TIME_UNITS:
             raise NormError(f"derived attribute {recipe['name']!r}: unknown unit {unit!r}")
         # as in 0.1.0, any activation other than "first" is the last a, any response other than "first_overall" the first b after it
         pairing = lag_family.pairs(

@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from ..constraints import _UNITS, Activities, Lag, in_units, sat
+from ..constraints import TIME_UNITS, Activities, Lag, in_units, sat
 from ..errors import NormError
 from ..family import CENSORED, MISSING_ACTIVATION, MISSING_RESPONSE, Evaluation, Family, Inputs
 
@@ -86,7 +86,7 @@ def pairs(
         raise NormError(f"lag: activation must be 'first', 'last' or 'each', got {activation!r}")
     if response not in ("first_after", "first_overall"):
         raise NormError(f"lag: response must be 'first_after' or 'first_overall', got {response!r}")
-    if unit not in _UNITS:
+    if unit not in TIME_UNITS:
         raise NormError(f"lag: unknown unit {unit!r}")
     if activation == "each":
         if response != "first_after":
