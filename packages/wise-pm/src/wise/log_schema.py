@@ -11,7 +11,14 @@ from the data. :func:`parse` turns an event frame and a schema into a
 Input that cannot form a log is refused with a :class:`~wise.errors.LogSchemaError`
 that names the problem: a missing column, a frame without rows, a null case id,
 a null lifecycle transition, unparseable timestamps under the ``"raise"``
-policy, negative exposure, and a log whose filters leave no event.
+policy, negative exposure, a log whose filters leave no event, and case
+attributes that vary within a case under the ``"strict"`` policy.
+
+Two rules of the method's input are stated here once, as policies: what an
+event without a timestamp contributes to each primitive
+(:class:`UntimedEvents`; the table is in ``docs/semantics/log-policies.md``),
+and how one value per case is taken from a case attribute recorded on events
+(:class:`CaseAttributeValues`).
 """
 
 from __future__ import annotations
@@ -19,9 +26,10 @@ from __future__ import annotations
 import hashlib
 import json
 import warnings
-from collections.abc import Iterable
-from dataclasses import dataclass, fields
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field, fields
 from enum import Enum
+from types import MappingProxyType
 from typing import Any, Literal, TypeVar, cast
 
 import numpy as np
@@ -57,8 +65,31 @@ class MissingTimestamps(str, Enum):
     DROP = "drop"
     """Remove those events; a case that loses all its events is not a case."""
     KEEP = "keep"
-    """Keep them without a timestamp; they count for presence, exclusion and
-    singularity, never define a lag and are ignored by time-scoped counts."""
+    """Keep them without a timestamp; what they contribute to each primitive
+    is the rule of :class:`UntimedEvents`."""
+
+
+class UntimedEvents(str, Enum):
+    """What an event kept without a timestamp contributes to the primitives.
+
+    Under both values such an event never defines a time: it is ignored by
+    first and last timestamps, lags, time-scoped counts (``count_scoped`` with
+    ``after`` or ``before``, ``count_before``, ``count_after``), the case's
+    ``first_ts``/``last_ts`` and the observation window; it never ties with
+    another event and sorts last in its case. It is counted by
+    ``EventLog.count`` (and so by presence, exclusion and singularity without
+    a scope), by totals and aggregates, ``n_events`` and exposure. The values
+    differ in one primitive only, ``EventLog.count_scoped`` without a scope,
+    which the ``count`` recipe uses.
+    """
+
+    LEGACY = "legacy"
+    """The 0.1.0 rule (default): ``count_scoped`` ignores untimed events even
+    without a scope, so a ``count`` recipe can disagree with a presence
+    constraint on the same activity."""
+    UNIFORM = "uniform"
+    """One rule for every primitive: an untimed event counts wherever no time
+    is compared, so ``count_scoped`` without a scope equals ``count``."""
 
 
 class Duplicates(str, Enum):
@@ -119,8 +150,13 @@ class CaseAttributeValues(str, Enum):
     """How the value of a case attribute is taken from the events of a case."""
 
     FIRST_NON_NULL = "first_non_null"
-    """The first non-null value in event order (default); variation within a
-    case is reported by :meth:`EventLog.validate <wise.log.EventLog.validate>`."""
+    """The first non-null value in event order (default). The attributes that
+    vary within a case are recorded with their number of cases
+    (:attr:`ParsedLog.varying_case_attributes`) and reported by
+    :meth:`EventLog.validate <wise.log.EventLog.validate>`."""
+    STRICT = "strict"
+    """The single non-null value of the case; a log in which an attribute
+    takes two values within one case is refused with the attributes named."""
 
 
 _E = TypeVar("_E", bound=Enum)
@@ -161,7 +197,8 @@ class LogSchema:
         ``time_zone`` (:class:`TimeZone`, default ``'as_parsed'``);
         ``date_order`` (:class:`DateOrder`, default ``'month_first'``);
         ``exposure_agg`` (:class:`ExposureAggregation`, default ``'max'``);
-        ``case_attribute_values`` (:class:`CaseAttributeValues`, default ``'first_non_null'``).
+        ``case_attribute_values`` (:class:`CaseAttributeValues`, default ``'first_non_null'``);
+        ``untimed_events`` (:class:`UntimedEvents`, default ``'legacy'``).
 
     A policy may be given as its enum member or its value. Column lists accept
     a bare string; transitions are stored lower-cased, sorted and without
@@ -186,6 +223,7 @@ class LogSchema:
     date_order: DateOrder = DateOrder.MONTH_FIRST
     exposure_agg: ExposureAggregation = ExposureAggregation.MAX
     case_attribute_values: CaseAttributeValues = CaseAttributeValues.FIRST_NON_NULL
+    untimed_events: UntimedEvents = UntimedEvents.LEGACY
 
     def __init__(
         self,
@@ -206,7 +244,8 @@ class LogSchema:
         time_zone: TimeZone | Literal["as_parsed", "utc"] = TimeZone.AS_PARSED,
         date_order: DateOrder | Literal["month_first", "day_first"] = DateOrder.MONTH_FIRST,
         exposure_agg: ExposureAggregation | str = ExposureAggregation.MAX,
-        case_attribute_values: CaseAttributeValues | Literal["first_non_null"] = CaseAttributeValues.FIRST_NON_NULL,
+        case_attribute_values: CaseAttributeValues | Literal["first_non_null", "strict"] = CaseAttributeValues.FIRST_NON_NULL,
+        untimed_events: UntimedEvents | Literal["legacy", "uniform"] = UntimedEvents.LEGACY,
     ) -> None:
         attributes = tuple(as_list(case_attributes))
         for attr in attributes:
@@ -229,6 +268,7 @@ class LogSchema:
         set_(self, "date_order", _policy("date_order", DateOrder, date_order))
         set_(self, "exposure_agg", _policy("exposure_agg", ExposureAggregation, exposure_agg))
         set_(self, "case_attribute_values", _policy("case_attribute_values", CaseAttributeValues, case_attribute_values))
+        set_(self, "untimed_events", _policy("untimed_events", UntimedEvents, untimed_events))
 
     @classmethod
     def from_options(
@@ -296,7 +336,10 @@ class LogSchema:
 class ParsedLog:
     """What :func:`parse` builds: the events sorted by ``(case, timestamp, order)``,
     the case index over them, and the case table (``n_events``, ``first_ts``,
-    ``last_ts``, the case attributes and ``exposure``) indexed by case id."""
+    ``last_ts``, the case attributes and ``exposure``) indexed by case id.
+    ``varying_case_attributes`` maps each case attribute that takes more than
+    one non-null value within a case to the number of such cases (read-only,
+    in case-table order)."""
 
     schema: LogSchema
     events: pd.DataFrame
@@ -304,6 +347,7 @@ class ParsedLog:
     cases: pd.DataFrame
     n_missing_timestamps: int
     n_null_activities: int
+    varying_case_attributes: Mapping[str, int] = field(default_factory=lambda: MappingProxyType({}), kw_only=True)
 
     @property
     def tz(self) -> Any:
@@ -356,7 +400,8 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
     without rows, a null lifecycle transition, a null case id, a log whose
     lifecycle or missing-timestamp filter removes every event, null or
     unparseable timestamps under ``missing_timestamps='raise'``, mixed time
-    zones without ``time_zone='utc'`` and negative case exposure.
+    zones without ``time_zone='utc'``, negative case exposure and, under
+    ``case_attribute_values='strict'``, case attributes that vary within a case.
     """
     required = list(schema.roles)
     missing = [c for c in required if c not in events.columns]
@@ -451,8 +496,19 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
     cases["n_events"] = index.count()
     cases["first_ts"] = index.to_datetime(index.first())
     cases["last_ts"] = index.to_datetime(index.last())
+    varying: dict[str, int] = {}
     for attr in schema.case_attributes:
-        cases[attr] = ev[attr].groupby(index.case_codes).first().reindex(range(n_cases)).to_numpy()
+        by_case = ev[attr].groupby(index.case_codes)
+        n_varying = int((by_case.nunique(dropna=True) > 1).sum())
+        if n_varying:
+            varying[attr] = n_varying
+        cases[attr] = by_case.first().reindex(range(n_cases)).to_numpy()
+    if varying and schema.case_attribute_values is CaseAttributeValues.STRICT:
+        named = ", ".join(f"{attr!r} ({n} case{'s' if n > 1 else ''})" for attr, n in varying.items())
+        raise LogSchemaError(
+            f"case attributes vary within a case: {named}; clean them first, or set "
+            "case_attribute_values='first_non_null' to take the first non-null value"
+        )
     if schema.exposure_col is not None:
         vals = pd.to_numeric(ev[schema.exposure_col], errors="coerce")
         per_case = vals.groupby(index.case_codes).agg(schema.exposure_agg.value)
@@ -463,4 +519,4 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
                 f"{int((exp < 0).sum())} cases; the paper assumes exp(σ) >= 0"
             )
         cases["exposure"] = exp.astype(float)
-    return ParsedLog(schema, ev, index, cases, n_missing_ts, n_null_activities)
+    return ParsedLog(schema, ev, index, cases, n_missing_ts, n_null_activities, varying_case_attributes=MappingProxyType(varying))

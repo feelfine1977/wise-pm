@@ -31,7 +31,7 @@ import pandas as pd
 from .case_index import NAT, CaseIndex
 from .constraints import Labels, as_labels
 from .errors import LogSchemaError
-from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, check_attribute_name, parse
+from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, UntimedEvents, check_attribute_name, parse
 
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
@@ -55,8 +55,9 @@ class EventLog:
     case_attributes
         Case-level attribute columns (company, spend area, flow type, ...).
         The first non-null value per case is used; :meth:`validate` reports
-        attributes that vary within a case. These become the slice keys and
-        the applicability attributes.
+        attributes that vary within a case (a schema with
+        ``case_attribute_values='strict'`` refuses them). These become the
+        slice keys and the applicability attributes.
     exposure_col, exposure_agg
         Optional numeric column recording business exposure ``exp(σ) ≥ 0``,
         aggregated per case with ``exposure_agg`` (``"max"`` for cumulative
@@ -86,7 +87,9 @@ class EventLog:
         ``"raise"`` (default) if any timestamp is null or unparseable,
         ``"drop"`` those events, or ``"keep"`` them with NaT. Kept events
         count for plain presence, exclusion and singularity constraints;
-        they never define a lag and are ignored by time-scoped counts.
+        they never define a lag and are ignored by time-scoped counts. The
+        schema's ``untimed_events`` policy states the rule per primitive
+        (:class:`~wise.log_schema.UntimedEvents`).
     window
         Optional ``(start, end)`` of the observation window. Used by the
         censoring diagnostics and by ``Lag(missing_b="censor")``. When not
@@ -162,6 +165,7 @@ class EventLog:
         self.exposure_col, self.order_col, self.event_id_col = schema.exposure_col, schema.order_col, schema.event_id_col
         self.n_missing_timestamps = parsed.n_missing_timestamps
         self.n_null_activities = parsed.n_null_activities
+        self._varying = parsed.varying_case_attributes
 
         self.window: tuple[pd.Timestamp | None, pd.Timestamp | None] | None = None
         if window is not None:
@@ -403,10 +407,16 @@ class EventLog:
     ) -> pd.Series:
         """Count of ``activities`` per case, restricted to events strictly after
         the first ``after`` activity and/or strictly before the first ``before``
-        activity. NaN where an anchor activity is absent."""
+        activity. NaN where an anchor activity is absent.
+
+        Events without a timestamp are never inside a scope; without a scope
+        they count under ``untimed_events='uniform'`` and not under the
+        default ``'legacy'`` (:class:`~wise.log_schema.UntimedEvents`)."""
         idx = self._index
         codes, ts = idx.case_codes, idx.timestamps
-        mask = idx.mask(as_labels(activities)) & idx.valid
+        mask = idx.mask(as_labels(activities))
+        if after is not None or before is not None or self._schema.untimed_events is UntimedEvents.LEGACY:
+            mask &= idx.valid
         undefined = np.zeros(len(self), dtype=bool)
         if after is not None:
             t_after = idx.first(as_labels(after, what="after"))
@@ -497,7 +507,9 @@ class EventLog:
 
         Reports missing timestamps, timestamp outliers outside the robust
         observation window, null activity labels, timestamp ties within a
-        case, case attributes that vary within a case, and exposure issues.
+        case, the case attributes of the schema that vary within a case
+        (``varying_within_case[<attribute>]``: the number of such cases, as
+        recorded by the parse step), and exposure issues.
         Nothing here raises; read it before trusting a score.
         """
         start, end = self.observation_window(q)
@@ -518,11 +530,8 @@ class EventLog:
             "tied_events_share": float(tied.mean()) if len(tied) else 0.0,
             "cases_with_ties_share": cases_with_ties / max(len(self), 1),
         }
-        for attr in self.case_attributes:
-            if attr in self.events.columns:
-                n_var = int((self.events[attr].groupby(self._codes).nunique(dropna=True) > 1).sum())
-                if n_var:
-                    report[f"varying_within_case[{attr}]"] = n_var
+        for attr, n_var in self._varying.items():
+            report[f"varying_within_case[{attr}]"] = n_var
         if "exposure" in self.cases.columns:
             report["zero_exposure_cases"] = int((self.cases["exposure"] == 0).sum())
         return pd.Series(report, name="log_validation")

@@ -1,4 +1,4 @@
-"""Event log (``wise.log``): regression tests for defects C6–C11 and characterisation tests.
+"""Event log (``wise.log``): regression tests for defects C6–C11, C17 and C22 and characterisation tests.
 
 Regression tests pin the desired behaviour and are ``xfail(strict=True)`` with the
 exception the current code produces; they turn green when the fix lands.
@@ -99,20 +99,81 @@ def test_mutating_returned_events_frame_leaves_log_unchanged(p2p_events):
     assert log.count(GR)["B"] == 4
 
 
-# ---------------------------------------------------------------- C8: NaT rules differ per primitive
+# ---------------------------------------------------------------- C8, C22: NaT rules differ per primitive
+
+
+def uniform_log(events: pd.DataFrame) -> wise.EventLog:
+    """EventLog that keeps NaT events under the uniform rule for untimed events."""
+    return wise.EventLog(events, schema=wise.LogSchema(**COLS, missing_timestamps="keep", untimed_events="uniform"))
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C8: the count recipe goes through count_scoped and masks NaT events while log.count includes them",
-)
-def test_count_recipe_agrees_with_count_when_nat_events_are_kept(p2p_events):
-    log = build_log(with_nat(p2p_events, "E", GR), missing_timestamps="keep")
+@pytest.mark.spec("IV-A")
+# C8 closed 2026-10-02 (Sec. IV-A; decision record 0001, section 4): under LogSchema(untimed_events="uniform") an event
+# without a timestamp counts wherever no time is compared, so the count recipe and Presence see the same events
+def test_count_recipe_agrees_with_presence_under_the_uniform_rule(p2p_events):
+    log = uniform_log(with_nat(p2p_events, "E", GR))
     assert log.n_missing_timestamps == 1
     log.derive([{"name": "n_gr", "kind": "count", "activities": [GR]}])
     pd.testing.assert_series_equal(log.cases["n_gr"], log.count(GR), check_names=False)
+    assert log.cases.loc["E", "n_gr"] == 1.0
+    presence = wise.evaluate_constraint(log, wise.NormConstraint("p", "L", wise.Presence(GR)))
+    # sat(1 - n_gr; 0, 1): the recipe's view of "at least one goods receipt"
+    from_recipe = wise.evaluate_constraint(log, wise.NormConstraint("m", "L", wise.Metric("n_gr", 1, 1, "low")))
+    assert presence.tolist() == from_recipe.tolist() == [0.0, 0.0, 0.0, 0.0, 0.0]
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001")
+# C8 (decision record 0001, section 4): the default rule is the 0.1.0 one, so classic numbers do not move
+def test_the_legacy_default_keeps_the_0_1_0_count_recipe(p2p_events):
+    log = build_log(with_nat(p2p_events, "E", GR), missing_timestamps="keep")
+    assert log.schema.untimed_events.value == "legacy"
+    log.derive([{"name": "n_gr", "kind": "count", "activities": [GR]}])
+    assert log.cases.loc["E", "n_gr"] == 0.0
+    assert log.count(GR)["E"] == 1.0
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001")
+# C22 closed 2026-10-02 (decision record 0001, section 4): one rule, keyed on the log schema, says what an untimed
+# event contributes to each primitive (docs/semantics/log-policies.md); case E's goods receipt is untimed here
+def test_one_rule_per_schema_states_what_an_untimed_event_contributes(p2p_events):
+    events = with_nat(p2p_events, "E", GR)
+    for log, unscoped in ((build_log(events, missing_timestamps="keep"), 0.0), (uniform_log(events), 1.0)):
+        assert log.count(GR)["E"] == 1.0  # counted
+        assert log.total("amount", GR)["E"] == 100.0  # counted
+        assert log.count_scoped(GR)["E"] == unscoped  # ignored under legacy, counted under uniform
+        assert log.count_after(GR, PO)["E"] == 0.0  # it cannot be placed after the order
+        assert pd.isna(log.first_ts(GR)["E"])  # it never defines a time
+        assert pd.isna(log.first_after(PO, GR)[1]["E"])
+        assert log.trace("E")["activity"].tolist() == [PO, GR]
+
+
+# ---------------------------------------------------------------- C17: varying case attributes
+
+
+@pytest.mark.regression
+@pytest.mark.spec("IV-A")
+# C17 closed 2026-10-02 (Sec. IV-A, att_β(σ) is one value per case): the default keeps the first non-null value and
+# records the varying attributes with their case counts; case_attribute_values="strict" refuses the log
+def test_varying_case_attributes_are_recorded_or_refused(p2p_events):
+    events = p2p_events.copy()
+    events.loc[(events["case"] == "B") & (events["activity"] == CLR), "company"] = "Z"
+    events.loc[events["case"].isin(["C", "D"]) & (events["activity"] == PO), "vendor"] = "V9"
+    log = build_log(events, case_attributes=["company", "vendor", "flow_type"])
+    assert log.cases["company"].to_dict() == {"A": "A", "B": "A", "C": "B", "D": "B", "E": "B"}
+    assert log.cases.loc["C", "vendor"] == "V9"
+    report = log.validate()
+    assert report["varying_within_case[company]"] == 1
+    assert report["varying_within_case[vendor]"] == 2
+    assert "varying_within_case[flow_type]" not in report
+    with pytest.raises(LogSchemaError, match=r"case attributes vary within a case: 'company' \(1 case\), 'vendor' \(2 cases\)"):
+        wise.EventLog(
+            events, schema=wise.LogSchema(**COLS, case_attributes=["company", "vendor"], case_attribute_values="strict")
+        )
+    strict = wise.LogSchema(**COLS, case_attributes=["company", "vendor", "flow_type"], case_attribute_values="strict")
+    assert wise.EventLog(p2p_events, schema=strict).cases["vendor"].tolist() == ["V1", "V2", "V1", "V1", "V2"]
 
 
 # ---------------------------------------------------------------- C9: errors escaping the hierarchy
