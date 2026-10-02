@@ -298,10 +298,11 @@
       "title": "where= filters accept a list as membership (policy: shared selection semantics, wise.selection)",
       "kind": "policy",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M4",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     }
   ]
 }

@@ -42,13 +42,15 @@ Each recipe is a mapping with a ``name`` and a ``kind``:
     expression over the case table.
 
 ``WHERE`` is ``{"column": c, "in": [...]}``, ``{"column": c, "regex": r}``,
-``{"column": c, "eq": v}`` or ``{"column": c, "not_in": [...]}``.
+``{"column": c, "eq": v}`` or ``{"column": c, "not_in": [...]}``, or a rule of
+the selection grammar over event columns (:mod:`wise.selection`), e.g.
+``{"all": [{"attr": "activity", "eq": "Record Goods Receipt"}, {"lacks": "Clear Invoice"}]}``.
+It is evaluated over the event table under the legacy missing-value policy.
 """
 
 from __future__ import annotations
 
 import json
-import warnings
 import weakref
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
@@ -58,6 +60,7 @@ import pandas as pd
 
 from .constraints import _UNITS, as_labels, in_units
 from .errors import LogSchemaError, NormError
+from .selection import LEGACY, EventTable, parse_recipe_where
 
 if TYPE_CHECKING:  # pragma: no cover
     from .log import EventLog
@@ -73,21 +76,15 @@ KINDS = ("count", "count_events", "nunique", "agg", "cv", "lag", "ratio", "quant
 def _where_mask(log: EventLog, where: Mapping[str, Any] | None) -> np.ndarray:
     if not where:
         return np.ones(len(log.events), dtype=bool)
-    col = where.get("column")
-    if col is None or col not in log.events.columns:
-        raise LogSchemaError(f"recipe where-clause refers to unknown event column {col!r}")
-    s = log.events[col]
-    if "in" in where:
-        return s.isin(list(where["in"])).to_numpy()
-    if "not_in" in where:
-        return (~s.isin(list(where["not_in"]))).to_numpy()
-    if "regex" in where:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)  # patterns with groups are fine here
-            return s.astype(str).str.contains(where["regex"], regex=True, na=False).to_numpy()
-    if "eq" in where:
-        return (s == where["eq"]).to_numpy()
-    raise NormError(f"recipe where-clause needs one of in/not_in/regex/eq: {dict(where)}")
+    columns = log.events.columns
+    if isinstance(where, Mapping) and "column" in where and where["column"] not in columns:
+        raise LogSchemaError(f"recipe where-clause refers to unknown event column {where['column']!r}")
+    selection = parse_recipe_where(where)
+    for col in selection.columns:
+        if col not in columns:
+            raise LogSchemaError(f"recipe where-clause refers to unknown event column {col!r}")
+    mask = selection.evaluate(EventTable(log), missing=LEGACY)
+    return mask.fillna(False).to_numpy(dtype=bool)
 
 
 def validate_recipe(recipe: Mapping[str, Any]) -> None:

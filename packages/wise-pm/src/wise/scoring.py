@@ -39,6 +39,7 @@ from .derive import derived_log
 from .errors import NormError, NotScoredError
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
+from .selection import select_cases
 
 
 # ------------------------------------------------------------------ signals
@@ -275,9 +276,14 @@ class ScoreResult:
 
     def worst_cases(self, view: str, n: int = 20, where: dict[str, Any] | pd.Series | None = None) -> pd.DataFrame:
         """The ``n`` lowest-scoring cases (optionally within a slice) with their
-        layer contributions."""
+        layer contributions.
+
+        ``where`` is a filter of :func:`wise.selection.select_cases`: ``{attribute:
+        value}`` (equality) or ``{attribute: [values]}`` (membership), the case id
+        allowed under the name of the case index, a rule of the selection
+        grammar, or a boolean mask over cases."""
         f = self.frame(view)
-        mask = _where_mask(self.cases, where)
+        mask = select_cases(self.cases, where, log=self.log)
         f = f[mask & f["score"].notna()]
         return f.sort_values("score", kind="mergesort").head(n)
 
@@ -286,22 +292,6 @@ class ScoreResult:
         if self.log is None:
             raise NotScoredError("no event log attached to this result")
         return self.log.trace(case_id)
-
-
-def _where_mask(cases: pd.DataFrame, where: dict[str, Any] | pd.Series | None) -> pd.Series:
-    mask = pd.Series(True, index=cases.index)
-    if where is None:
-        return mask
-    if isinstance(where, dict):
-        for k, v in where.items():
-            if k in cases.columns:
-                mask &= cases[k] == v
-            elif k == cases.index.name:
-                mask &= pd.Series(cases.index == v, index=cases.index)
-            else:
-                raise NormError(f"unknown case attribute {k!r} in where; known: {list(cases.columns)}")
-        return mask
-    return mask & where.reindex(cases.index, fill_value=False).astype(bool)
 
 
 def _effective_weights(M: np.ndarray, w: np.ndarray, norm: Norm, mode: str) -> np.ndarray:

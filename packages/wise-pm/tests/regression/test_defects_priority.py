@@ -14,7 +14,7 @@ from _support.builders import make_log
 from wise.errors import WiseError
 
 # ---------------------------------------------------------------------------
-# C9: ``where={attr: [values]}`` must mean membership, not element-wise equality
+# C29: ``where={attr: [values]}`` means membership, not element-wise equality
 # ---------------------------------------------------------------------------
 # In the running example company A owns cases A, B and company B owns C, D, E.
 COMPANY_MEMBERSHIP = pytest.mark.parametrize(
@@ -30,7 +30,8 @@ def _scalar_where(companies):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.spec("decision:0001/1")
+# C29 closed 2026-10-02: a list value in where= is membership, as in the shared selection grammar (wise.selection)
 @COMPANY_MEMBERSHIP
 def test_worst_cases_where_list_selects_cases_of_member_companies(p2p_result, companies, expected_cases):
     worst = p2p_result.worst_cases("Finance", where={"company": companies})
@@ -39,7 +40,8 @@ def test_worst_cases_where_list_selects_cases_of_member_companies(p2p_result, co
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.spec("decision:0001/1")
+# C29 closed 2026-10-02: a list value in where= is membership, as in the shared selection grammar (wise.selection)
 @COMPANY_MEMBERSHIP
 def test_constraint_drivers_where_list_equals_union_of_member_companies(p2p_result, companies, expected_cases):
     drivers = wise.constraint_drivers(p2p_result, "Finance", {"company": companies})
@@ -50,7 +52,8 @@ def test_constraint_drivers_where_list_equals_union_of_member_companies(p2p_resu
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(strict=True, raises=ValueError, reason="C29: where with a list compares element-wise ('Lengths must match')")
+@pytest.mark.spec("decision:0001/1")
+# C29 closed 2026-10-02: a list value in where= is membership, as in the shared selection grammar (wise.selection)
 @COMPANY_MEMBERSHIP
 def test_penalty_mass_where_list_equals_union_of_member_companies(p2p_result, companies, expected_cases):
     pm = wise.penalty_mass(p2p_result, "Finance", "vendor", where={"company": companies})
