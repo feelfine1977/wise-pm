@@ -29,11 +29,13 @@ from wise.constraints import Constraint, as_labels
 from wise.errors import NormError
 from wise.families import presence
 from wise.family import (
+    CENSORED,
     EVALUATED,
     MISSING_ACTIVITY,
     NOT_EVALUABLE,
     OUT_OF_SCOPE,
     REASONS,
+    VALUED,
     Evaluation,
     Family,
     Inputs,
@@ -281,11 +283,24 @@ def test_a_family_can_name_a_reason_of_its_own() -> None:
     assert ev.within(pd.Series([True, False], index=index)).reason.tolist() == ["too_early", OUT_OF_SCOPE]
 
 
+def test_a_censored_case_has_a_value_and_counts_as_evaluated() -> None:
+    index = pd.Index(["a", "b", "c"])
+    ev = Evaluation.of([0.5, NAN, 1.0], index, why=[(np.array([True, True, False]), CENSORED)])
+    assert ev.reason.tolist() == [CENSORED, NOT_EVALUABLE, EVALUATED]  # a valued reason never covers a missing value
+    assert ev.evaluated.tolist() == [True, False, True]
+    assert ev.in_scope.all()
+    assert Evaluation(ev.value, ev.reason.astype(str)).reason.tolist() == [CENSORED, NOT_EVALUABLE, EVALUATED]
+    assert {EVALUATED, CENSORED} == VALUED
+
+
 def test_an_evaluation_refuses_values_and_reasons_that_disagree() -> None:
     index = pd.Index(["a", "b"])
-    with pytest.raises(NormError, match="value exactly where its reason is 'evaluated'"):
+    message = r"value exactly where its reason is one of \['censored', 'evaluated'\]"
+    with pytest.raises(NormError, match=message):
         Evaluation(pd.Series([0.0, 1.0], index=index), pd.Series([EVALUATED, OUT_OF_SCOPE], index=index))
-    with pytest.raises(NormError, match="value exactly where its reason is 'evaluated'"):
+    with pytest.raises(NormError, match=message):
         Evaluation(pd.Series([0.0, NAN], index=index), pd.Series([EVALUATED, EVALUATED], index=index))
+    with pytest.raises(NormError, match=message):
+        Evaluation(pd.Series([0.0, NAN], index=index), pd.Series([EVALUATED, CENSORED], index=index))
     with pytest.raises(NormError, match="share one index"):
         Evaluation(pd.Series([0.0, 1.0], index=index), pd.Series([EVALUATED, EVALUATED], index=pd.Index(["a", "c"])))

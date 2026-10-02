@@ -2,78 +2,145 @@
 
 The options of :class:`~wise.constraints.Lag` choose the activation (first,
 last or each ``a``), the response (first ``b`` at or after the activation, or
-the first ``b`` overall) and what a missing endpoint means. A case left
-without a value by ``missing_a="skip"`` or ``missing_b="skip"`` is not
-evaluable (:data:`~wise.family.NOT_EVALUABLE`).
+the first ``b`` overall) and what a missing endpoint means. The pairing of
+activations with responses is :func:`pairs`; the ``lag`` recipe of
+:mod:`wise.derive` uses the same rule.
+
+Reasons: a case without an activation under ``missing_a="skip"`` is
+:data:`~wise.family.MISSING_ACTIVATION`, one whose activations all lack a
+response under ``missing_b="skip"`` is :data:`~wise.family.MISSING_RESPONSE`,
+and one that has a value because an open activation was scored by its age
+(``missing_b="censor"``) is :data:`~wise.family.CENSORED`. A missing endpoint
+under ``"violate"`` gives ``ν = 1`` and is evaluated.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
-from ..constraints import Lag, in_units, sat
-from ..family import Evaluation, Family, Inputs
+from ..constraints import _UNITS, Activities, Lag, in_units, sat
+from ..errors import NormError
+from ..family import CENSORED, MISSING_ACTIVATION, MISSING_RESPONSE, Evaluation, Family, Inputs
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..log import EventLog
+
+
+@dataclass(frozen=True, eq=False)
+class Pairs:
+    """The activations of a log, each paired with its response.
+
+    One row per activation: ``case`` is the position of its case in the log,
+    ``t_a`` its timestamp (in the log's time zone) and ``lag`` the time to its response in the unit of
+    the pairing, NaN where no response is paired with it. With activation
+    ``"first"`` or ``"last"`` a case has at most one row; with ``"each"`` one
+    row per ``a`` event. A case without a row has no activation.
+    """
+
+    case: NDArray[np.intp]
+    t_a: pd.Series
+    lag: pd.Series
+    n_cases: int
+    one_per_case: bool
+
+    def activated(self) -> NDArray[np.bool_]:
+        """Boolean per case: the case has an activation."""
+        out = np.zeros(self.n_cases, dtype=bool)
+        out[self.case] = True
+        return out
+
+    def per_case(self) -> NDArray[np.float64]:
+        """The lag of each case, NaN without an activation or a response (activation first or last)."""
+        if not self.one_per_case:
+            raise NormError("activation 'each' gives one lag per activation, not one lag per case")
+        out = np.full(self.n_cases, np.nan)
+        out[self.case] = self.lag.to_numpy(dtype=float)
+        return out
+
+
+def pairs(
+    log: EventLog,
+    a: Activities,
+    b: Activities,
+    *,
+    activation: Literal["first", "last", "each"] = "first",
+    response: Literal["first_after", "first_overall"] = "first_after",
+    unit: str = "D",
+    negative: bool = False,
+) -> Pairs:
+    """Pair the activations ``a`` of every case with their response ``b``.
+
+    ``activation`` is the first, the last or each ``a`` event with a
+    timestamp. ``response="first_after"`` is the first ``b`` at or after the
+    activation (an event at the same instant counts, whatever its row
+    order); ``"first_overall"`` is the first ``b`` of the case, and one before
+    the activation counts as no response unless ``negative=True`` keeps its
+    negative lag. Lags are expressed in ``unit``.
+    """
+    if activation not in ("first", "last", "each"):
+        raise NormError(f"lag: activation must be 'first', 'last' or 'each', got {activation!r}")
+    if response not in ("first_after", "first_overall"):
+        raise NormError(f"lag: response must be 'first_after' or 'first_overall', got {response!r}")
+    if unit not in _UNITS:
+        raise NormError(f"lag: unknown unit {unit!r}")
+    if activation == "each":
+        if response != "first_after":
+            raise NormError("lag: activation='each' requires response='first_after'")
+        rows = log.activation_lags(a, b)
+        lag = in_units(rows["t_b"] - rows["t_a"], unit)
+        t_a = rows["t_a"] if log.tz is None else rows["t_a"].dt.tz_localize("UTC").dt.tz_convert(log.tz)
+        return Pairs(rows["code"].to_numpy(dtype=np.intp), t_a, lag, len(log), one_per_case=False)
+    t_a, t_b = log.first_after(a, b, activation=activation, response=response)
+    lag = in_units(t_b - t_a, unit)
+    if response == "first_overall" and not negative:
+        lag = lag.where(lag >= 0)  # b before the activation counts as missing
+    has = t_a.notna().to_numpy()
+    return Pairs(
+        np.flatnonzero(has).astype(np.intp),
+        t_a[has].reset_index(drop=True),
+        lag[has].reset_index(drop=True),
+        len(log),
+        one_per_case=True,
+    )
 
 
 def requires(c: Lag) -> Inputs:
     return Inputs(activities=c.activities())
 
 
-def _lag_missing(v: pd.Series, lag: pd.Series, t_a: pd.Series, c: Lag, log: EventLog) -> pd.Series:
-    a_missing = t_a.isna()
-    b_missing = (~a_missing) & lag.isna()
-    if c.missing_a == "violate":
-        v = v.where(~a_missing, 1.0)
+def evaluate(c: Lag, log: EventLog) -> Evaluation:
+    p = pairs(log, c.a, c.b, activation=c.activation, response=c.response, unit=c.unit)
+    v = sat(p.lag, c.delta, c.width) if c.delta is not None else p.lag * 0.0
+    open_ = p.lag.isna()
+    censored = np.zeros(len(v), dtype=bool)
     if c.missing_b == "violate":
-        v = v.where(~b_missing, 1.0)
+        v = v.where(~open_, 1.0)
     elif c.missing_b == "censor" and c.delta is not None:
         end = log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit)
-        so_far = in_units(end - t_a, c.unit)
-        v = v.where(~b_missing, sat(so_far, c.delta, c.width))
-    return v
+        so_far = in_units(end - p.t_a, c.unit)
+        v = v.where(~open_, sat(so_far, c.delta, c.width))
+        censored = open_.to_numpy()
 
-
-def _values(c: Lag, log: EventLog) -> pd.Series:
-    if c.activation in ("first", "last"):
-        t_a, t_b = log.first_after(c.a, c.b, activation=c.activation, response=c.response)
-        lag = in_units(t_b - t_a, c.unit)
-        if c.response == "first_overall":
-            lag = lag.where(lag >= 0)  # b before the activation counts as missing
-        v = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
-        return _lag_missing(v, lag, t_a, c, log)
-
-    # activation == "each": one violation per a-event, averaged per case
-    pairs = log.activation_lags(c.a, c.b)
-    t_a_case = log.first_ts(c.a)
-    if pairs.empty:
-        v = pd.Series(np.nan, index=log.case_ids)
-        return _lag_missing(v, v, t_a_case, c, log)
-    lag = in_units(pairs["t_b"] - pairs["t_a"], c.unit)
-    vi = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
-    missing = lag.isna()
-    if c.missing_b == "violate":
-        vi = vi.where(~missing, 1.0)
-    elif c.missing_b == "censor" and c.delta is not None:
-        end = pd.Timestamp(log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit))
-        end = end.tz_convert("UTC").tz_localize(None) if end.tzinfo is not None else end
-        so_far = in_units(end - pairs["t_a"], c.unit)
-        vi = vi.where(~missing, sat(so_far, c.delta, c.width))
-    per_case = vi.groupby(pairs["code"].to_numpy()).mean()
-    v = pd.Series(per_case.reindex(range(len(log))).to_numpy(), index=log.case_ids)
-    a_missing = t_a_case.isna()
+    if p.one_per_case:
+        values = np.full(p.n_cases, np.nan)
+        values[p.case] = v.to_numpy(dtype=float)
+    else:  # one violation per activation, averaged per case
+        values = v.groupby(p.case).mean().reindex(range(p.n_cases)).to_numpy(dtype=float, copy=True)
+    activated = p.activated()
     if c.missing_a == "violate":
-        v = v.where(~a_missing, 1.0)
-    return v
-
-
-def evaluate(c: Lag, log: EventLog) -> Evaluation:
-    return Evaluation.of(_values(c, log), log.case_ids)
+        values[~activated] = 1.0
+    censored_case = np.zeros(p.n_cases, dtype=bool)
+    censored_case[p.case[censored]] = True
+    return Evaluation.of(
+        values,
+        log.case_ids,
+        why=((~activated, MISSING_ACTIVATION), (activated, MISSING_RESPONSE), (censored_case, CENSORED)),
+    )
 
 
 FAMILY = Family(
