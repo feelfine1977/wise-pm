@@ -1,0 +1,1953 @@
+{
+ "members": {
+  "K": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "_codes": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py"
+   ]
+  },
+  "_to_ts": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py"
+   ]
+  },
+  "_weights": {
+   "keyword": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ],
+   "read": [
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "a": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/process-knowledge/src/wise_knowledge/flow.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "activation": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "activation_lags": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "activities": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/tests/distribution/smoke_installed.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/matching.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_loaders.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "activities_x": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "activities_y": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "activity": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/application/services/eda_events.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/flow.py",
+    "packages/process-knowledge/src/wise_knowledge/matching.py",
+    "packages/process-knowledge/src/wise_knowledge/models.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_loaders.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py"
+   ]
+  },
+  "activity_col": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py"
+   ]
+  },
+  "activity_labels": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py"
+   ]
+  },
+  "add_case_attribute": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "apps/backend/tests/unit/test_norm_inspection.py",
+    "apps/backend/tests/unit/test_norm_relevance.py"
+   ]
+  },
+  "after": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py"
+   ]
+  },
+  "agg": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/board.py",
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "applicability": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_templates.py"
+   ]
+  },
+  "applicability_density": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/tests/golden/test_running_example.py"
+   ]
+  },
+  "applies_to": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_norm_translation.py"
+   ]
+  },
+  "attr_x": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "attr_y": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "attribute": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "apps/backend/src/wise_workbench/application/services/selections.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "attributes": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/ports.py",
+    "apps/backend/src/wise_workbench/application/services/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/domain/run.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "apps/backend/tests/unit/test_domain.py",
+    "apps/backend/tests/unit/test_grouping.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/tests/test_subgroups.py"
+   ]
+  },
+  "b": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/process-knowledge/src/wise_knowledge/flow.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "before": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py"
+   ]
+  },
+  "case_attributes": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/application/services/norms.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py"
+   ]
+  },
+  "case_col": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "tools/profile_log.py"
+   ]
+  },
+  "case_ids": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/unit/test_filter_semantics.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "apps/backend/tests/unit/test_norm_inspection.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_norm_relevance.py",
+    "apps/backend/tests/unit/test_process_variants.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "cases": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/decisions.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/tests/api/test_grouping.py",
+    "apps/backend/tests/api/test_norm_relevance.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "apps/backend/tests/unit/test_driver_evidence.py",
+    "apps/backend/tests/unit/test_filter_semantics.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_norm_translation.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ],
+   "write": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+   ]
+  },
+  "check": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/api/routers/norms.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/tests/test_guidance.py"
+   ]
+  },
+  "check_decomposition": {
+   "read": [
+    "packages/wise-analytics/tests/test_synthetic.py"
+   ]
+  },
+  "constraint": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/api/routers/norms.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "constraint_ids": {
+   "read": [
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_all_constraint_types.py",
+    "packages/wise-analytics/tests/test_contrast.py"
+   ]
+  },
+  "constraint_weights": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "constraints": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "contributions": {
+   "read": [
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "count": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/bpmn.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/tests/api/test_api.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/tests/test_matching.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "tools/profile_log.py"
+   ]
+  },
+  "count_before": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "count_scoped": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "delta": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "derive": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/tests/api/test_norm_relevance.py"
+   ]
+  },
+  "derived_attributes": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py"
+   ]
+  },
+  "describe": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "description": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/application/services/eda_insights.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/presets.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "direction": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py"
+   ]
+  },
+  "dump": {
+   "read": [
+    "apps/backend/src/wise_workbench/application/services/project_binding.py",
+    "apps/backend/src/wise_workbench/application/services/selections.py"
+   ]
+  },
+  "dumps": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/session.py",
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/adapters/storage/selections.py",
+    "apps/backend/src/wise_workbench/adapters/storage/workspace.py",
+    "apps/backend/src/wise_workbench/api/sse.py",
+    "apps/backend/src/wise_workbench/application/ports.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/notebook.py",
+    "apps/backend/src/wise_workbench/application/services/review.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/selections.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/domain/run.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "apps/backend/tests/api/test_api.py",
+    "apps/backend/tests/api/test_backlog_analytics_scope.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/api/test_cycle3.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "apps/backend/tests/api/test_dataset_catalogue.py",
+    "apps/backend/tests/api/test_driver_evidence.py",
+    "apps/backend/tests/api/test_eda.py",
+    "apps/backend/tests/api/test_eda_extended.py",
+    "apps/backend/tests/api/test_eda_insights.py",
+    "apps/backend/tests/api/test_filter_validation.py",
+    "apps/backend/tests/api/test_filtered_action_evidence.py",
+    "apps/backend/tests/api/test_grouping.py",
+    "apps/backend/tests/api/test_hypothesis_integrity.py",
+    "apps/backend/tests/api/test_investigation_questions.py",
+    "apps/backend/tests/api/test_norm_templates.py",
+    "apps/backend/tests/api/test_process_variants.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/api/test_workbench_journey.py",
+    "apps/backend/tests/api/test_xes_ingestion.py",
+    "apps/backend/tests/distribution/test_wheels.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "apps/backend/tests/unit/test_cycle2_domain.py",
+    "apps/backend/tests/unit/test_filter_semantics.py",
+    "apps/backend/tests/unit/test_grouping.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "tests/tooling/test_check_analysis_acceptance.py",
+    "tests/tooling/test_core_profiles.py",
+    "tools/build_release.py",
+    "tools/check-core-profile.py",
+    "tools/check_analysis_acceptance.py",
+    "tools/create_report_pattern_draft.py",
+    "tools/demo.py",
+    "tools/fetch_public_logs.py",
+    "tools/profile_log.py",
+    "tools/smoke_eda.py",
+    "tools/smoke_installed.py",
+    "tools/vendor_flow.py"
+   ]
+  },
+  "effective_weights": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "eps": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "event_id_col": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py"
+   ]
+  },
+  "events": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "apps/backend/src/wise_workbench/api/routers/jobs.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/dataset_catalogue.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/api/test_cycle3.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "apps/backend/tests/api/test_xes_ingestion.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "apps/backend/tests/unit/test_driver_evidence.py",
+    "apps/backend/tests/unit/test_filter_semantics.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py"
+   ],
+   "write": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py"
+   ]
+  },
+  "exposure_col": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py"
+   ]
+  },
+  "fingerprint": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/api/schema_models/norms.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/application/services/review.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/tests/api/test_api.py",
+    "apps/backend/tests/api/test_general_benchmark.py",
+    "apps/backend/tests/api/test_grouping_suggestions.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "tools/create_report_pattern_draft.py"
+   ]
+  },
+  "first_after": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "first_ts": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/tests/api/test_eda.py",
+    "apps/backend/tests/api/test_eda_extended.py",
+    "apps/backend/tests/api/test_eda_insights.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "frame": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "from_dict": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/application/services/decisions.py",
+    "apps/backend/src/wise_workbench/application/services/mappings.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/ingest.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/score_run.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/unit/test_cycle2_domain.py",
+    "apps/backend/tests/unit/test_domain.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "apps/backend/tests/unit/test_grouping.py",
+    "apps/backend/tests/unit/test_mapping.py",
+    "apps/backend/tests/unit/test_norm_views.py",
+    "packages/process-knowledge/tests/test_templates.py"
+   ]
+  },
+  "get_constraint": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_norm_translation.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py"
+   ]
+  },
+  "get_view": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "id": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/adapters/storage/selections.py",
+    "apps/backend/src/wise_workbench/api/routers/datasets.py",
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/api/schema_models/norms.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/dataset_catalogue.py",
+    "apps/backend/src/wise_workbench/application/services/datasets.py",
+    "apps/backend/src/wise_workbench/application/services/decisions.py",
+    "apps/backend/src/wise_workbench/application/services/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/application/services/jobs.py",
+    "apps/backend/src/wise_workbench/application/services/mappings.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/norms.py",
+    "apps/backend/src/wise_workbench/application/services/notebook.py",
+    "apps/backend/src/wise_workbench/application/services/presets.py",
+    "apps/backend/src/wise_workbench/application/services/projects.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/selections.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/domain/run.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/build_cases.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/ingest.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/score_run.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/whatif.py",
+    "apps/backend/src/wise_workbench/jobs/queue.py",
+    "apps/backend/src/wise_workbench/jobs/worker.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "apps/backend/tests/api/test_action_eligibility.py",
+    "apps/backend/tests/api/test_dataset_catalogue.py",
+    "apps/backend/tests/api/test_driver_evidence.py",
+    "apps/backend/tests/api/test_general_benchmark.py",
+    "apps/backend/tests/api/test_investigation_questions.py",
+    "apps/backend/tests/api/test_presets.py",
+    "apps/backend/tests/api/test_process_variants.py",
+    "apps/backend/tests/api/test_project_binding.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/api/test_scenario_default.py",
+    "apps/backend/tests/api/test_xes_ingestion.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "apps/backend/tests/service/test_jobs.py",
+    "apps/backend/tests/unit/test_cycle2_domain.py",
+    "apps/backend/tests/unit/test_domain.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/flow.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/src/wise_knowledge/loaders.py",
+    "packages/process-knowledge/src/wise_knowledge/matching.py",
+    "packages/process-knowledge/src/wise_knowledge/models.py",
+    "packages/process-knowledge/tests/test_graph.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_interventions.py",
+    "packages/process-knowledge/tests/test_loaders.py",
+    "packages/process-knowledge/tests/test_solution_cards.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_all_constraint_types.py",
+    "packages/wise-analytics/tests/test_quality.py"
+   ]
+  },
+  "in_scope": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "k": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "last_ts": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/tests/api/test_eda.py",
+    "apps/backend/tests/api/test_eda_insights.py",
+    "apps/backend/tests/api/test_saved_selections.py"
+   ]
+  },
+  "layer": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "layer_ids": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "layer_of": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "layer_weight_table": {
+   "read": [
+    "apps/backend/tests/unit/test_norm_views.py"
+   ]
+  },
+  "layer_weights": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "layers": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_interventions.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/tests/test_contrast.py"
+   ]
+  },
+  "load": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/api/routers/datasets.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "packages/process-knowledge/src/wise_knowledge/paths.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "tools/vendor_flow.py"
+   ]
+  },
+  "loads": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/adapters/storage/selections.py",
+    "apps/backend/src/wise_workbench/adapters/storage/workspace.py",
+    "apps/backend/src/wise_workbench/api/routers/notebook.py",
+    "apps/backend/src/wise_workbench/application/ports.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/project_binding.py",
+    "apps/backend/src/wise_workbench/application/services/review.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "apps/backend/tests/api/test_api.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/api/test_cycle3.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "apps/backend/tests/api/test_grouping.py",
+    "apps/backend/tests/api/test_norm_decision_reuse.py",
+    "apps/backend/tests/api/test_norm_templates.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/distribution/smoke_installed.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "apps/backend/tests/golden/test_o2c_preset.py",
+    "apps/backend/tests/service/test_storage.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "apps/backend/tests/unit/test_grouping.py",
+    "apps/backend/tests/unit/test_norm_translation.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/src/wise_knowledge/report_patterns.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/process-knowledge/tests/test_cli.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_loaders.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "tests/tooling/test_check_analysis_acceptance.py",
+    "tests/tooling/test_core_profiles.py",
+    "tools/build_release.py",
+    "tools/check-core-profile.py",
+    "tools/check_analysis_acceptance.py",
+    "tools/check_norm_workflow.py",
+    "tools/create_report_pattern_draft.py",
+    "tools/fetch_public_logs.py",
+    "tools/smoke_eda.py",
+    "tools/vendor_flow.py"
+   ]
+  },
+  "log": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_vocabulary.py"
+   ]
+  },
+  "m": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py"
+   ]
+  },
+  "metadata": {
+   "read": [
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "apps/backend/src/wise_workbench/migrations/env.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_templates.py"
+   ]
+  },
+  "missing": {
+   "read": [
+    "apps/backend/src/wise_workbench/application/services/eda_insights.py"
+   ]
+  },
+  "missing_b": {
+   "read": [
+    "packages/process-knowledge/tests/test_templates.py"
+   ]
+  },
+  "mode": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "n_missing_timestamps": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+   ]
+  },
+  "name": {
+   "assign": [
+    "apps/backend/tests/api/test_eda.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/knowledge.py",
+    "apps/backend/src/wise_workbench/adapters/storage/duck.py",
+    "apps/backend/src/wise_workbench/adapters/storage/selections.py",
+    "apps/backend/src/wise_workbench/adapters/storage/workspace.py",
+    "apps/backend/src/wise_workbench/api/routers/projects.py",
+    "apps/backend/src/wise_workbench/api/schema_models/norms.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/catalogue_context.py",
+    "apps/backend/src/wise_workbench/application/services/dataset_catalogue.py",
+    "apps/backend/src/wise_workbench/application/services/datasets.py",
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "apps/backend/src/wise_workbench/application/services/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/application/services/mappings.py",
+    "apps/backend/src/wise_workbench/application/services/norm_templates.py",
+    "apps/backend/src/wise_workbench/application/services/notebook.py",
+    "apps/backend/src/wise_workbench/application/services/presets.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/selections.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/domain/comparison.py",
+    "apps/backend/src/wise_workbench/domain/mapping.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/ingest.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "apps/backend/tests/api/test_presets.py",
+    "apps/backend/tests/conftest.py",
+    "apps/backend/tests/distribution/smoke_installed.py",
+    "apps/backend/tests/distribution/test_wheels.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/flow.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/process-knowledge/src/wise_knowledge/paths.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/wise-analytics/src/wise_analytics/_common.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "tests/tooling/test_check_analysis_acceptance.py",
+    "tests/tooling/test_core_profiles.py",
+    "tools/build_release.py",
+    "tools/fetch_public_logs.py",
+    "tools/profile_log.py"
+   ]
+  },
+  "norm": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+    "apps/backend/src/wise_workbench/api/routers/norms.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/presets.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/api/test_cycle3.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/matching.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/conftest.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_vocabulary.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "norm_fingerprint": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py"
+   ]
+  },
+  "observation_window": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/tests/test_quality.py"
+   ]
+  },
+  "order_col": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py"
+   ]
+  },
+  "params": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/api/routers/datasets.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/score_run.py",
+    "apps/backend/tests/api/test_action_eligibility.py",
+    "apps/backend/tests/api/test_driver_evidence.py",
+    "apps/backend/tests/api/test_investigation_questions.py",
+    "apps/backend/tests/api/test_process_variants.py",
+    "apps/backend/tests/api/test_scenario_default.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_loaders.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py"
+   ],
+   "write": [
+    "packages/wise-analytics/tests/test_provenance.py"
+   ]
+  },
+  "penalties": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "raw_weights": {
+   "read": [
+    "apps/backend/tests/unit/test_norm_views.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "replace": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/migrate.py",
+    "apps/backend/src/wise_workbench/adapters/db/session.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping.py",
+    "apps/backend/src/wise_workbench/adapters/storage/duck.py",
+    "apps/backend/src/wise_workbench/adapters/storage/workspace.py",
+    "apps/backend/src/wise_workbench/application/services/eda_insights.py",
+    "apps/backend/src/wise_workbench/application/services/review.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/domain/comparison.py",
+    "apps/backend/src/wise_workbench/domain/project.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "apps/backend/tests/api/test_grouping_suggestions.py",
+    "apps/backend/tests/api/test_workbench_journey.py",
+    "apps/backend/tests/distribution/smoke_installed.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/matching.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_plain.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_whatif.py",
+    "tools/profile_log.py"
+   ]
+  },
+  "response": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "scores": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/tests/test_all_constraint_types.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_plain.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_synthetic.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "summary": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "apps/backend/tests/golden/test_running_example.py",
+    "apps/backend/tests/unit/test_cycle3_domain.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/tests/test_all_constraint_types.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_plain.py",
+    "packages/wise-analytics/tests/test_provenance.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "tau": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "threshold": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "timedelta_unit": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "timestamp_col": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+    "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/unit/test_investigation_questions.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py"
+   ]
+  },
+  "to_dict": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/tables.py",
+    "apps/backend/src/wise_workbench/adapters/storage/selections.py",
+    "apps/backend/src/wise_workbench/api/routers/review.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/decisions.py",
+    "apps/backend/src/wise_workbench/application/services/review.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/domain/case_table.py",
+    "apps/backend/src/wise_workbench/domain/decision.py",
+    "apps/backend/src/wise_workbench/domain/mapping.py",
+    "apps/backend/src/wise_workbench/domain/run.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/tests/api/test_api.py",
+    "apps/backend/tests/api/test_cycle2.py",
+    "apps/backend/tests/api/test_cycle3.py",
+    "apps/backend/tests/api/test_cycle4.py",
+    "apps/backend/tests/api/test_eda.py",
+    "apps/backend/tests/api/test_grouping.py",
+    "apps/backend/tests/api/test_hypothesis_integrity.py",
+    "apps/backend/tests/api/test_norm_decision_reuse.py",
+    "apps/backend/tests/api/test_norm_persistence.py",
+    "apps/backend/tests/api/test_norm_signals.py",
+    "apps/backend/tests/api/test_norm_templates.py",
+    "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/api/test_workbench_journey.py",
+    "apps/backend/tests/conftest.py",
+    "apps/backend/tests/unit/test_cycle2_domain.py",
+    "apps/backend/tests/unit/test_cycle3_domain.py",
+    "apps/backend/tests/unit/test_domain.py",
+    "apps/backend/tests/unit/test_domain_remedies.py",
+    "apps/backend/tests/unit/test_grouping_suggestions.py",
+    "apps/backend/tests/unit/test_mapping.py",
+    "apps/backend/tests/unit/test_norm_decision_reuse.py",
+    "apps/backend/tests/unit/test_norm_inspection.py",
+    "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_norm_relevance.py",
+    "apps/backend/tests/unit/test_norm_views.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "tools/check_norm_workflow.py",
+    "tools/demo.py",
+    "tools/profile_log.py"
+   ]
+  },
+  "to_json": {
+   "read": [
+    "packages/wise-analytics/tests/test_provenance.py"
+   ]
+  },
+  "total": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py"
+   ]
+  },
+  "trace": {
+   "read": [
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py"
+   ]
+  },
+  "type": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/application/services/eda.py",
+    "apps/backend/src/wise_workbench/application/services/eda_insights.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_graph.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "tz": {
+   "read": [
+    "apps/backend/tests/unit/test_driver_evidence.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py"
+   ]
+  },
+  "unit": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "apps/backend/src/wise_workbench/domain/comparison.py",
+    "packages/process-knowledge/src/wise_knowledge/cli.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/src/wise_knowledge/guidance.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py"
+   ]
+  },
+  "validate": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/tests/distribution/smoke_installed.py",
+    "packages/process-knowledge/src/wise_knowledge/schema.py",
+    "packages/process-knowledge/tests/test_guidance.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "tools/create_report_pattern_draft.py"
+   ]
+  },
+  "version": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/db/repositories.py",
+    "apps/backend/src/wise_workbench/api/schema_models/norms.py",
+    "apps/backend/src/wise_workbench/application/services/decisions.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/tests/unit/test_cycle2_domain.py",
+    "packages/process-knowledge/src/wise_knowledge/graph.py",
+    "packages/process-knowledge/tests/test_guidance.py"
+   ]
+  },
+  "view_names": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/api/schema_models/norms.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/cli.py",
+    "apps/backend/src/wise_workbench/jobs/handlers/load_preset.py",
+    "apps/backend/tests/unit/test_domain.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py"
+   ]
+  },
+  "views": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/api/routers/runs.py",
+    "apps/backend/src/wise_workbench/api/schemas.py",
+    "apps/backend/src/wise_workbench/application/services/action_evidence.py",
+    "apps/backend/src/wise_workbench/application/services/grouping_suggestions.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "packages/wise-analytics/src/wise_analytics/_common.py",
+    "packages/wise-analytics/src/wise_analytics/plain.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_all_constraint_types.py",
+    "packages/wise-analytics/tests/test_contrast.py",
+    "packages/wise-analytics/tests/test_plain.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "violations": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "packages/process-knowledge/tests/test_report_patterns.py",
+    "packages/process-knowledge/tests/test_templates.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_subgroups.py",
+    "packages/wise-analytics/tests/test_uncertainty.py"
+   ]
+  },
+  "weight": {
+   "read": [
+    "packages/process-knowledge/tests/test_guidance.py"
+   ]
+  },
+  "weight_vector": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+    "packages/wise-analytics/src/wise_analytics/whatif.py"
+   ]
+  },
+  "weights": {
+   "read": [
+    "packages/wise-analytics/src/wise_analytics/whatif.py",
+    "packages/wise-analytics/tests/test_whatif.py"
+   ]
+  },
+  "width": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+    "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+    "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+    "packages/wise-analytics/src/wise_analytics/contrast.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+   ]
+  },
+  "window": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py"
+   ],
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "packages/wise-analytics/src/wise_analytics/provenance.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/src/wise_analytics/subgroups.py",
+    "packages/wise-analytics/src/wise_analytics/synthetic.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_synthetic.py"
+   ]
+  },
+  "window_end": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+    "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+    "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+    "apps/backend/src/wise_workbench/application/services/runs.py",
+    "apps/backend/tests/golden/test_bpic19.py",
+    "packages/wise-analytics/src/wise_analytics/demo.py",
+    "packages/wise-analytics/src/wise_analytics/quality.py",
+    "packages/wise-analytics/tests/test_quality.py",
+    "packages/wise-analytics/tests/test_subgroups.py"
+   ]
+  },
+  "wise_version": {
+   "read": [
+    "apps/backend/src/wise_workbench/application/services/whatif.py",
+    "apps/backend/src/wise_workbench/cli.py"
+   ]
+  },
+  "worst_cases": {
+   "read": [
+    "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+   ]
+  }
+ },
+ "names": {
+  "wise.Balance": [
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Constraint": [
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+  ],
+  "wise.EventLog": [
+   "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/investigation_questions.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/src/wise_workbench/adapters/engine/process_variants.py",
+   "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/src/wise_workbench/adapters/engine/transforms.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "apps/backend/tests/unit/test_filter_semantics.py",
+   "apps/backend/tests/unit/test_investigation_questions.py",
+   "apps/backend/tests/unit/test_norm_decision_reuse.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "apps/backend/tests/unit/test_norm_translation.py",
+   "apps/backend/tests/unit/test_process_variants.py",
+   "packages/process-knowledge/tests/test_report_patterns.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/provenance.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/synthetic.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_provenance.py",
+   "packages/wise-analytics/tests/test_quality.py"
+  ],
+  "wise.Exclusion": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Lag": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_domain_remedies.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Layer": [
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.LogSchemaError": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py"
+  ],
+  "wise.Metric": [
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Norm": [
+   "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/process-knowledge/src/wise_knowledge/schema.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/synthetic.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Norm.from_dict": [
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/tests/api/test_api.py",
+   "apps/backend/tests/api/test_general_benchmark.py",
+   "apps/backend/tests/api/test_norm_decision_reuse.py",
+   "apps/backend/tests/api/test_norm_templates.py",
+   "apps/backend/tests/unit/test_norm_decision_reuse.py",
+   "apps/backend/tests/unit/test_norm_translation.py",
+   "apps/backend/tests/unit/test_norm_views.py",
+   "packages/process-knowledge/src/wise_knowledge/schema.py",
+   "packages/process-knowledge/tests/test_report_patterns.py",
+   "tools/create_report_pattern_draft.py"
+  ],
+  "wise.Norm.load": [
+   "apps/backend/tests/distribution/smoke_installed.py"
+  ],
+  "wise.NormConstraint": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_domain_remedies.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_quality.py"
+  ],
+  "wise.NormError": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.NotScoredError": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "packages/wise-analytics/tests/test_contrast.py",
+   "packages/wise-analytics/tests/test_subgroups.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.Precedence": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.Presence": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_quality.py"
+  ],
+  "wise.SCHEMA_VERSION": [
+   "apps/backend/src/wise_workbench/adapters/engine/compat.py"
+  ],
+  "wise.ScoreResult": [
+   "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+   "packages/wise-analytics/src/wise_analytics/_common.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/provenance.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/subgroups.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py",
+   "packages/wise-analytics/tests/test_subgroups.py",
+   "packages/wise-analytics/tests/test_uncertainty.py"
+  ],
+  "wise.Singularity": [
+   "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
+   "apps/backend/src/wise_workbench/adapters/engine/flow.py",
+   "apps/backend/src/wise_workbench/adapters/engine/sentences.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_driver_evidence.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py"
+  ],
+  "wise.View": [
+   "apps/backend/tests/api/test_norm_signals.py",
+   "apps/backend/tests/api/test_workbench_journey.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "apps/backend/tests/unit/test_norm_relevance.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.WiseError": [
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py"
+  ],
+  "wise.__version__": [
+   "apps/backend/src/wise_workbench/adapters/engine/compat.py",
+   "packages/wise-analytics/src/wise_analytics/demo.py",
+   "packages/wise-analytics/src/wise_analytics/provenance.py",
+   "packages/wise-analytics/tests/test_provenance.py",
+   "tools/smoke_installed.py"
+  ],
+  "wise.as_labels": [
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.concentration": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+  ],
+  "wise.constraint_drivers": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/review_selection.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "packages/wise-analytics/tests/test_synthetic.py"
+  ],
+  "wise.constraints.Metric": [
+   "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py"
+  ],
+  "wise.constraints.constraint_from_dict": [
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py"
+  ],
+  "wise.constraints.in_units": [
+   "apps/backend/src/wise_workbench/adapters/engine/filters.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/src/wise_workbench/adapters/engine/signals.py",
+   "packages/wise-analytics/src/wise_analytics/contrast.py"
+  ],
+  "wise.cross_case_replication": [
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.errors.NormError": [
+   "packages/process-knowledge/src/wise_knowledge/schema.py",
+   "packages/wise-analytics/src/wise_analytics/_common.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/subgroups.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py",
+   "packages/wise-analytics/tests/test_plain.py",
+   "packages/wise-analytics/tests/test_subgroups.py",
+   "packages/wise-analytics/tests/test_uncertainty.py"
+  ],
+  "wise.errors.NotScoredError": [
+   "packages/wise-analytics/src/wise_analytics/contrast.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/subgroups.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py"
+  ],
+  "wise.estimate_gamma": [
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+  ],
+  "wise.evaluate_constraint": [
+   "apps/backend/src/wise_workbench/adapters/engine/norms.py",
+   "apps/backend/tests/unit/test_domain_remedies.py",
+   "apps/backend/tests/unit/test_norm_preview_preparation.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py"
+  ],
+  "wise.event_replication": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.gap_retained": [
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.hotspot_table": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py"
+  ],
+  "wise.layer_drivers": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "packages/wise-analytics/tests/test_contrast.py"
+  ],
+  "wise.norm._rule_attributes": [
+   "apps/backend/src/wise_workbench/adapters/engine/grouping_suggestions.py"
+  ],
+  "wise.penalty_mass": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "packages/wise-analytics/src/wise_analytics/subgroups.py",
+   "packages/wise-analytics/tests/test_subgroups.py"
+  ],
+  "wise.prioritize": [
+   "apps/backend/src/wise_workbench/adapters/engine/board.py",
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "packages/wise-analytics/src/wise_analytics/demo.py",
+   "packages/wise-analytics/src/wise_analytics/plain.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_plain.py",
+   "packages/wise-analytics/tests/test_synthetic.py",
+   "packages/wise-analytics/tests/test_uncertainty.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.right_censored": [
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "apps/backend/tests/api/test_cycle2.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py",
+   "packages/wise-analytics/src/wise_analytics/subgroups.py",
+   "packages/wise-analytics/tests/test_quality.py"
+  ],
+  "wise.running_p2p_events": [
+   "apps/backend/tests/api/test_grouping.py",
+   "apps/backend/tests/conftest.py",
+   "packages/process-knowledge/tests/test_report_patterns.py",
+   "packages/wise-analytics/tests/test_provenance.py",
+   "tools/check_norm_workflow.py",
+   "tools/demo.py"
+  ],
+  "wise.running_p2p_log": [
+   "apps/backend/tests/golden/test_running_example.py",
+   "apps/backend/tests/unit/test_norm_inspection.py",
+   "packages/wise-analytics/src/wise_analytics/demo.py",
+   "packages/wise-analytics/tests/conftest.py",
+   "packages/wise-analytics/tests/test_provenance.py"
+  ],
+  "wise.running_p2p_norm": [
+   "apps/backend/tests/api/test_grouping.py",
+   "apps/backend/tests/api/test_norm_persistence.py",
+   "apps/backend/tests/conftest.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "apps/backend/tests/unit/test_grouping_suggestions.py",
+   "apps/backend/tests/unit/test_norm_inspection.py",
+   "packages/wise-analytics/src/wise_analytics/demo.py",
+   "packages/wise-analytics/src/wise_analytics/synthetic.py",
+   "packages/wise-analytics/tests/conftest.py",
+   "packages/wise-analytics/tests/test_synthetic.py",
+   "tools/check_norm_workflow.py",
+   "tools/demo.py"
+  ],
+  "wise.score": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "apps/backend/tests/api/test_cycle2.py",
+   "apps/backend/tests/golden/test_running_example.py",
+   "packages/process-knowledge/tests/test_report_patterns.py",
+   "packages/wise-analytics/src/wise_analytics/demo.py",
+   "packages/wise-analytics/tests/conftest.py",
+   "packages/wise-analytics/tests/test_all_constraint_types.py",
+   "packages/wise-analytics/tests/test_contrast.py",
+   "packages/wise-analytics/tests/test_quality.py",
+   "packages/wise-analytics/tests/test_synthetic.py",
+   "packages/wise-analytics/tests/test_uncertainty.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.timestamp_outliers": [
+   "apps/backend/src/wise_workbench/adapters/engine/logs.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.top_k_overlap": [
+   "packages/wise-analytics/src/wise_analytics/uncertainty.py",
+   "packages/wise-analytics/src/wise_analytics/whatif.py",
+   "packages/wise-analytics/tests/test_whatif.py"
+  ],
+  "wise.validation_table": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
+   "packages/wise-analytics/src/wise_analytics/quality.py"
+  ],
+  "wise.view_agreement": [
+   "apps/backend/src/wise_workbench/adapters/engine/gateway.py"
+  ]
+ }
+}

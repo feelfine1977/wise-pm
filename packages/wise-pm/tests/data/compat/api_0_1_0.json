@@ -1,0 +1,5085 @@
+{
+ "wise.Balance": {
+  "kind": "alias",
+  "of": "wise.constraints.Balance",
+  "public": true
+ },
+ "wise.CONSTRAINT_TYPES": {
+  "kind": "constant",
+  "public": true,
+  "type": "dict"
+ },
+ "wise.Constraint": {
+  "kind": "alias",
+  "of": "wise.constraints.Constraint",
+  "public": true
+ },
+ "wise.EventLog": {
+  "kind": "alias",
+  "of": "wise.log.EventLog",
+  "public": true
+ },
+ "wise.Exclusion": {
+  "kind": "alias",
+  "of": "wise.constraints.Exclusion",
+  "public": true
+ },
+ "wise.Lag": {
+  "kind": "alias",
+  "of": "wise.constraints.Lag",
+  "public": true
+ },
+ "wise.Layer": {
+  "kind": "alias",
+  "of": "wise.norm.Layer",
+  "public": true
+ },
+ "wise.LogSchemaError": {
+  "kind": "alias",
+  "of": "wise.errors.LogSchemaError",
+  "public": true
+ },
+ "wise.Metric": {
+  "kind": "alias",
+  "of": "wise.constraints.Metric",
+  "public": true
+ },
+ "wise.Norm": {
+  "kind": "alias",
+  "of": "wise.norm.Norm",
+  "public": true
+ },
+ "wise.NormConstraint": {
+  "kind": "alias",
+  "of": "wise.norm.NormConstraint",
+  "public": true
+ },
+ "wise.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError",
+  "public": true
+ },
+ "wise.NotScoredError": {
+  "kind": "alias",
+  "of": "wise.errors.NotScoredError",
+  "public": true
+ },
+ "wise.Precedence": {
+  "kind": "alias",
+  "of": "wise.constraints.Precedence",
+  "public": true
+ },
+ "wise.Presence": {
+  "kind": "alias",
+  "of": "wise.constraints.Presence",
+  "public": true
+ },
+ "wise.SCHEMA_VERSION": {
+  "kind": "constant",
+  "public": true,
+  "type": "int"
+ },
+ "wise.ScoreResult": {
+  "kind": "alias",
+  "of": "wise.scoring.ScoreResult",
+  "public": true
+ },
+ "wise.Singularity": {
+  "kind": "alias",
+  "of": "wise.constraints.Singularity",
+  "public": true
+ },
+ "wise.View": {
+  "kind": "alias",
+  "of": "wise.norm.View",
+  "public": true
+ },
+ "wise.WiseError": {
+  "kind": "alias",
+  "of": "wise.errors.WiseError",
+  "public": true
+ },
+ "wise.as_labels": {
+  "kind": "alias",
+  "of": "wise.constraints.as_labels",
+  "public": true
+ },
+ "wise.cli.ACTIVITY_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.cli.CASE_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.cli.EventLog": {
+  "kind": "alias",
+  "of": "wise.log.EventLog"
+ },
+ "wise.cli.Norm": {
+  "kind": "alias",
+  "of": "wise.norm.Norm"
+ },
+ "wise.cli.TIMESTAMP_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.cli.WiseError": {
+  "kind": "alias",
+  "of": "wise.errors.WiseError"
+ },
+ "wise.cli._add_log_args": {
+  "kind": "function",
+  "params": [
+   [
+    "p",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "argparse.ArgumentParser"
+   ]
+  ],
+  "returns": "None"
+ },
+ "wise.cli._read_log": {
+  "kind": "function",
+  "params": [
+   [
+    "args",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "argparse.Namespace"
+   ]
+  ],
+  "returns": "EventLog"
+ },
+ "wise.cli._run": {
+  "kind": "function",
+  "params": [
+   [
+    "args",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "argparse.Namespace"
+   ]
+  ],
+  "returns": "int"
+ },
+ "wise.cli.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.cli.main": {
+  "kind": "function",
+  "params": [
+   [
+    "argv",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Sequence[str] | None"
+   ]
+  ],
+  "public": true,
+  "returns": "int"
+ },
+ "wise.cli.prioritize": {
+  "kind": "alias",
+  "of": "wise.prioritization.prioritize"
+ },
+ "wise.cli.score": {
+  "kind": "alias",
+  "of": "wise.scoring.score"
+ },
+ "wise.compare_periods": {
+  "kind": "alias",
+  "of": "wise.prioritization.compare_periods",
+  "public": true
+ },
+ "wise.concentration": {
+  "kind": "alias",
+  "of": "wise.prioritization.concentration",
+  "public": true
+ },
+ "wise.constraint_drivers": {
+  "kind": "alias",
+  "of": "wise.prioritization.constraint_drivers",
+  "public": true
+ },
+ "wise.constraint_from_dict": {
+  "kind": "alias",
+  "of": "wise.constraints.constraint_from_dict",
+  "public": true
+ },
+ "wise.constraints.Activities": {
+  "kind": "constant",
+  "public": true,
+  "type": "UnionType"
+ },
+ "wise.constraints.Balance": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "attr_x",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "activities_x",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "attr_y",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "activities_y",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "tau",
+     "POSITIONAL_OR_KEYWORD",
+     "0.0",
+     "float"
+    ],
+    [
+     "width",
+     "POSITIONAL_OR_KEYWORD",
+     "1.0",
+     "float"
+    ],
+    [
+     "eps",
+     "POSITIONAL_OR_KEYWORD",
+     "1e-09",
+     "float"
+    ],
+    [
+     "agg",
+     "POSITIONAL_OR_KEYWORD",
+     "'sum'",
+     "Literal['sum', 'first', 'last', 'max', 'min', 'mean']"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Balance._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Balance.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Balance.activities_x": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Balance.activities_y": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Balance.agg": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['sum', 'first', 'last', 'max', 'min', 'mean']"
+ },
+ "wise.constraints.Balance.attr_x": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Balance.attr_y": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Balance.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Balance.eps": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Balance.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Balance.tau": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Balance.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Balance.width": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.CONSTRAINT_TYPES": {
+  "kind": "constant",
+  "public": true,
+  "type": "dict"
+ },
+ "wise.constraints.Constraint": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Constraint._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Constraint.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Constraint.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Constraint.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Constraint.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Exclusion": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "activity",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "after",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "Activities | None"
+    ],
+    [
+     "before",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "Activities | None"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Exclusion._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Exclusion.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Exclusion.activity": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Exclusion.after": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities | None"
+ },
+ "wise.constraints.Exclusion.before": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities | None"
+ },
+ "wise.constraints.Exclusion.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Exclusion.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Exclusion.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Lag": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "a",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "b",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "delta",
+     "POSITIONAL_OR_KEYWORD",
+     "0.0",
+     "float | None"
+    ],
+    [
+     "width",
+     "POSITIONAL_OR_KEYWORD",
+     "0.0",
+     "float"
+    ],
+    [
+     "unit",
+     "POSITIONAL_OR_KEYWORD",
+     "'D'",
+     "str"
+    ],
+    [
+     "missing_a",
+     "POSITIONAL_OR_KEYWORD",
+     "'violate'",
+     "Literal['violate', 'skip']"
+    ],
+    [
+     "missing_b",
+     "POSITIONAL_OR_KEYWORD",
+     "'violate'",
+     "Literal['violate', 'skip', 'censor']"
+    ],
+    [
+     "activation",
+     "POSITIONAL_OR_KEYWORD",
+     "'first'",
+     "Literal['first', 'last', 'each']"
+    ],
+    [
+     "response",
+     "POSITIONAL_OR_KEYWORD",
+     "'first_after'",
+     "Literal['first_after', 'first_overall']"
+    ],
+    [
+     "missing",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "Literal['violate', 'skip'] | None"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Lag._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Lag.a": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Lag.activation": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['first', 'last', 'each']"
+ },
+ "wise.constraints.Lag.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Lag.b": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Lag.delta": {
+  "kind": "field",
+  "public": true,
+  "type": "float | None"
+ },
+ "wise.constraints.Lag.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Lag.missing": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['violate', 'skip'] | None"
+ },
+ "wise.constraints.Lag.missing_a": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['violate', 'skip']"
+ },
+ "wise.constraints.Lag.missing_b": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['violate', 'skip', 'censor']"
+ },
+ "wise.constraints.Lag.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Lag.response": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['first_after', 'first_overall']"
+ },
+ "wise.constraints.Lag.timedelta_unit": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.Timedelta",
+  "settable": false
+ },
+ "wise.constraints.Lag.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Lag.unit": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Lag.width": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Metric": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "attribute",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "threshold",
+     "POSITIONAL_OR_KEYWORD",
+     "0.0",
+     "float"
+    ],
+    [
+     "width",
+     "POSITIONAL_OR_KEYWORD",
+     "1.0",
+     "float"
+    ],
+    [
+     "direction",
+     "POSITIONAL_OR_KEYWORD",
+     "'high'",
+     "Literal['high', 'low']"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Metric._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Metric.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Metric.attribute": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Metric.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Metric.direction": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['high', 'low']"
+ },
+ "wise.constraints.Metric.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Metric.threshold": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Metric.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Metric.width": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError"
+ },
+ "wise.constraints.Precedence": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "a",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "b",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "k",
+     "POSITIONAL_OR_KEYWORD",
+     "0",
+     "int"
+    ],
+    [
+     "K",
+     "POSITIONAL_OR_KEYWORD",
+     "1.0",
+     "float"
+    ],
+    [
+     "missing_a",
+     "POSITIONAL_OR_KEYWORD",
+     "'skip'",
+     "Literal['skip', 'violate']"
+    ],
+    [
+     "missing_b",
+     "POSITIONAL_OR_KEYWORD",
+     "'satisfy'",
+     "Literal['satisfy', 'skip']"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Precedence.K": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Precedence._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Precedence.a": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Precedence.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Precedence.b": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Precedence.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Precedence.k": {
+  "kind": "field",
+  "public": true,
+  "type": "int"
+ },
+ "wise.constraints.Precedence.missing_a": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['skip', 'violate']"
+ },
+ "wise.constraints.Precedence.missing_b": {
+  "kind": "field",
+  "public": true,
+  "type": "Literal['satisfy', 'skip']"
+ },
+ "wise.constraints.Precedence.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Precedence.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Presence": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "activity",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "m",
+     "POSITIONAL_OR_KEYWORD",
+     "1",
+     "int"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Presence._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Presence.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Presence.activity": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Presence.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Presence.m": {
+  "kind": "field",
+  "public": true,
+  "type": "int"
+ },
+ "wise.constraints.Presence.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Presence.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.Singularity": {
+  "bases": [
+   "Constraint"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "activity",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Activities"
+    ],
+    [
+     "k",
+     "POSITIONAL_OR_KEYWORD",
+     "1",
+     "int"
+    ],
+    [
+     "K",
+     "POSITIONAL_OR_KEYWORD",
+     "1.0",
+     "float"
+    ],
+    [
+     "after",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "Activities | None"
+    ],
+    [
+     "before",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "Activities | None"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.constraints.Singularity.K": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.constraints.Singularity._hidden": {
+  "kind": "class attribute",
+  "type": "frozenset"
+ },
+ "wise.constraints.Singularity.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.Singularity.activity": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities"
+ },
+ "wise.constraints.Singularity.after": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities | None"
+ },
+ "wise.constraints.Singularity.before": {
+  "kind": "field",
+  "public": true,
+  "type": "Activities | None"
+ },
+ "wise.constraints.Singularity.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.constraints.Singularity.k": {
+  "kind": "field",
+  "public": true,
+  "type": "int"
+ },
+ "wise.constraints.Singularity.params": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.constraints.Singularity.type": {
+  "kind": "class attribute",
+  "public": true,
+  "type": "str"
+ },
+ "wise.constraints.TYPE_ALIASES": {
+  "kind": "constant",
+  "public": true,
+  "type": "dict"
+ },
+ "wise.constraints._NUMERIC_PARAMS": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.constraints._UNITS": {
+  "kind": "constant",
+  "type": "dict"
+ },
+ "wise.constraints._check_nonneg": {
+  "kind": "function",
+  "params": [
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "value",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "None"
+ },
+ "wise.constraints._check_pos": {
+  "kind": "function",
+  "params": [
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "value",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "None"
+ },
+ "wise.constraints._num": {
+  "kind": "function",
+  "params": [
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "value",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "float"
+ },
+ "wise.constraints._opt": {
+  "kind": "function",
+  "params": [
+   [
+    "x",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Activities | None"
+   ]
+  ],
+  "returns": "Labels"
+ },
+ "wise.constraints._plain": {
+  "kind": "function",
+  "params": [
+   [
+    "value",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "Any"
+ },
+ "wise.constraints.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.constraints.as_labels": {
+  "kind": "function",
+  "params": [
+   [
+    "x",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str] | None"
+   ],
+   [
+    "what",
+    "KEYWORD_ONLY",
+    "'activities'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "Labels"
+ },
+ "wise.constraints.as_list": {
+  "kind": "function",
+  "params": [
+   [
+    "x",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ],
+   [
+    "what",
+    "KEYWORD_ONLY",
+    "'value'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "list[Any]"
+ },
+ "wise.constraints.constraint_from_dict": {
+  "kind": "function",
+  "params": [
+   [
+    "type_name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "params",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "public": true,
+  "returns": "Constraint"
+ },
+ "wise.constraints.in_units": {
+  "kind": "function",
+  "params": [
+   [
+    "delta",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "unit",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.constraints.sat": {
+  "kind": "function",
+  "params": [
+   [
+    "z",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ],
+   [
+    "threshold",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "float"
+   ],
+   [
+    "width",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "Any"
+ },
+ "wise.cross_case_replication": {
+  "kind": "alias",
+  "of": "wise.diagnostics.cross_case_replication",
+  "public": true
+ },
+ "wise.datasets.Balance": {
+  "kind": "alias",
+  "of": "wise.constraints.Balance"
+ },
+ "wise.datasets.CINV": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.datasets.CLR": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.datasets.EventLog": {
+  "kind": "alias",
+  "of": "wise.log.EventLog"
+ },
+ "wise.datasets.Exclusion": {
+  "kind": "alias",
+  "of": "wise.constraints.Exclusion"
+ },
+ "wise.datasets.GR": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.datasets.INV": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.datasets.Lag": {
+  "kind": "alias",
+  "of": "wise.constraints.Lag"
+ },
+ "wise.datasets.Layer": {
+  "kind": "alias",
+  "of": "wise.norm.Layer"
+ },
+ "wise.datasets.Norm": {
+  "kind": "alias",
+  "of": "wise.norm.Norm"
+ },
+ "wise.datasets.NormConstraint": {
+  "kind": "alias",
+  "of": "wise.norm.NormConstraint"
+ },
+ "wise.datasets.PO": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.datasets.Presence": {
+  "kind": "alias",
+  "of": "wise.constraints.Presence"
+ },
+ "wise.datasets.Singularity": {
+  "kind": "alias",
+  "of": "wise.constraints.Singularity"
+ },
+ "wise.datasets.View": {
+  "kind": "alias",
+  "of": "wise.norm.View"
+ },
+ "wise.datasets.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.datasets.running_p2p_events": {
+  "kind": "function",
+  "params": [],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.datasets.running_p2p_log": {
+  "kind": "function",
+  "params": [],
+  "public": true,
+  "returns": "EventLog"
+ },
+ "wise.datasets.running_p2p_norm": {
+  "kind": "function",
+  "params": [],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.derive.KINDS": {
+  "kind": "constant",
+  "public": true,
+  "type": "tuple"
+ },
+ "wise.derive.LogSchemaError": {
+  "kind": "alias",
+  "of": "wise.errors.LogSchemaError"
+ },
+ "wise.derive.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError"
+ },
+ "wise.derive.TYPE_CHECKING": {
+  "kind": "constant",
+  "public": true,
+  "type": "bool"
+ },
+ "wise.derive._UNITS": {
+  "kind": "constant",
+  "type": "dict"
+ },
+ "wise.derive._where_mask": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "where",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any] | None"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.derive.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.derive.apply_recipes": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "recipes",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Iterable[Mapping[str, Any]]"
+   ],
+   [
+    "overwrite",
+    "KEYWORD_ONLY",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.derive.as_labels": {
+  "kind": "alias",
+  "of": "wise.constraints.as_labels"
+ },
+ "wise.derive.compute_recipe": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "recipe",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.derive.in_units": {
+  "kind": "alias",
+  "of": "wise.constraints.in_units"
+ },
+ "wise.derive.validate_recipe": {
+  "kind": "function",
+  "params": [
+   [
+    "recipe",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "public": true,
+  "returns": "None"
+ },
+ "wise.diagnostics.EventLog": {
+  "kind": "alias",
+  "of": "wise.log.EventLog"
+ },
+ "wise.diagnostics.LogSchemaError": {
+  "kind": "alias",
+  "of": "wise.errors.LogSchemaError"
+ },
+ "wise.diagnostics.NotScoredError": {
+  "kind": "alias",
+  "of": "wise.errors.NotScoredError"
+ },
+ "wise.diagnostics.ScoreResult": {
+  "kind": "alias",
+  "of": "wise.scoring.ScoreResult"
+ },
+ "wise.diagnostics._frame": {
+  "kind": "alias",
+  "of": "wise.prioritization._frame"
+ },
+ "wise.diagnostics._keys": {
+  "kind": "alias",
+  "of": "wise.prioritization._keys"
+ },
+ "wise.diagnostics._resolve_end": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "window_end",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ],
+   [
+    "window",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Timedelta"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "float"
+   ]
+  ],
+  "returns": "pd.Timestamp"
+ },
+ "wise.diagnostics.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.diagnostics.as_labels": {
+  "kind": "alias",
+  "of": "wise.constraints.as_labels"
+ },
+ "wise.diagnostics.as_list": {
+  "kind": "alias",
+  "of": "wise.constraints.as_list"
+ },
+ "wise.diagnostics.cross_case_replication": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "group_col",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "keys",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Sequence[str] | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.diagnostics.event_replication": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.diagnostics.gap_retained": {
+  "kind": "function",
+  "params": [
+   [
+    "result",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "exclude",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "gamma",
+    "POSITIONAL_OR_KEYWORD",
+    "0.0",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.diagnostics.left_truncated": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "opening",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "window",
+    "POSITIONAL_OR_KEYWORD",
+    "'60D'",
+    "str | pd.Timedelta"
+   ],
+   [
+    "window_start",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Any"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.diagnostics.observation_window": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "tuple[pd.Timestamp, pd.Timestamp]"
+ },
+ "wise.diagnostics.prioritize": {
+  "kind": "alias",
+  "of": "wise.prioritization.prioritize"
+ },
+ "wise.diagnostics.right_censored": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "closure",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "window",
+    "POSITIONAL_OR_KEYWORD",
+    "'60D'",
+    "str | pd.Timedelta"
+   ],
+   [
+    "opened_by",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | Sequence[str] | None"
+   ],
+   [
+    "window_end",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Any"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.diagnostics.timestamp_outliers": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "window",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "tuple[Any, Any] | None"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.diagnostics.validation_table": {
+  "kind": "function",
+  "params": [
+   [
+    "result",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "censored",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "pd.Series | None"
+   ],
+   [
+    "replication",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "pd.DataFrame | pd.Series | None"
+   ],
+   [
+    "gamma",
+    "POSITIONAL_OR_KEYWORD",
+    "0.0",
+    "float"
+   ],
+   [
+    "ratio_flag",
+    "POSITIONAL_OR_KEYWORD",
+    "2.0",
+    "float"
+   ],
+   [
+    "top",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "int | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.errors.LogSchemaError": {
+  "bases": [
+   "WiseError",
+   "KeyError"
+  ],
+  "init": {},
+  "kind": "class",
+  "public": true
+ },
+ "wise.errors.NormError": {
+  "bases": [
+   "WiseError",
+   "ValueError"
+  ],
+  "init": {},
+  "kind": "class",
+  "public": true
+ },
+ "wise.errors.NotScoredError": {
+  "bases": [
+   "WiseError",
+   "ValueError"
+  ],
+  "init": {},
+  "kind": "class",
+  "public": true
+ },
+ "wise.errors.WiseError": {
+  "bases": [
+   "Exception"
+  ],
+  "init": {},
+  "kind": "class",
+  "public": true
+ },
+ "wise.errors.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.estimate_gamma": {
+  "kind": "alias",
+  "of": "wise.prioritization.estimate_gamma",
+  "public": true
+ },
+ "wise.evaluate_constraint": {
+  "kind": "alias",
+  "of": "wise.scoring.evaluate_constraint",
+  "public": true
+ },
+ "wise.event_replication": {
+  "kind": "alias",
+  "of": "wise.diagnostics.event_replication",
+  "public": true
+ },
+ "wise.gap_retained": {
+  "kind": "alias",
+  "of": "wise.diagnostics.gap_retained",
+  "public": true
+ },
+ "wise.hotspot_table": {
+  "kind": "alias",
+  "of": "wise.prioritization.hotspot_table",
+  "public": true
+ },
+ "wise.layer_drivers": {
+  "kind": "alias",
+  "of": "wise.prioritization.layer_drivers",
+  "public": true
+ },
+ "wise.left_truncated": {
+  "kind": "alias",
+  "of": "wise.diagnostics.left_truncated",
+  "public": true
+ },
+ "wise.log.ACTIVITY_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.log.CASE_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.log.EventLog": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "events",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "pd.DataFrame"
+    ],
+    [
+     "case_col",
+     "KEYWORD_ONLY",
+     "'case:concept:name'",
+     "str"
+    ],
+    [
+     "activity_col",
+     "KEYWORD_ONLY",
+     "'concept:name'",
+     "str"
+    ],
+    [
+     "timestamp_col",
+     "KEYWORD_ONLY",
+     "'time:timestamp'",
+     "str"
+    ],
+    [
+     "case_attributes",
+     "KEYWORD_ONLY",
+     "()",
+     "Iterable[str]"
+    ],
+    [
+     "exposure_col",
+     "KEYWORD_ONLY",
+     "None",
+     "str | None"
+    ],
+    [
+     "exposure_agg",
+     "KEYWORD_ONLY",
+     "'max'",
+     "str"
+    ],
+    [
+     "order_col",
+     "KEYWORD_ONLY",
+     "None",
+     "str | None"
+    ],
+    [
+     "event_id_col",
+     "KEYWORD_ONLY",
+     "None",
+     "str | None"
+    ],
+    [
+     "lifecycle_col",
+     "KEYWORD_ONLY",
+     "None",
+     "str | None"
+    ],
+    [
+     "keep_transitions",
+     "KEYWORD_ONLY",
+     "('complete',)",
+     "Iterable[str]"
+    ],
+    [
+     "utc",
+     "KEYWORD_ONLY",
+     "False",
+     "bool"
+    ],
+    [
+     "timestamp_format",
+     "KEYWORD_ONLY",
+     "None",
+     "str | None"
+    ],
+    [
+     "dayfirst",
+     "KEYWORD_ONLY",
+     "False",
+     "bool"
+    ],
+    [
+     "missing_timestamps",
+     "KEYWORD_ONLY",
+     "'raise'",
+     "Literal['raise', 'drop', 'keep']"
+    ],
+    [
+     "window",
+     "KEYWORD_ONLY",
+     "None",
+     "tuple[Any, Any] | None"
+    ],
+    [
+     "keep_columns",
+     "KEYWORD_ONLY",
+     "None",
+     "Iterable[str] | None"
+    ],
+    [
+     "dedupe",
+     "KEYWORD_ONLY",
+     "False",
+     "bool"
+    ]
+   ],
+   "returns": null
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.log.EventLog._act_codes": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._act_labels": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._codes": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._count_cache": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._dt_values": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "values",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ]
+  ],
+  "returns": "pd.DatetimeIndex"
+ },
+ "wise.log.EventLog._first_cache": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._first_from_mask": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "mask",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.log.EventLog._last_cache": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._last_from_mask": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "mask",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.log.EventLog._mask": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "labels",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Labels"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.log.EventLog._n_cases": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._recipe_cache": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._series": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "values",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog._series_dt": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "values",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog._starts": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._to_ts": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "value",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "pd.Timestamp | None"
+ },
+ "wise.log.EventLog._ts": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog._ts_to_int": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "t",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Timestamp"
+   ]
+  ],
+  "returns": "int"
+ },
+ "wise.log.EventLog._valid": {
+  "kind": "attribute"
+ },
+ "wise.log.EventLog.activation_lags": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.log.EventLog.activity_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.activity_labels": {
+  "kind": "property",
+  "public": true,
+  "returns": "list[str]",
+  "settable": false
+ },
+ "wise.log.EventLog.add_case_attribute": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "values",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series | Mapping[Any, Any] | np.ndarray"
+   ]
+  ],
+  "public": true,
+  "returns": "None"
+ },
+ "wise.log.EventLog.attribute": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.case_attributes": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.case_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.case_ids": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.Index",
+  "settable": false
+ },
+ "wise.log.EventLog.cases": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.censoring_end": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "tolerance",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "pd.Timedelta | None"
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Timestamp"
+ },
+ "wise.log.EventLog.count": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "activities",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.count_after": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.count_before": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.count_scoped": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "activities",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "after",
+    "KEYWORD_ONLY",
+    "None",
+    "str | Iterable[str] | None"
+   ],
+   [
+    "before",
+    "KEYWORD_ONLY",
+    "None",
+    "str | Iterable[str] | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.derive": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "recipes",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Iterable[Mapping[str, Any]]"
+   ],
+   [
+    "overwrite",
+    "KEYWORD_ONLY",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.log.EventLog.event_id_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.events": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.exposure_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.first_after": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "activation",
+    "KEYWORD_ONLY",
+    "'first'",
+    "Literal['first', 'last']"
+   ],
+   [
+    "response",
+    "KEYWORD_ONLY",
+    "'first_after'",
+    "Literal['first_after', 'first_overall']"
+   ]
+  ],
+  "public": true,
+  "returns": "tuple[pd.Series, pd.Series]"
+ },
+ "wise.log.EventLog.first_ts": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "activities",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.from_csv": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "path",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "read_kwargs",
+    "KEYWORD_ONLY",
+    "None",
+    "Mapping[str, Any] | None"
+   ],
+   [
+    "kwargs",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "EventLog"
+ },
+ "wise.log.EventLog.from_pm4py": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "obj",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ],
+   [
+    "kwargs",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "EventLog"
+ },
+ "wise.log.EventLog.from_xes": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "path",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "kwargs",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "EventLog"
+ },
+ "wise.log.EventLog.last_ts": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "activities",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.n_missing_timestamps": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.n_null_activities": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.observation_window": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "tuple[pd.Timestamp, pd.Timestamp]"
+ },
+ "wise.log.EventLog.order_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.timestamp_col": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.to_pm4py": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.log.EventLog.total": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "attribute",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "activities",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Iterable[str]"
+   ],
+   [
+    "agg",
+    "POSITIONAL_OR_KEYWORD",
+    "'sum'",
+    "Literal['sum', 'first', 'last', 'max', 'min', 'mean']"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.trace": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "case_id",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.log.EventLog.tz": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.validate": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "q",
+    "POSITIONAL_OR_KEYWORD",
+    "0.001",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.log.EventLog.window": {
+  "kind": "attribute",
+  "public": true
+ },
+ "wise.log.EventLog.window_end": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.Timestamp",
+  "settable": false
+ },
+ "wise.log.EventLog.window_start": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.Timestamp",
+  "settable": false
+ },
+ "wise.log.LogSchemaError": {
+  "kind": "alias",
+  "of": "wise.errors.LogSchemaError"
+ },
+ "wise.log.TIMESTAMP_COL": {
+  "kind": "constant",
+  "public": true,
+  "type": "str"
+ },
+ "wise.log._INT_MAX": {
+  "kind": "constant",
+  "type": "int"
+ },
+ "wise.log._INT_MIN": {
+  "kind": "constant",
+  "type": "int"
+ },
+ "wise.log._RESERVED": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.log._check_attribute_name": {
+  "kind": "function",
+  "params": [
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "returns": "None"
+ },
+ "wise.log.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.log.as_labels": {
+  "kind": "alias",
+  "of": "wise.constraints.as_labels"
+ },
+ "wise.log.as_list": {
+  "kind": "alias",
+  "of": "wise.constraints.as_list"
+ },
+ "wise.norm.Balance": {
+  "kind": "alias",
+  "of": "wise.constraints.Balance"
+ },
+ "wise.norm.CONSTRAINT_TYPES": {
+  "kind": "constant",
+  "public": true,
+  "type": "dict"
+ },
+ "wise.norm.Constraint": {
+  "kind": "alias",
+  "of": "wise.constraints.Constraint"
+ },
+ "wise.norm.DEFAULT_SCORING_MODE": {
+  "kind": "constant",
+  "type": "str"
+ },
+ "wise.norm.Layer": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "id",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "name",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ],
+    [
+     "description",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.norm.Layer.description": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Layer.id": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Layer.name": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Metric": {
+  "kind": "alias",
+  "of": "wise.constraints.Metric"
+ },
+ "wise.norm.Norm": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "constraints",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "tuple[NormConstraint, ...]"
+    ],
+    [
+     "layers",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "tuple[Layer, ...]"
+    ],
+    [
+     "views",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "tuple[View, ...]"
+    ],
+    [
+     "name",
+     "POSITIONAL_OR_KEYWORD",
+     "'norm'",
+     "str"
+    ],
+    [
+     "version",
+     "POSITIONAL_OR_KEYWORD",
+     "'1'",
+     "str"
+    ],
+    [
+     "description",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ],
+    [
+     "scoring_mode",
+     "POSITIONAL_OR_KEYWORD",
+     "'layer_balanced'",
+     "str"
+    ],
+    [
+     "derived_attributes",
+     "POSITIONAL_OR_KEYWORD",
+     "()",
+     "tuple[dict[str, Any], ...]"
+    ],
+    [
+     "metadata",
+     "POSITIONAL_OR_KEYWORD",
+     "<factory>",
+     "dict[str, Any]"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.norm.Norm._constraints_by_id": {
+  "kind": "property",
+  "returns": "dict[str, NormConstraint]",
+  "settable": false
+ },
+ "wise.norm.Norm._from_dict": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "d",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "returns": "Norm"
+ },
+ "wise.norm.Norm._raw_weights": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "v",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "View"
+   ]
+  ],
+  "returns": "dict[str, float]"
+ },
+ "wise.norm.Norm._views_by_name": {
+  "kind": "property",
+  "returns": "dict[str, View]",
+  "settable": false
+ },
+ "wise.norm.Norm.activities": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.norm.Norm.applicability_attributes": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.norm.Norm.attributes": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.norm.Norm.check": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ]
+  ],
+  "public": true,
+  "returns": "list[str]"
+ },
+ "wise.norm.Norm.constraint_ids": {
+  "kind": "property",
+  "public": true,
+  "returns": "list[str]",
+  "settable": false
+ },
+ "wise.norm.Norm.constraints": {
+  "kind": "field",
+  "public": true,
+  "type": "tuple[NormConstraint, ...]"
+ },
+ "wise.norm.Norm.constraints_in_layer": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "layer_id",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "list[NormConstraint]"
+ },
+ "wise.norm.Norm.derived_attributes": {
+  "kind": "field",
+  "public": true,
+  "type": "tuple[dict[str, Any], ...]"
+ },
+ "wise.norm.Norm.describe": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.norm.Norm.description": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Norm.dump": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "path",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Path"
+   ],
+   [
+    "indent",
+    "POSITIONAL_OR_KEYWORD",
+    "2",
+    "int"
+   ]
+  ],
+  "public": true,
+  "returns": "Path"
+ },
+ "wise.norm.Norm.dumps": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "indent",
+    "POSITIONAL_OR_KEYWORD",
+    "2",
+    "int"
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.norm.Norm.fingerprint": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.norm.Norm.from_dict": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "d",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.from_json": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "source",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Path"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.get_constraint": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "cid",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "NormConstraint"
+ },
+ "wise.norm.Norm.get_view": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "name",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "View"
+ },
+ "wise.norm.Norm.layer_ids": {
+  "kind": "property",
+  "public": true,
+  "returns": "list[str]",
+  "settable": false
+ },
+ "wise.norm.Norm.layer_of": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.Series",
+  "settable": false
+ },
+ "wise.norm.Norm.layer_weight_table": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.norm.Norm.layers": {
+  "kind": "field",
+  "public": true,
+  "type": "tuple[Layer, ...]"
+ },
+ "wise.norm.Norm.load": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "path",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Path"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.loads": {
+  "kind": "classmethod",
+  "params": [
+   [
+    "text",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.map_constraints": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "fn",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.metadata": {
+  "kind": "field",
+  "public": true,
+  "type": "dict[str, Any]"
+ },
+ "wise.norm.Norm.name": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Norm.raw_weights": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | View"
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, float]"
+ },
+ "wise.norm.Norm.replace": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "changes",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.replace_constraint": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "cid",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "changes",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "Norm"
+ },
+ "wise.norm.Norm.scoring_mode": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Norm.to_dict": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.norm.Norm.to_json": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "path",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | Path | None"
+   ],
+   [
+    "indent",
+    "POSITIONAL_OR_KEYWORD",
+    "2",
+    "int"
+   ]
+  ],
+  "public": true,
+  "returns": "str"
+ },
+ "wise.norm.Norm.validate": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "None"
+ },
+ "wise.norm.Norm.version": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.Norm.view_names": {
+  "kind": "property",
+  "public": true,
+  "returns": "list[str]",
+  "settable": false
+ },
+ "wise.norm.Norm.views": {
+  "kind": "field",
+  "public": true,
+  "type": "tuple[View, ...]"
+ },
+ "wise.norm.Norm.weight_table": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.norm.Norm.weight_vector": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | View"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.norm.NormConstraint": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "id",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "layer",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "constraint",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Constraint"
+    ],
+    [
+     "weight",
+     "POSITIONAL_OR_KEYWORD",
+     "1.0",
+     "float"
+    ],
+    [
+     "applicability",
+     "POSITIONAL_OR_KEYWORD",
+     "<factory>",
+     "dict[str, Any]"
+    ],
+    [
+     "description",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.norm.NormConstraint.applicability": {
+  "kind": "field",
+  "public": true,
+  "type": "dict[str, Any]"
+ },
+ "wise.norm.NormConstraint.applies_to": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "cases",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "EventLog | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.norm.NormConstraint.constraint": {
+  "kind": "field",
+  "public": true,
+  "type": "Constraint"
+ },
+ "wise.norm.NormConstraint.description": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.NormConstraint.id": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.NormConstraint.layer": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.NormConstraint.replace": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "changes",
+    "VAR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "NormConstraint"
+ },
+ "wise.norm.NormConstraint.to_dict": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "dict[str, Any]"
+ },
+ "wise.norm.NormConstraint.type": {
+  "kind": "property",
+  "public": true,
+  "returns": "str",
+  "settable": false
+ },
+ "wise.norm.NormConstraint.weight": {
+  "kind": "field",
+  "public": true,
+  "type": "float"
+ },
+ "wise.norm.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError"
+ },
+ "wise.norm.SCHEMA_VERSION": {
+  "kind": "constant",
+  "public": true,
+  "type": "int"
+ },
+ "wise.norm.SCORING_MODES": {
+  "kind": "constant",
+  "public": true,
+  "type": "tuple"
+ },
+ "wise.norm.TYPE_ALIASES": {
+  "kind": "constant",
+  "public": true,
+  "type": "dict"
+ },
+ "wise.norm.TYPE_CHECKING": {
+  "kind": "constant",
+  "type": "bool"
+ },
+ "wise.norm.View": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "name",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "str"
+    ],
+    [
+     "layer_weights",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "dict[str, float] | None"
+    ],
+    [
+     "constraint_weights",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "dict[str, float] | None"
+    ],
+    [
+     "description",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.norm.View.constraint_weights": {
+  "kind": "field",
+  "public": true,
+  "type": "dict[str, float] | None"
+ },
+ "wise.norm.View.description": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.View.layer_weights": {
+  "kind": "field",
+  "public": true,
+  "type": "dict[str, float] | None"
+ },
+ "wise.norm.View.name": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.norm.View.weights": {
+  "kind": "property",
+  "public": true,
+  "returns": "dict[str, float]",
+  "settable": false
+ },
+ "wise.norm._CONSTRAINT_KEYS": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.norm._LEAF_OPS": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.norm._RULE_KEYS": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.norm._TOP_KEYS": {
+  "kind": "constant",
+  "type": "set"
+ },
+ "wise.norm._eval_rule": {
+  "kind": "function",
+  "params": [
+   [
+    "rule",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ],
+   [
+    "cases",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog | None"
+   ],
+   [
+    "cid",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.norm._json_default": {
+  "kind": "function",
+  "params": [
+   [
+    "obj",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "Any"
+ },
+ "wise.norm._jsonable": {
+  "kind": "function",
+  "params": [
+   [
+    "obj",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "Any"
+ },
+ "wise.norm._normalise_applicability": {
+  "kind": "function",
+  "params": [
+   [
+    "app",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "dict[str, Any]"
+ },
+ "wise.norm._rule_activities": {
+  "kind": "function",
+  "params": [
+   [
+    "rule",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "returns": "set[str]"
+ },
+ "wise.norm._rule_attributes": {
+  "kind": "function",
+  "params": [
+   [
+    "rule",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Mapping[str, Any]"
+   ]
+  ],
+  "returns": "set[str]"
+ },
+ "wise.norm._validate_rule": {
+  "kind": "function",
+  "params": [
+   [
+    "rule",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "returns": "None"
+ },
+ "wise.norm.annotations": {
+  "kind": "constant",
+  "type": "_Feature"
+ },
+ "wise.norm.as_labels": {
+  "kind": "alias",
+  "of": "wise.constraints.as_labels"
+ },
+ "wise.norm.constraint_from_dict": {
+  "kind": "alias",
+  "of": "wise.constraints.constraint_from_dict"
+ },
+ "wise.norm.validate_recipe": {
+  "kind": "alias",
+  "of": "wise.derive.validate_recipe"
+ },
+ "wise.observation_window": {
+  "kind": "alias",
+  "of": "wise.diagnostics.observation_window",
+  "public": true
+ },
+ "wise.pareto": {
+  "kind": "alias",
+  "of": "wise.prioritization.pareto",
+  "public": true
+ },
+ "wise.penalty_mass": {
+  "kind": "alias",
+  "of": "wise.prioritization.penalty_mass",
+  "public": true
+ },
+ "wise.prioritization.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError"
+ },
+ "wise.prioritization.NotScoredError": {
+  "kind": "alias",
+  "of": "wise.errors.NotScoredError"
+ },
+ "wise.prioritization.ScoreResult": {
+  "kind": "alias",
+  "of": "wise.scoring.ScoreResult"
+ },
+ "wise.prioritization._corr": {
+  "kind": "function",
+  "params": [
+   [
+    "a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "method",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Literal['pearson', 'spearman', 'kendall']"
+   ]
+  ],
+  "returns": "float"
+ },
+ "wise.prioritization._frame": {
+  "kind": "function",
+  "params": [
+   [
+    "data",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult | pd.DataFrame"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | None"
+   ],
+   [
+    "score_col",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Sequence[str]"
+   ]
+  ],
+  "returns": "tuple[pd.DataFrame, str]"
+ },
+ "wise.prioritization._keys": {
+  "kind": "function",
+  "params": [
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ]
+  ],
+  "returns": "list[str]"
+ },
+ "wise.prioritization._top_keys": {
+  "kind": "function",
+  "params": [
+   [
+    "backlog",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "k",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "int"
+   ],
+   [
+    "metric",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Sequence[str] | None"
+   ]
+  ],
+  "returns": "set[tuple[str, ...]]"
+ },
+ "wise.prioritization._where_mask": {
+  "kind": "alias",
+  "of": "wise.scoring._where_mask"
+ },
+ "wise.prioritization.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.prioritization.as_list": {
+  "kind": "alias",
+  "of": "wise.constraints.as_list"
+ },
+ "wise.prioritization.compare_periods": {
+  "kind": "function",
+  "params": [
+   [
+    "previous",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "current",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.concentration": {
+  "kind": "function",
+  "params": [
+   [
+    "backlog",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "thresholds",
+    "POSITIONAL_OR_KEYWORD",
+    "(0.8, 0.95)",
+    "float | Sequence[float]"
+   ],
+   [
+    "metric",
+    "POSITIONAL_OR_KEYWORD",
+    "'stable_PI'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.constraint_drivers": {
+  "kind": "function",
+  "params": [
+   [
+    "result",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "where",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "dict[str, Any] | pd.Series | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.estimate_gamma": {
+  "kind": "function",
+  "params": [
+   [
+    "data",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult | pd.DataFrame"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | None"
+   ],
+   [
+    "score_col",
+    "POSITIONAL_OR_KEYWORD",
+    "'score'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "float"
+ },
+ "wise.prioritization.hotspot_table": {
+  "kind": "function",
+  "params": [
+   [
+    "backlog",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "top",
+    "POSITIONAL_OR_KEYWORD",
+    "12",
+    "int"
+   ],
+   [
+    "drivers",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "pd.DataFrame | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.layer_drivers": {
+  "kind": "function",
+  "params": [
+   [
+    "data",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult | pd.DataFrame"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | None"
+   ],
+   [
+    "layers",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Sequence[str] | None"
+   ],
+   [
+    "as_index",
+    "POSITIONAL_OR_KEYWORD",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.pareto": {
+  "kind": "function",
+  "params": [
+   [
+    "backlog",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "metric",
+    "POSITIONAL_OR_KEYWORD",
+    "'stable_PI'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.penalty_mass": {
+  "kind": "function",
+  "params": [
+   [
+    "result",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "where",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "dict[str, Any] | pd.Series | None"
+   ],
+   [
+    "as_index",
+    "POSITIONAL_OR_KEYWORD",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.prioritize": {
+  "kind": "function",
+  "params": [
+   [
+    "data",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult | pd.DataFrame"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | None"
+   ],
+   [
+    "gamma",
+    "POSITIONAL_OR_KEYWORD",
+    "0.0",
+    "float"
+   ],
+   [
+    "volume",
+    "POSITIONAL_OR_KEYWORD",
+    "'cases'",
+    "str"
+   ],
+   [
+    "min_cases",
+    "POSITIONAL_OR_KEYWORD",
+    "1",
+    "int"
+   ],
+   [
+    "z",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "float | None"
+   ],
+   [
+    "score_col",
+    "POSITIONAL_OR_KEYWORD",
+    "'score'",
+    "str"
+   ],
+   [
+    "baseline",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "float | None"
+   ],
+   [
+    "as_index",
+    "POSITIONAL_OR_KEYWORD",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritization.top_k_overlap": {
+  "kind": "function",
+  "params": [
+   [
+    "backlog_a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "backlog_b",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "k",
+    "POSITIONAL_OR_KEYWORD",
+    "20",
+    "int"
+   ],
+   [
+    "metric",
+    "POSITIONAL_OR_KEYWORD",
+    "'stable_PI'",
+    "str"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Sequence[str] | None"
+   ]
+  ],
+  "public": true,
+  "returns": "float"
+ },
+ "wise.prioritization.view_agreement": {
+  "kind": "function",
+  "params": [
+   [
+    "result",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "ScoreResult"
+   ],
+   [
+    "by",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str | Sequence[str]"
+   ],
+   [
+    "k",
+    "POSITIONAL_OR_KEYWORD",
+    "20",
+    "int"
+   ],
+   [
+    "gamma",
+    "POSITIONAL_OR_KEYWORD",
+    "0.0",
+    "float"
+   ],
+   [
+    "method",
+    "POSITIONAL_OR_KEYWORD",
+    "'pearson'",
+    "Literal['pearson', 'spearman', 'kendall']"
+   ],
+   [
+    "metric",
+    "POSITIONAL_OR_KEYWORD",
+    "'stable_PI'",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.prioritize": {
+  "kind": "alias",
+  "of": "wise.prioritization.prioritize",
+  "public": true
+ },
+ "wise.right_censored": {
+  "kind": "alias",
+  "of": "wise.diagnostics.right_censored",
+  "public": true
+ },
+ "wise.running_p2p_events": {
+  "kind": "alias",
+  "of": "wise.datasets.running_p2p_events",
+  "public": true
+ },
+ "wise.running_p2p_log": {
+  "kind": "alias",
+  "of": "wise.datasets.running_p2p_log",
+  "public": true
+ },
+ "wise.running_p2p_norm": {
+  "kind": "alias",
+  "of": "wise.datasets.running_p2p_norm",
+  "public": true
+ },
+ "wise.sat": {
+  "kind": "alias",
+  "of": "wise.constraints.sat",
+  "public": true
+ },
+ "wise.score": {
+  "kind": "alias",
+  "of": "wise.scoring.score",
+  "public": true
+ },
+ "wise.scoring.Balance": {
+  "kind": "alias",
+  "of": "wise.constraints.Balance"
+ },
+ "wise.scoring.EventLog": {
+  "kind": "alias",
+  "of": "wise.log.EventLog"
+ },
+ "wise.scoring.Exclusion": {
+  "kind": "alias",
+  "of": "wise.constraints.Exclusion"
+ },
+ "wise.scoring.Lag": {
+  "kind": "alias",
+  "of": "wise.constraints.Lag"
+ },
+ "wise.scoring.Metric": {
+  "kind": "alias",
+  "of": "wise.constraints.Metric"
+ },
+ "wise.scoring.Norm": {
+  "kind": "alias",
+  "of": "wise.norm.Norm"
+ },
+ "wise.scoring.NormConstraint": {
+  "kind": "alias",
+  "of": "wise.norm.NormConstraint"
+ },
+ "wise.scoring.NormError": {
+  "kind": "alias",
+  "of": "wise.errors.NormError"
+ },
+ "wise.scoring.NotScoredError": {
+  "kind": "alias",
+  "of": "wise.errors.NotScoredError"
+ },
+ "wise.scoring.Precedence": {
+  "kind": "alias",
+  "of": "wise.constraints.Precedence"
+ },
+ "wise.scoring.Presence": {
+  "kind": "alias",
+  "of": "wise.constraints.Presence"
+ },
+ "wise.scoring.SCORING_MODES": {
+  "kind": "constant",
+  "public": true,
+  "type": "tuple"
+ },
+ "wise.scoring.ScoreResult": {
+  "bases": [
+   "object"
+  ],
+  "init": {
+   "params": [
+    [
+     "self",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     null
+    ],
+    [
+     "norm",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "Norm"
+    ],
+    [
+     "cases",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "pd.DataFrame"
+    ],
+    [
+     "violations",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "pd.DataFrame"
+    ],
+    [
+     "in_scope",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "pd.DataFrame"
+    ],
+    [
+     "scores",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "pd.DataFrame"
+    ],
+    [
+     "contributions",
+     "POSITIONAL_OR_KEYWORD",
+     "<required>",
+     "dict[str, pd.DataFrame]"
+    ],
+    [
+     "mode",
+     "POSITIONAL_OR_KEYWORD",
+     "'flat'",
+     "str"
+    ],
+    [
+     "log",
+     "POSITIONAL_OR_KEYWORD",
+     "None",
+     "EventLog | None"
+    ],
+    [
+     "norm_fingerprint",
+     "POSITIONAL_OR_KEYWORD",
+     "''",
+     "str"
+    ],
+    [
+     "wise_version",
+     "POSITIONAL_OR_KEYWORD",
+     "'0.1.0'",
+     "str"
+    ],
+    [
+     "_weights",
+     "POSITIONAL_OR_KEYWORD",
+     "<factory>",
+     "dict[str, np.ndarray]"
+    ],
+    [
+     "_eff_cache",
+     "POSITIONAL_OR_KEYWORD",
+     "<factory>",
+     "dict[str, pd.DataFrame]"
+    ]
+   ],
+   "returns": "None"
+  },
+  "kind": "class",
+  "public": true
+ },
+ "wise.scoring.ScoreResult._eff_cache": {
+  "kind": "field",
+  "type": "dict[str, pd.DataFrame]"
+ },
+ "wise.scoring.ScoreResult._weights": {
+  "kind": "field",
+  "type": "dict[str, np.ndarray]"
+ },
+ "wise.scoring.ScoreResult.applicability_density": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "scope",
+    "POSITIONAL_OR_KEYWORD",
+    "False",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "float"
+ },
+ "wise.scoring.ScoreResult.applicable": {
+  "kind": "property",
+  "public": true,
+  "returns": "pd.DataFrame",
+  "settable": false
+ },
+ "wise.scoring.ScoreResult.cases": {
+  "kind": "field",
+  "public": true,
+  "type": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.check_decomposition": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "atol",
+    "POSITIONAL_OR_KEYWORD",
+    "1e-09",
+    "float"
+   ]
+  ],
+  "public": true,
+  "returns": "float"
+ },
+ "wise.scoring.ScoreResult.contributions": {
+  "kind": "field",
+  "public": true,
+  "type": "dict[str, pd.DataFrame]"
+ },
+ "wise.scoring.ScoreResult.effective_weights": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.frame": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "str | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.in_scope": {
+  "kind": "field",
+  "public": true,
+  "type": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.log": {
+  "kind": "field",
+  "public": true,
+  "type": "EventLog | None"
+ },
+ "wise.scoring.ScoreResult.mode": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.scoring.ScoreResult.norm": {
+  "kind": "field",
+  "public": true,
+  "type": "Norm"
+ },
+ "wise.scoring.ScoreResult.norm_fingerprint": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.scoring.ScoreResult.penalties": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.scores": {
+  "kind": "field",
+  "public": true,
+  "type": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.summary": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.trace": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "case_id",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Any"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.views": {
+  "kind": "property",
+  "public": true,
+  "returns": "list[str]",
+  "settable": false
+ },
+ "wise.scoring.ScoreResult.violations": {
+  "kind": "field",
+  "public": true,
+  "type": "pd.DataFrame"
+ },
+ "wise.scoring.ScoreResult.wise_version": {
+  "kind": "field",
+  "public": true,
+  "type": "str"
+ },
+ "wise.scoring.ScoreResult.worst_cases": {
+  "kind": "method",
+  "params": [
+   [
+    "self",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    null
+   ],
+   [
+    "view",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ],
+   [
+    "n",
+    "POSITIONAL_OR_KEYWORD",
+    "20",
+    "int"
+   ],
+   [
+    "where",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "dict[str, Any] | pd.Series | None"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.DataFrame"
+ },
+ "wise.scoring.Singularity": {
+  "kind": "alias",
+  "of": "wise.constraints.Singularity"
+ },
+ "wise.scoring._effective_weights": {
+  "kind": "function",
+  "params": [
+   [
+    "M",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ],
+   [
+    "w",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ],
+   [
+    "norm",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Norm"
+   ],
+   [
+    "mode",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "str"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.scoring._evaluate": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "nc",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "NormConstraint"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.scoring._evaluate_lag": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "c",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Lag"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.scoring._lag_missing": {
+  "kind": "function",
+  "params": [
+   [
+    "v",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "lag",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "t_a",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.Series"
+   ],
+   [
+    "c",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Lag"
+   ],
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.scoring._layer_balanced_weights": {
+  "kind": "function",
+  "params": [
+   [
+    "M",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ],
+   [
+    "w",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "np.ndarray"
+   ],
+   [
+    "norm",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Norm"
+   ]
+  ],
+  "returns": "np.ndarray"
+ },
+ "wise.scoring._where_mask": {
+  "kind": "function",
+  "params": [
+   [
+    "cases",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "pd.DataFrame"
+   ],
+   [
+    "where",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "dict[str, Any] | pd.Series | None"
+   ]
+  ],
+  "returns": "pd.Series"
+ },
+ "wise.scoring.annotations": {
+  "kind": "constant",
+  "public": true,
+  "type": "_Feature"
+ },
+ "wise.scoring.evaluate_constraint": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "nc",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "NormConstraint"
+   ]
+  ],
+  "public": true,
+  "returns": "pd.Series"
+ },
+ "wise.scoring.in_units": {
+  "kind": "alias",
+  "of": "wise.constraints.in_units"
+ },
+ "wise.scoring.sat": {
+  "kind": "alias",
+  "of": "wise.constraints.sat"
+ },
+ "wise.scoring.score": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "norm",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Norm"
+   ],
+   [
+    "views",
+    "POSITIONAL_OR_KEYWORD",
+    "None",
+    "Sequence[str] | str | None"
+   ],
+   [
+    "mode",
+    "KEYWORD_ONLY",
+    "None",
+    "str | None"
+   ],
+   [
+    "derive",
+    "KEYWORD_ONLY",
+    "True",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "ScoreResult"
+ },
+ "wise.scoring.violation_matrix": {
+  "kind": "function",
+  "params": [
+   [
+    "log",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "EventLog"
+   ],
+   [
+    "norm",
+    "POSITIONAL_OR_KEYWORD",
+    "<required>",
+    "Norm"
+   ],
+   [
+    "return_scope",
+    "KEYWORD_ONLY",
+    "False",
+    "bool"
+   ]
+  ],
+  "public": true,
+  "returns": "Any"
+ },
+ "wise.timestamp_outliers": {
+  "kind": "alias",
+  "of": "wise.diagnostics.timestamp_outliers",
+  "public": true
+ },
+ "wise.top_k_overlap": {
+  "kind": "alias",
+  "of": "wise.prioritization.top_k_overlap",
+  "public": true
+ },
+ "wise.validation_table": {
+  "kind": "alias",
+  "of": "wise.diagnostics.validation_table",
+  "public": true
+ },
+ "wise.view_agreement": {
+  "kind": "alias",
+  "of": "wise.prioritization.view_agreement",
+  "public": true
+ },
+ "wise.violation_matrix": {
+  "kind": "alias",
+  "of": "wise.scoring.violation_matrix",
+  "public": true
+ }
+}

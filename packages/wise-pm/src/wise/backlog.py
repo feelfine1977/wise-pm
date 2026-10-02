@@ -20,12 +20,13 @@ acts on a copy and must be made on ``backlog.table``. The path is removed in 1.0
 from __future__ import annotations
 
 import warnings
+from collections.abc import Hashable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-__all__ = ["Backlog", "BacklogSpec"]
+__all__ = ["Backlog", "BacklogSpec", "legacy_frame"]
 
 DATAFRAME_DEPRECATION = (
     "using the backlog returned by prioritize() as a DataFrame is deprecated and will be removed in 1.0; "
@@ -122,9 +123,7 @@ class Backlog:
 
         def _legacy_frame(self) -> pd.DataFrame:
             warnings.warn(DATAFRAME_DEPRECATION, DeprecationWarning, stacklevel=3)
-            frame = self.table.copy(deep=False)
-            frame.attrs = self.spec._legacy_attrs()
-            return frame
+            return legacy_frame(self)
 
         def __getattr__(self, name: str) -> Any:
             if name.startswith("_") or name in ("table", "spec"):  # pickling and copying probe before the fields exist
@@ -150,3 +149,14 @@ class Backlog:
         def __array__(self, dtype: Any = None, copy: bool | None = None) -> Any:
             # numpy looks this up on the type; without it np.asarray would build an array of column names
             return self._legacy_frame().__array__(dtype, copy=copy)
+
+
+def legacy_frame(backlog: Backlog) -> pd.DataFrame:
+    """The 0.1.0 form of a backlog: a shallow copy of :attr:`Backlog.table` with the
+    ranking parameters in ``DataFrame.attrs`` (``view``, ``gamma``, ``baseline`` = the
+    realised global mean ``μ̄``, ``volume``, ``by``). For the compatibility paths
+    only; removed in 1.0."""
+    frame = backlog.table.copy(deep=False)
+    attrs: dict[Hashable | None, Any] = dict(backlog.spec._legacy_attrs().items())
+    frame.attrs = attrs
+    return frame
