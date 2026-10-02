@@ -22,6 +22,7 @@ from . import datasets
 from . import families as families  # registers the built-in constraint families
 from ._version import __version__
 from .backlog import Backlog, BacklogSpec
+from .calibration import Calibration
 from .constraints import (
     CONSTRAINT_TYPES,
     Balance,
@@ -37,6 +38,7 @@ from .constraints import (
     sat,
 )
 from .datasets import running_p2p_events, running_p2p_log, running_p2p_norm
+from .derive import fit_calibration
 from .diagnostics import (
     cross_case_replication,
     event_replication,
@@ -76,6 +78,7 @@ __all__ = [
     "Backlog",
     "BacklogSpec",
     "Balance",
+    "Calibration",
     "Constraint",
     "Evaluation",
     "EventLog",
@@ -109,6 +112,7 @@ __all__ = [
     "evaluate",
     "evaluate_constraint",
     "event_replication",
+    "fit_calibration",
     "gap_retained",
     "hotspot_table",
     "layer_drivers",

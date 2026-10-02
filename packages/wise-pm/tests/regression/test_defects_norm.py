@@ -209,40 +209,63 @@ def test_fingerprint_changes_with_view_weight(p2p_norm):
     assert edited.fingerprint() != p2p_norm.fingerprint()
 
 
-# --- C15 (decision 4): quantile_scale must carry a frozen divisor -------------------------
+# --- C15 (decision 0001, section 3): quantile_scale carries a frozen calibration record ----------------------------
+
+
+def _fitted_record(divisor: float) -> dict[str, Any]:
+    return wise.Calibration.fitted(
+        0.95, divisor, log_fingerprint="0" * 64, size=4, window=("2024-01-01T00:00:00", "2024-01-01T00:00:00")
+    ).to_dict()
 
 
 @pytest.mark.regression
-@pytest.mark.spec("decision:2026-09-26/4")
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C15: quantile_scale without a stored divisor is accepted and normalises by the scored log",
-)
-def test_quantile_scale_without_divisor_is_rejected():
-    with pytest.raises(NormError):
-        validate_recipe(QUANTILE_RECIPE)
+@pytest.mark.spec("decision:0001/4")
+# C15 closed 2026-10-02: under schema version 2 a quantile_scale recipe without a fitted record is read and divides
+# by the quantile of the scored cases, as 0.1.0 did; refusing an unfitted record belongs to schema version 3
+def test_quantile_scale_without_a_record_divides_by_the_scored_quantile_under_schema_2():
+    validate_recipe(QUANTILE_RECIPE)
+    log = make_log([(c, "A", 0, float(c), "F") for c in (1, 2, 3, 4)], attrs=("amount",))
+    log.derive([QUANTILE_RECIPE])
+    # the 0.95 quantile of 1, 2, 3, 4 is 3 + 0.85 = 3.85
+    assert log.cases["scaled"].tolist() == pytest.approx([1 / 3.85, 2 / 3.85, 3 / 3.85, 1.0], rel=1e-12)
 
 
-@pytest.mark.spec("decision:2026-09-26/4")
+@pytest.mark.spec("decision:0001/3")
 def test_quantile_scale_with_stored_divisor_is_accepted_and_round_trips():
-    recipe = {**QUANTILE_RECIPE, "divisor": 12.5}
+    recipe = {**QUANTILE_RECIPE, "calibration": _fitted_record(12.5)}
     validate_recipe(recipe)
     norm = _norm_with_recipe(recipe)
-    assert wise.Norm.loads(norm.dumps()).derived_attributes[0]["divisor"] == 12.5
+    again = wise.Norm.loads(norm.dumps())
+    assert again.derived_attributes[0]["calibration"]["divisor"] == 12.5
+    assert again.recipes[0].to_dict()["calibration"]["divisor"] == 12.5
 
 
 @pytest.mark.regression
-@pytest.mark.spec("decision:2026-09-26/4")
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C15: quantile_scale divides by the scored log's quantile instead of the stored divisor",
-)
+@pytest.mark.spec("decision:0001/3")
+# C15 closed 2026-10-02: with a fitted record the divisor is the record's, so the value of a case does not depend
+# on which other cases are scored
 def test_quantile_scale_divides_by_stored_divisor():
+    recipe = {**QUANTILE_RECIPE, "calibration": _fitted_record(2.0)}
     log = make_log([(c, "A", 0, float(c), "F") for c in (1, 2, 3, 4)], attrs=("amount",))
-    log.derive([{**QUANTILE_RECIPE, "divisor": 2.0}])
-    assert log.cases["scaled"].tolist() == pytest.approx([0.5, 1.0, 1.0, 1.0])
+    log.derive([recipe])
+    assert log.cases["scaled"].tolist() == [0.5, 1.0, 1.0, 1.0]
+    alone = make_log([(1, "A", 0, 1.0, "F")], attrs=("amount",))
+    alone.derive([recipe])
+    assert alone.cases["scaled"].tolist() == [0.5]
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001/3")
+def test_a_fitted_case_value_does_not_depend_on_the_other_scored_cases():
+    log = make_log([(c, "A", c, float(c), "F") for c in (1, 2, 3, 4)], attrs=("amount",))
+    norm = wise.fit_calibration(_norm_with_recipe(QUANTILE_RECIPE), log)
+    assert norm.recipes[0].to_dict()["calibration"]["divisor"] == pytest.approx(3.85, abs=1e-12)
+    events = log.events
+    whole = wise.score(log, norm).cases["scaled"]
+    for subset in ([1], [2, 4], [1, 3, 4], [4]):
+        part = make_log([(c, "A", c, float(c), "F") for c in subset], attrs=("amount",))
+        assert len(part.events) == events["case"].isin(subset).sum()
+        assert wise.score(part, norm).cases["scaled"].tolist() == whole.loc[subset].tolist()
 
 
 # --- C16 (decision 0001, section 4): eval recipes name one case-table column -----------------------------------------

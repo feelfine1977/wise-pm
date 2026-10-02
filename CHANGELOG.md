@@ -261,6 +261,23 @@ snapshot writes the version as a placeholder and is unchanged.
   events, and the order of the columns do not; a column dropped by
   `keep_columns` is not covered. It is computed once per log and kept until
   the case table changes.
+- `wise.Calibration` (module `wise.calibration`, with `CalibrationStatus` and
+  `parse_calibration`): the frozen calibration record of a `quantile_scale`
+  recipe (decision 0001, section 3). It holds the quantile, the status
+  (`fitted` or `unfitted`) and, when fitted, the divisor, the fingerprint of
+  the log it was fitted on, its size (the cases whose value entered the
+  quantile) and its window (ISO 8601 start and end). A recipe document
+  carries it under the new key `calibration`; `QuantileScaleRecipe` has the
+  field `calibration` and the method `calibrate(log, *, log_fingerprint=None)`.
+- `wise.fit_calibration(norm, log)` returns the norm with a fitted record on
+  every `quantile_scale` recipe; the recipe documents keep their other keys.
+  Scoring with a fitted record divides by its divisor whatever cases are
+  scored. No shipped norm carries a fitted record.
+- `ScoreResult.calibrations` (keyword-only field): per `quantile_scale` recipe
+  computed in the run, the record it divided by. For a recipe without a fitted
+  record (schema version 2 legacy profile) that is the record of the divisor
+  realised on the scored cases, which states the scored log's fingerprint; on
+  the log a record was fitted on, the two are equal.
 
 - `wise.selection` grows the leaf operator `regex` (the value's text searched
   with the pattern, as in the recipe where-clauses of 0.1.0; an invalid
@@ -451,6 +468,23 @@ snapshot writes the version as a placeholder and is unchanged.
   and both shipped norms load and round-trip byte-identically. Delta on the
   golden dataset: none (its norm has no `eval` recipe; every table is
   unchanged).
+- Fixed: C15 — `quantile_scale` divided by a quantile of whatever cases were
+  scored, so the same case got a different value in a different population.
+  A recipe now carries a frozen calibration record (`wise.Calibration`,
+  decision 0001, section 3); with a fitted record the divisor is the record's
+  and a case's value does not depend on the other cases scored. Under the
+  schema version 2 legacy profile a recipe without a record, or with an
+  unfitted one, divides by the quantile of the scored cases as in 0.1.0, and
+  the realised divisor is recorded in `ScoreResult.calibrations` (decision
+  0001, section 4). Refusing an unfitted record belongs to schema version 3.
+  A numeric `divisor` key, accepted by 0.1.0 as an unknown key and carried
+  unused since, is refused with a pointer to `calibration`; `"divisor": null`
+  is still read as no record. `QuantileScaleRecipe.divisor` is replaced by
+  `QuantileScaleRecipe.calibration` and the canonical document writes
+  `calibration` instead of `divisor`. The fitted BPIC'19 divisor is not
+  committed. Delta on the golden dataset: none (its norm has no
+  `quantile_scale` recipe; every table is unchanged); the shipped BPIC'19 norm
+  has no record and scores as before.
 - Fixed: C29 — a list value in `where=` (`ScoreResult.worst_cases`,
   `constraint_drivers`, `penalty_mass`) is a membership test, as in the
   short form of the selection grammar (decision 0001: one owner for

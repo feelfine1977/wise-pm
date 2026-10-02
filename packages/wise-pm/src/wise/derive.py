@@ -9,10 +9,14 @@ is self-contained. Each definition is read into a typed record of
 leaves the scored log alone; :meth:`wise.EventLog.derive` attaches them to a
 log explicitly (:func:`apply_recipes`). Both remember which recipe produced
 an attribute, so that an unchanged recipe is not computed again.
+:func:`fit_calibration` fits the calibration records of a norm's
+population-dependent recipes on a log, and :func:`realised_calibrations`
+states the records a run computed with.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import weakref
 from collections.abc import Iterable, Mapping
@@ -20,12 +24,14 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from .calibration import Calibration
 from .errors import NormError
 from .recipes import KINDS as KINDS
-from .recipes import Recipe, as_recipe, parse_recipe
+from .recipes import QuantileScaleRecipe, Recipe, as_recipe, parse_recipe
 
 if TYPE_CHECKING:  # pragma: no cover
     from .log import EventLog
+    from .norm import Norm
 
 # Per log, the recipe that produced each derived attribute, so that an unchanged recipe is reused.
 _produced: weakref.WeakKeyDictionary[EventLog, dict[str, str]] = weakref.WeakKeyDictionary()
@@ -113,3 +119,44 @@ def apply_recipes(log: EventLog, recipes: Iterable[Recipe | Mapping[str, Any]], 
         produced[name] = key
         names.append(name)
     return names
+
+
+def fit_calibration(norm: Norm, log: EventLog) -> Norm:
+    """The norm with a fitted calibration record (:class:`~wise.calibration.Calibration`)
+    on every ``quantile_scale`` recipe, fitted on ``log`` (decision 0001, section 3).
+
+    Each divisor is the recipe's quantile over the cases of ``log``, with the
+    attributes of the earlier recipes computed as :func:`derived_log` does
+    (an earlier ``quantile_scale`` with the record just fitted). The records
+    state ``log.fingerprint()``, the number of cases whose value entered the
+    quantile and the window of ``log``. A record that was there is replaced.
+    The recipe documents keep their other keys; neither ``norm`` nor ``log``
+    is changed. Scoring with the fitted norm divides by the stored divisors,
+    whatever cases are scored; on ``log`` itself it gives the values of a
+    run without records.
+    """
+    fingerprint = log.fingerprint()
+    records: list[Recipe] = []
+    documents: list[dict[str, Any]] = []
+    for record, document in zip(norm.recipes, norm.derived_attributes, strict=True):
+        if isinstance(record, QuantileScaleRecipe):
+            unfitted = dataclasses.replace(record, calibration=None)
+            fitted = unfitted.calibrate(derived_log(log, records), log_fingerprint=fingerprint)
+            record = dataclasses.replace(record, calibration=fitted)
+            document = {k: v for k, v in document.items() if k != "divisor"}
+            document["calibration"] = fitted.to_dict()
+        records.append(record)
+        documents.append(document)
+    return norm.replace(derived_attributes=tuple(documents))
+
+
+def realised_calibrations(scored: EventLog, log: EventLog, recipes: Iterable[Recipe]) -> dict[str, Calibration]:
+    """Per ``quantile_scale`` recipe, the record it computes with on ``log``
+    (``scored`` with the attributes of the recipes, as :func:`derived_log`
+    gives it): its fitted record, or the record of the divisor realised on
+    ``log``, stating the fingerprint of ``scored``."""
+    population = [r for r in recipes if isinstance(r, QuantileScaleRecipe)]
+    if not population:
+        return {}
+    fingerprint = scored.fingerprint()
+    return {r.name: r.calibrate(log, log_fingerprint=fingerprint) for r in population}

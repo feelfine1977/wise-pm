@@ -34,9 +34,13 @@ Kinds and their keys (``?`` marks an optional key):
     ``numerator``, ``denominator``: a quotient of case attributes, NaN where
     the denominator is 0.
 ``quantile_scale`` — :class:`QuantileScaleRecipe`
-    ``attribute``, ``q?`` (0.95), ``divisor?`` (``null``): the attribute divided by its
-    ``q`` quantile over the scored cases, clipped to ``[0, 1]``. ``divisor``
-    is carried with the recipe and not used.
+    ``attribute``, ``q?`` (0.95), ``calibration?`` (``null``): the attribute
+    divided by its ``q`` quantile, clipped to ``[0, 1]``. ``calibration`` is a
+    :class:`~wise.calibration.Calibration` document; with a fitted one the
+    divisor is the record's, otherwise the quantile over the cases being
+    computed on (:func:`wise.fit_calibration` fits the records of a norm).
+    ``divisor`` may only be ``null`` (no record); a stored divisor belongs to
+    a fitted record.
 ``indicator_times`` — :class:`IndicatorTimesRecipe`
     ``activities``, ``attribute``: ``1[cnt > 0] · attribute``.
 ``column`` — :class:`ColumnRecipe`
@@ -68,6 +72,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
+from .calibration import Calibration, parse_calibration
 from .constraints import TIME_UNITS, Labels
 from .errors import LogSchemaError, NormError
 from .families import lag as lag_family
@@ -410,36 +415,85 @@ class RatioRecipe(Recipe):
 
 @dataclass(frozen=True)
 class QuantileScaleRecipe(Recipe):
+    """The attribute divided by its ``q`` quantile, clipped to ``[0, 1]``.
+
+    With a fitted :class:`~wise.calibration.Calibration` the divisor is the
+    record's, whatever cases are scored. Without a record, or with an
+    unfitted one, the divisor is the ``q`` quantile over the cases of the log
+    the recipe is computed on (1 where that quantile is not a positive
+    number), as in 0.1.0 under the schema version 2 legacy profile;
+    :meth:`calibrate` gives that realised divisor as a record.
+    """
+
     attribute: str
     q: float = 0.95
-    divisor: float | None = None
+    calibration: Calibration | None = None
 
     kind: ClassVar[str] = "quantile_scale"
     required: ClassVar[tuple[str, ...]] = ("attribute",)
-    optional: ClassVar[tuple[str, ...]] = ("q", "divisor")
+    optional: ClassVar[tuple[str, ...]] = ("q", "calibration", "divisor")
+
+    def __post_init__(self) -> None:
+        if self.calibration is not None and self.calibration.quantile != self.q:
+            raise self._undefined(f"calibration quantile {self.calibration.quantile!r} differs from the recipe's q {self.q!r}")
 
     @classmethod
     def _read(cls, doc: _Reader) -> Recipe:
         q = doc.number("q", 0.95)
         if not 0.0 <= q <= 1.0:
             raise doc.refuse("q", f"must be between 0 and 1, got {q!r}")
-        divisor = None if doc.document.get("divisor") is None else doc.number("divisor", math.nan)
-        if divisor is not None and divisor <= 0:
-            raise doc.refuse("divisor", f"must be > 0, got {divisor!r}")
-        return cls(doc.name, doc.text("attribute"), q, divisor)
+        if doc.document.get("divisor") is not None:
+            raise doc.refuse(
+                "divisor",
+                "is not read; a stored divisor belongs to a fitted calibration record under 'calibration' "
+                "(see wise.fit_calibration)",
+            )
+        record = None
+        if doc.document.get("calibration") is not None:
+            try:
+                record = parse_calibration(doc.document["calibration"])
+            except NormError as exc:
+                raise doc.refuse("calibration", f"is malformed: {exc}") from None
+        return cls(doc.name, doc.text("attribute"), q, record)
 
     def requires(self) -> Inputs:
         return Inputs(case_attributes=(self.attribute,))
 
+    def calibrate(self, log: EventLog, *, log_fingerprint: str | None = None) -> Calibration:
+        """The record the recipe computes with on ``log``: its fitted record, or
+        else the record fitted on ``log`` (its realised divisor), stating
+        ``log_fingerprint`` (default ``log.fingerprint()``) as what it was fitted on."""
+        if self.calibration is not None and self.calibration.is_fitted:
+            return self.calibration
+        x = log.attribute(self.attribute)
+        return Calibration.fitted(
+            self.q,
+            self._population_divisor(x),
+            log_fingerprint=log.fingerprint() if log_fingerprint is None else log_fingerprint,
+            size=int(x.notna().sum()),
+            window=(_iso(log.window_start), _iso(log.window_end)),
+        )
+
     def compute(self, log: EventLog) -> pd.Series:
         x = log.attribute(self.attribute)
-        q = float(x.quantile(self.q))
-        if not np.isfinite(q) or q <= 0:
-            q = 1.0
-        return (x / q).clip(0.0, 1.0)
+        record = self.calibration
+        divisor = cast(float, record.divisor) if record is not None and record.is_fitted else self._population_divisor(x)
+        return (x / divisor).clip(0.0, 1.0)
+
+    def _population_divisor(self, x: pd.Series) -> float:
+        divisor = float(x.quantile(self.q))
+        return divisor if np.isfinite(divisor) and divisor > 0 else 1.0
 
     def _fields(self) -> dict[str, Any]:
-        return {"attribute": self.attribute, "q": self.q, "divisor": self.divisor}
+        return {
+            "attribute": self.attribute,
+            "q": self.q,
+            "calibration": None if self.calibration is None else self.calibration.to_dict(),
+        }
+
+
+def _iso(value: Any) -> str | None:
+    return None if pd.isna(value) else pd.Timestamp(value).isoformat()
 
 
 @dataclass(frozen=True)

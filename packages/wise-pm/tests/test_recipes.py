@@ -215,6 +215,7 @@ REFUSALS: list[tuple[dict[str, Any], str]] = [
     ({"name": "n", "kind": "quantile_scale", "attribute": "x", "q": "0.95"}, "q"),
     ({"name": "n", "kind": "quantile_scale", "attribute": "x", "q": True}, "q"),
     ({"name": "n", "kind": "quantile_scale", "attribute": "x", "divisor": 0}, "divisor"),
+    ({"name": "n", "kind": "quantile_scale", "attribute": "x", "calibration": {"status": "fitted"}}, "calibration"),
     ({"name": "n", "kind": "cv", "column": "amount", "eps": None}, "eps"),
     ({"name": "n", "kind": "nunique", "column": 3}, "column"),
     ({"name": "n", "kind": "ratio", "numerator": "x", "denominator": ""}, "denominator"),
@@ -359,8 +360,23 @@ def test_the_bpic19_eval_recipe_is_its_column() -> None:
 
 @pytest.mark.parametrize(
     "document",
-    [*(d for d, _, _ in TRUTH_TABLE), {"name": "n", "kind": "quantile_scale", "attribute": "x", "divisor": 12.5}],
-    ids=[*(f"{r[0]['kind']}-{i}" for i, r in enumerate(TRUTH_TABLE)), "quantile_scale-divisor"],
+    [
+        *(d for d, _, _ in TRUTH_TABLE),
+        {
+            "name": "n",
+            "kind": "quantile_scale",
+            "attribute": "x",
+            "calibration": {
+                "status": "fitted",
+                "quantile": 0.95,
+                "divisor": 12.5,
+                "log_fingerprint": "f" * 64,
+                "size": 3,
+                "window": ["2024-01-01T00:00:00", None],
+            },
+        },
+    ],
+    ids=[*(f"{r[0]['kind']}-{i}" for i, r in enumerate(TRUTH_TABLE)), "quantile_scale-calibration"],
 )
 def test_the_canonical_document_of_a_record_parses_back_into_it(document: dict[str, Any]) -> None:
     record = parse_recipe(document)
