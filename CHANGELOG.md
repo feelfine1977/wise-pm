@@ -254,6 +254,14 @@ snapshot writes the version as a placeholder and is unchanged.
   `has`/`lacks`. `wise.derive.compute_recipe`, `derived_log`, `apply_recipes`
   and `EventLog.derive` accept records as well as documents.
 
+- `EventLog.fingerprint()`: a SHA-256 over what the log consumed (the schema
+  digest, every kept event column in event order, the case table including
+  attributes attached later, and the explicit window). Changing one consumed
+  value changes it; the order of the input rows, where the schema orders the
+  events, and the order of the columns do not; a column dropped by
+  `keep_columns` is not covered. It is computed once per log and kept until
+  the case table changes.
+
 - `wise.selection` grows the leaf operator `regex` (the value's text searched
   with the pattern, as in the recipe where-clauses of 0.1.0; an invalid
   pattern is refused with `NormError`), so applicability rules accept it too;

@@ -22,6 +22,7 @@ Column names default to the pm4py / XES conventions ``case:concept:name``,
 from __future__ import annotations
 
 import copy
+import hashlib
 import warnings
 from collections.abc import Iterable, Mapping
 from typing import Any, Literal
@@ -38,6 +39,7 @@ from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, Untime
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
 _INT_MAX = np.iinfo(np.int64).max
+_FINGERPRINT_FORMAT = "wise.EventLog.fingerprint/1"
 _PANDAS_3 = int(pd.__version__.split(".")[0]) >= 3
 
 
@@ -46,6 +48,19 @@ def _copy(frame: pd.DataFrame) -> pd.DataFrame:
     copy-on-write (always on from pandas 3), which copies no data until it is
     written to; a full copy otherwise, since pandas 2 shares the data."""
     return frame.copy(deep=not (_PANDAS_3 or pd.options.mode.copy_on_write is True))
+
+
+def _hash_frame(h: Any, part: str, frame: pd.DataFrame) -> None:
+    """Feed ``frame`` into ``h``: its length, then per column (in name order) its name, dtype and row hashes."""
+    h.update(f"{part}:{len(frame)}\n".encode())
+    for name in sorted(frame.columns, key=str):
+        column = frame[name]
+        try:
+            rows = pd.util.hash_pandas_object(column, index=False)
+        except TypeError:  # unhashable values (lists, dicts): their text
+            rows = pd.util.hash_pandas_object(column.astype(str), index=False)
+        h.update(f"{name!s}:{column.dtype}\n".encode())
+        h.update(rows.to_numpy(dtype=np.uint64).tobytes())
 
 
 class EventLog:
@@ -190,6 +205,7 @@ class EventLog:
                 raise LogSchemaError(f"window start must not be after window end, got {window!r}")
             self.window = (start, end)
 
+        self._fingerprint: str | None = None
         self._count_cache: dict[Labels, pd.Series] = {}
         self._first_cache: dict[Labels, pd.Series] = {}
         self._last_cache: dict[Labels, pd.Series] = {}
@@ -265,6 +281,7 @@ class EventLog:
         if not table.index.equals(self.case_ids):
             raise LogSchemaError("an assigned case table must have the log's case ids as its index, in the same order")
         old, self._cases = self._cases, _copy(table)
+        self._fingerprint = None
         forget(self, [c for c in old.columns if c not in table.columns or not table[c].equals(old[c])])
 
     @property
@@ -277,6 +294,26 @@ class EventLog:
     def schema(self) -> LogSchema:
         """The column roles and policies the log was built with."""
         return self._schema
+
+    def fingerprint(self) -> str:
+        """SHA-256 over what the log consumed: the schema (:attr:`LogSchema.digest
+        <wise.log_schema.LogSchema.digest>`), every kept event column in event
+        order, the case table with the attributes attached later, and the
+        explicit ``window``.
+
+        Changing one consumed value changes it; the order of the input rows does
+        not, where the schema orders the events (by case, timestamp and
+        ``order_col``), nor does the order of the columns. A column the log does
+        not keep (``keep_columns``) is not covered. Values compare by their
+        pandas hash, so ``1`` and ``"1"`` in an object column are the same.
+        The fingerprint is computed once and kept until the case table changes.
+        """
+        if self._fingerprint is None:
+            h = hashlib.sha256(f"{_FINGERPRINT_FORMAT}\n{self._schema.digest}\n{self.window!r}\n".encode())
+            _hash_frame(h, "events", self._events)
+            _hash_frame(h, "cases", self._cases.reset_index())
+            self._fingerprint = h.hexdigest()
+        return self._fingerprint
 
     @property
     def case_index(self) -> CaseIndex:
@@ -554,6 +591,7 @@ class EventLog:
         cases = self._cases.copy(deep=False)
         cases[name] = aligned
         self._cases = cases
+        self._fingerprint = None
         if name not in self._case_attributes:
             self._case_attributes = [*self._case_attributes, name]
 
