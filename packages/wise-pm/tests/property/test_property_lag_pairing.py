@@ -67,10 +67,14 @@ def test_the_recipe_and_the_constraint_both_pair_through_the_lag_family(
         calls.append((kwargs["activation"], kwargs["response"]))
         return pairs(*args, **kwargs)
 
+    recipe = {"name": "lag", "kind": "lag", "a": "PO", "b": "GR", "activation": activation}
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(lag_family, "pairs", spy)
         missing_b = "censor" if censor else "skip"
         wise.evaluate(wise.Lag("PO", "GR", delta=1.0, width=2.0, activation=activation, missing_b=missing_b), log)  # type: ignore[arg-type]
-        wise.derive.compute_recipe(log, {"name": "lag", "kind": "lag", "a": "PO", "b": "GR", "activation": activation})
-    # the recipe reads any activation other than "first" as the last one, as 0.1.0 did
-    assert calls == [(activation, "first_after"), ("first" if activation == "first" else "last", "first_after")]
+        if activation == "each":  # one lag per activation is not one value per case
+            with pytest.raises(wise.NormError, match="activation must be one of"):
+                wise.derive.compute_recipe(log, recipe)
+        else:
+            wise.derive.compute_recipe(log, recipe)
+    assert calls == [(activation, "first_after")] + ([] if activation == "each" else [(activation, "first_after")])

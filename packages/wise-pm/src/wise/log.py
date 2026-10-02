@@ -559,7 +559,7 @@ class EventLog:
 
     def derive(self, recipes: Iterable[Mapping[str, Any]], *, overwrite: bool = True) -> list[str]:
         """Compute derived case attributes from declarative recipes (see
-        :mod:`wise.derive`) and attach them to this log, as
+        :mod:`wise.recipes`) and attach them to this log, as
         :meth:`add_case_attribute` does. Returns the attribute names.
 
         Changes the log. The log records which recipe produced each attribute:

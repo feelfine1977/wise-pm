@@ -2012,6 +2012,11 @@
           ],
           "returns": "dict[str, float]"
         },
+        "recipes": {
+          "kind": "property",
+          "returns": "tuple[Recipe, ...]",
+          "settable": false
+        },
         "replace": {
           "kind": "method",
           "parameters": [

@@ -12,6 +12,7 @@ import pytest
 import wise
 import wise.derive
 from wise.log import EventLog
+from wise.recipes import Recipe
 
 PACKAGE = Path(wise.__file__).parent
 OWNERS = {"log.py", "case_index.py"}
@@ -68,8 +69,8 @@ def computations(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     seen: list[str] = []
     compute = wise.derive.compute_recipe
 
-    def counting(log: EventLog, recipe: dict[str, object]) -> pd.Series:
-        seen.append(str(recipe["name"]))
+    def counting(log: EventLog, recipe: Recipe) -> pd.Series:
+        seen.append(recipe.name)
         return compute(log, recipe)
 
     monkeypatch.setattr(wise.derive, "compute_recipe", counting)

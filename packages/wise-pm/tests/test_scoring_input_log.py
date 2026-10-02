@@ -18,6 +18,7 @@ import wise
 import wise.derive
 from wise.errors import LogSchemaError, NormError
 from wise.log import EventLog
+from wise.recipes import Recipe
 
 GR = "Record Goods Receipt"
 N_GR = {"name": "n_gr", "kind": "count", "activities": [GR]}
@@ -42,8 +43,8 @@ def computations(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     seen: list[str] = []
     compute = wise.derive.compute_recipe
 
-    def counting(log: EventLog, recipe: dict[str, object]) -> pd.Series:
-        seen.append(str(recipe["name"]))
+    def counting(log: EventLog, recipe: Recipe) -> pd.Series:
+        seen.append(recipe.name)
         return compute(log, recipe)
 
     monkeypatch.setattr(wise.derive, "compute_recipe", counting)

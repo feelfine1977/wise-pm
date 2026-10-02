@@ -220,7 +220,7 @@ def test_derive_recipes(p2p_log):
             {"name": "share", "kind": "ratio", "numerator": "n_gr", "denominator": "n_events"},
             {"name": "amount_norm", "kind": "quantile_scale", "attribute": "max_amount", "q": 0.5},
             {"name": "cancel_x", "kind": "indicator_times", "activities": ["Cancel Invoice Receipt"], "attribute": "amount_norm"},
-            {"name": "evald", "kind": "eval", "expr": "n_gr / n_events"},
+            {"name": "evald", "kind": "eval", "expr": "n_gr"},
             {"name": "regex", "kind": "count_events", "where": {"column": "activity", "regex": "^Record"}},
         ]
     )
@@ -236,7 +236,7 @@ def test_derive_recipes(p2p_log):
     assert c.loc["A", "gr_to_inv"] == 25
     assert np.isnan(c.loc["E", "gr_to_inv"])
     assert c.loc["B", "share"] == pytest.approx(4 / 7)
-    assert c.loc["B", "evald"] == pytest.approx(4 / 7)
+    assert c.loc["B", "evald"] == 4
     assert c.loc["D", "cancel_x"] > 0
     assert c.loc["A", "cancel_x"] == 0
     assert c.loc["A", "regex"] == 2
@@ -246,7 +246,9 @@ def test_derive_recipes(p2p_log):
         log.derive([{"name": "x", "kind": "agg", "column": "nope", "agg": "sum"}])
     assert log.derive([{"name": "n_gr", "kind": "count", "activities": ["Record Goods Receipt"]}], overwrite=False) == ["n_gr"]
     assert c.loc["B", "n_gr"] == 4
-    log.derive([{"name": "n_gr", "kind": "eval", "expr": "0"}], overwrite=False)  # a different recipe is recomputed
+    log.derive(
+        [{"name": "n_gr", "kind": "column", "attribute": "n_after_inv"}], overwrite=False
+    )  # a different recipe is recomputed
     assert log.cases.loc["B", "n_gr"] == 0
 
 

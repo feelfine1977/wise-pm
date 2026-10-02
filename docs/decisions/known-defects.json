@@ -48,11 +48,12 @@
       "id": "C5",
       "title": "recipe options (activation, response, agg, exposure_agg, unknown keys) unvalidated",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C6",
@@ -162,11 +163,12 @@
       "id": "C16",
       "title": "eval recipes execute pandas expressions from norm files",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C17",

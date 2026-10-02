@@ -91,36 +91,35 @@ def test_missing_attribute_scope_under_remaining_leaf_operators(missing_attr_log
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C5: validate_recipe accepts unknown activation/response/agg values and unknown keys",
-)
+@pytest.mark.spec("decision:0001/3")
+# C5 closed 2026-10-02: a recipe is parsed strictly into its typed record (decision 0001, section 3)
 @pytest.mark.parametrize(
-    "recipe",
+    ("recipe", "key"),
     [
-        pytest.param({**LAG_RECIPE, "activation": "each"}, id="lag-activation-each"),
-        pytest.param({**LAG_RECIPE, "activation": "bogus"}, id="lag-activation-bogus"),
-        pytest.param({**LAG_RECIPE, "response": "bogus"}, id="lag-response-bogus"),
-        pytest.param({"name": "amt", "kind": "agg", "column": "amount", "agg": "nonsense"}, id="agg-nonsense"),
-        pytest.param({"name": "amt", "kind": "agg", "column": "amount", "agg": "describe"}, id="agg-describe"),
-        pytest.param({"name": "n", "kind": "count", "activities": ["A"], "activitis": ["A"]}, id="unknown-key"),
+        pytest.param({**LAG_RECIPE, "activation": "each"}, "activation", id="lag-activation-each"),
+        pytest.param({**LAG_RECIPE, "activation": "bogus"}, "activation", id="lag-activation-bogus"),
+        pytest.param({**LAG_RECIPE, "response": "bogus"}, "response", id="lag-response-bogus"),
+        pytest.param({"name": "amt", "kind": "agg", "column": "amount", "agg": "nonsense"}, "agg", id="agg-nonsense"),
+        pytest.param({"name": "amt", "kind": "agg", "column": "amount", "agg": "describe"}, "agg", id="agg-describe"),
+        pytest.param({"name": "n", "kind": "count", "activities": ["A"], "activitis": ["A"]}, "activitis", id="unknown-key"),
     ],
 )
-def test_validate_recipe_rejects_bad_options(recipe):
-    with pytest.raises(NormError):
+def test_validate_recipe_rejects_bad_options(recipe, key):
+    with pytest.raises(NormError, match=rf"derived attribute '{recipe['name']}' \({recipe['kind']}\): (unknown key )?'?{key}"):
         validate_recipe(recipe)
+    with pytest.raises(NormError, match=rf"'{recipe['name']}'.*{key}"):
+        wise.Norm.from_dict({**BASE, "derived_attributes": [recipe]})
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C5: a lag recipe with activation 'each' silently runs as 'last' in EventLog.derive",
-)
+@pytest.mark.spec("decision:0001/3")
+# C5 closed 2026-10-02: the lag recipe gives one lag per case, so activation 'each' is refused instead of read as 'last'
 def test_derive_rejects_lag_recipe_with_unknown_activation(missing_attr_log):
-    with pytest.raises(NormError):
+    with pytest.raises(
+        NormError, match=r"derived attribute 'lag_ab' \(lag\): activation must be one of \['first', 'last'\], got 'each'"
+    ):
         missing_attr_log.derive([{**LAG_RECIPE, "activation": "each"}])
+    assert "lag_ab" not in missing_attr_log.cases.columns
 
 
 # --- C7: nested containers of frozen objects are mutable ----------------------------------
@@ -246,19 +245,27 @@ def test_quantile_scale_divides_by_stored_divisor():
     assert log.cases["scaled"].tolist() == pytest.approx([0.5, 1.0, 1.0, 1.0])
 
 
-# --- C16 (decision 2): eval recipes are removed -----------------------------------------
+# --- C16 (decision 0001, section 4): eval recipes name one case-table column -----------------------------------------
 
 
 @pytest.mark.regression
-@pytest.mark.spec("decision:2026-09-26/2")
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason="C16: eval recipes execute arbitrary pandas expressions from a norm file",
-)
+@pytest.mark.spec("decision:0001/4")
+# C16 closed 2026-10-02: under schema version 2 an eval recipe may name one existing case-table column and is
+# read as that column; any other expression is refused at load with the recipe named, and none is evaluated
 def test_eval_recipe_is_rejected():
-    with pytest.raises(NormError):
+    with pytest.raises(
+        NormError, match=r"derived attribute 'twice' \(eval\): expr 'n_events \* 2' is not a single case-table column"
+    ):
         validate_recipe({"name": "twice", "kind": "eval", "expr": "n_events * 2"})
+    with pytest.raises(NormError, match="'twice'"):
+        wise.Norm.from_dict({**BASE, "derived_attributes": [{"name": "twice", "kind": "eval", "expr": "n_events * 2"}]})
+
+
+@pytest.mark.regression
+@pytest.mark.spec("decision:0001/4")
+def test_eval_recipe_of_one_case_table_column_reads_that_column(missing_attr_log):
+    missing_attr_log.derive([{"name": "total", "kind": "eval", "expr": "n_events"}])
+    assert missing_attr_log.cases["total"].tolist() == [2, 2]
 
 
 # --- characterisation: loading, round trip and editing already behave --------------------

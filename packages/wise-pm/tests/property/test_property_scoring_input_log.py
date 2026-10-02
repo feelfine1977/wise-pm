@@ -11,6 +11,7 @@ import wise
 import wise.derive
 from _support.strategies import event_logs, norms
 from wise.log import EventLog
+from wise.recipes import Recipe
 
 
 @pytest.mark.property
@@ -24,8 +25,8 @@ def test_scoring_leaves_the_log_as_it_was_and_scores_as_on_a_log_derived_first(l
     computed: list[str] = []
     compute = wise.derive.compute_recipe
 
-    def counting(on: EventLog, recipe: dict[str, object]) -> pd.Series:
-        computed.append(str(recipe["name"]))
+    def counting(on: EventLog, recipe: Recipe) -> pd.Series:
+        computed.append(recipe.name)
         return compute(on, recipe)
 
     with pytest.MonkeyPatch.context() as patch:
