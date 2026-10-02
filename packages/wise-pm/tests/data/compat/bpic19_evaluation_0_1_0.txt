@@ -1,0 +1,115 @@
+EventLog(12,588 events, 2,000 cases, 7 activities, attributes=['flow_type', 'case Company', 'case Spend area text', 'case Vendor', 'case Item Type', 'case Purchasing Document', 'case Document Type', 'case_start_quarter']) (<time>)
+n_events                               12588
+n_cases                                 2000
+n_activities                               7
+window_start             2024-01-01 09:13:01
+window_end               2024-12-30 23:42:46
+raw_max_timestamp        2099-12-31 00:00:00
+missing_timestamps                       126
+timestamp_outliers                        10
+null_activity_labels                       0
+tied_events_share                   0.218383
+cases_with_ties_share                 0.3975
+zero_exposure_cases                        0 
+
+Norm("WISE BPIC'19 norm" v1.0: 29 constraints, 7 layers, views=['Finance', 'Logistics', 'Compliance', 'Automation'], scoring_mode='layer_balanced')
+  - derived attribute 'c_l6_high_exposure_memo__indicator_x_exposure_norm': activity 'Vendor creates debit memo' never occurs in the log
+  - derived attribute 'c_l6_high_exposure_memo__indicator_x_exposure_norm': activity 'Vendor creates credit memo' never occurs in the log
+  - constraint 'c_l1_invoice_present': activity 'Vendor creates invoice' never occurs in the log
+  - constraint 'c_l1_goods_or_ses_present': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l2_df1_invoice_after_goods': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l2_df1_invoice_after_goods': activity 'Vendor creates invoice' never occurs in the log
+  - constraint 'c_l2_df2_release_after_goods': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l2_2way_no_goods_expected': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l3_df1_goods_to_invoice_days': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l3_df1_goods_to_invoice_days': activity 'Vendor creates invoice' never occurs in the log
+  - constraint 'c_l3_invoice_to_clear_days': activity 'Vendor creates invoice' never occurs in the log
+  - constraint 'c_l3_df2_goods_to_rpb_days': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l4_goods_fragmentation': activity 'Record Service Entry Sheet' never occurs in the log
+  - constraint 'c_l4_change_approval_repeats': activity 'Change Approval for Purchase Order' never occurs in the log
+  - constraint 'c_l4_change_payment_terms_repeats': activity 'Change Payment Terms' never occurs in the log
+  - constraint 'c_l5_cancel_goods_receipt': activity 'Cancel Goods Receipt' never occurs in the log
+  - constraint 'c_l5_delete_item': activity 'Delete Purchase Order Item' never occurs in the log
+  - constraint 'c_l5_debit_memo': activity 'Vendor creates debit memo' never occurs in the log
+  - constraint 'c_l5_credit_memo': activity 'Vendor creates credit memo' never occurs in the log
+  - constraint 'c_l6_change_quantity': activity 'Change Quantity' never occurs in the log
+
+scored 2,000 cases in <time>; applicability density 0.812 (evaluated), 0.836 (in scope)
+
+Mean scores and layer attribution per view (Fig. 3, Fig. 5)
+             n_scored  mean_score  contrib__L1_closure_completeness  contrib__L2_flow_discipline  contrib__L3_timeliness_ageing  contrib__L4_rework_instability  contrib__L5_exceptions_corrections  contrib__L6_value_commercial  contrib__L7_effort_automation
+view                                                                                                                                                                                                                                                           
+Finance         2000      0.9206                            0.0115                       0.0024                         0.0354                          0.0050                              0.0010                        0.0153                         0.0087
+Logistics       2000      0.9142                            0.0047                       0.0073                         0.0328                          0.0191                              0.0011                        0.0027                         0.0182
+Compliance      2000      0.9415                            0.0064                       0.0091                         0.0150                          0.0052                              0.0034                        0.0041                         0.0152
+Automation      2000      0.9025                            0.0025                       0.0024                         0.0147                          0.0231                              0.0007                        0.0050                         0.0490
+
+Top slices, Finance view (γ = 20)
+                                      n_cases  stable_gap  stable_PI    hotspot           dominant_layer
+case Company   case Spend area text                                                                    
+companyID_0000 Real Estate               253      0.0195     4.9264  reservoir     L3_timeliness_ageing
+companyID_0015 Real Estate                88      0.0484     4.2608   severity     L3_timeliness_ageing
+companyID_0000 Logistics                 140      0.0271     3.7984  mechanism     L3_timeliness_ageing
+               Packaging                 153      0.0201     3.0697  mechanism     L3_timeliness_ageing
+companyID_0014 Packaging                  56      0.0058     0.3260  mechanism  L1_closure_completeness
+companyID_0015 Packaging                  12      0.0005     0.0055  mechanism      L6_value_commercial
+
+Top slices, Logistics view (γ = 20)
+                                      n_cases  stable_gap  stable_PI    hotspot         dominant_layer
+case Company   case Spend area text                                                                  
+companyID_0000 Logistics                 140      0.0298     4.1776  mechanism   L3_timeliness_ageing
+companyID_0015 Real Estate                88      0.0465     4.0922   severity   L3_timeliness_ageing
+companyID_0000 Real Estate               253      0.0160     4.0419  reservoir   L3_timeliness_ageing
+               Packaging                 153      0.0191     2.9165  mechanism   L3_timeliness_ageing
+companyID_0013 Logistics                  58      0.0121     0.7013  mechanism   L7_effort_automation
+               Packaging                  58      0.0091     0.5290  mechanism   L7_effort_automation
+companyID_0014 Packaging                  56      0.0055     0.3067  mechanism  L4_rework_instability
+companyID_0015 Packaging                  12      0.0013     0.0152  mechanism  L4_rework_instability
+
+Top slices, Compliance view (γ = 20)
+                                      n_cases  stable_gap  stable_PI    hotspot             dominant_layer
+case Company   case Spend area text                                                                      
+companyID_0015 Real Estate                88      0.0449     3.9532  mechanism  L5_exceptions_corrections
+companyID_0000 Logistics                 140      0.0118     1.6457  mechanism       L3_timeliness_ageing
+               Packaging                 153      0.0088     1.3528  mechanism       L3_timeliness_ageing
+companyID_0013 Logistics                  58      0.0126     0.7303   severity       L7_effort_automation
+               Packaging                  58      0.0114     0.6625  mechanism       L7_effort_automation
+companyID_0000 Real Estate               253      0.0022     0.5596  reservoir       L3_timeliness_ageing
+companyID_0014 Packaging                  56      0.0035     0.1955  mechanism    L1_closure_completeness
+
+Top slices, Automation view (γ = 20)
+                                      n_cases  stable_gap  stable_PI    hotspot         dominant_layer
+case Company   case Spend area text                                                                  
+companyID_0015 Real Estate                88      0.0325     2.8636  mechanism   L3_timeliness_ageing
+companyID_0013 Logistics                  58      0.0437     2.5358   severity   L7_effort_automation
+               Real Estate                82      0.0297     2.4372  mechanism   L7_effort_automation
+companyID_0000 Logistics                 140      0.0158     2.2149  mechanism   L3_timeliness_ageing
+companyID_0013 Packaging                  58      0.0365     2.1178  mechanism   L7_effort_automation
+companyID_0000 Packaging                 153      0.0038     0.5805  reservoir   L3_timeliness_ageing
+companyID_0015 Packaging                  12      0.0101     0.1211  mechanism  L4_rework_instability
+companyID_0014 Packaging                  56      0.0016     0.0906  mechanism  L4_rework_instability
+
+Document backlog concentration, Compliance view (Fig. 4)
+            top_k  share_of_slices
+threshold                        
+0.80          91           0.1816
+0.95         144           0.2874
+
+View agreement on document backlogs (Table X)
+                        top20_overlap  score_correlation
+view_a     view_b                                      
+Finance    Logistics           0.250              0.805
+           Compliance          0.176              0.733
+           Automation          0.143              0.616
+Logistics  Compliance          0.481              0.890
+           Automation          0.250              0.772
+Compliance Automation          0.111              0.612
+
+Validation diagnostics for the focus slices, Automation view (Table XII)
+                                      n_cases  stable_gap  stable_PI  censored_share  stable_gap_kept  retained  replicated_share        reading
+case Company   case Spend area text                                                                                                            
+companyID_0000 Packaging                 153      0.0038     0.5805          0.0131           0.0037    0.9681            0.0327  stable signal
+               Logistics                 140      0.0158     2.2149          0.0000           0.0158    1.0000            0.0286  stable signal
+companyID_0003 Real Estate               140      0.0000     0.0000          0.0071           0.0000       NaN            0.0143  stable signal
+
+Vendor Pareto inside companyID_0000 × Packaging (Fig. 9): 11 of 20 vendors carry 80% of the Automation penalty mass
