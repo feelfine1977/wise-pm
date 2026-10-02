@@ -835,7 +835,9 @@ deprecation warnings; the module and its paths are removed in 1.0.
   ranked frame) and `backlog.spec` (its parameters) instead of the frame and
   its `attrs`. Using the record as a DataFrame still works with a warning;
   `isinstance(x, pd.DataFrame)`, `pd.concat` and `assert_frame_equal` need
-  `.table`. `wise.compat.prioritize` returns the 0.1.0 frame.
+  `.table`. The record's `attrs["view"]` is the view the record was ranked on (`None`
+  for a frame), where 0.1.0 held the argument as passed.
+  `wise.compat.prioritize` returns the 0.1.0 frame, `attrs` included.
 - A norm document must state `schema_version` (C14); `wise.compat.norm_from_dict`
   reads a document without it as version 2. A schema version 2 norm
   evaluates under the 0.1.0 semantics and emits one `LegacySemanticsWarning`
