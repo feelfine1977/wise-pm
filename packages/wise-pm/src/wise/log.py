@@ -218,7 +218,9 @@ class EventLog:
             act_codes, act_uniques = pd.factorize(act, sort=False)
             act_codes = act_codes.astype(np.int64)
             act_labels = pd.Index(pd.Index(act_uniques).astype(str))
-        self._index = CaseIndex(codes[order], ts_int[order], act_codes, act_labels, n_cases=n_cases, tz=self.tz)
+        sorted_codes, sorted_ts = codes[order], ts_int[order]
+        sorted_codes.flags.writeable = sorted_ts.flags.writeable = False  # the index keeps views of them
+        self._index = CaseIndex(sorted_codes, sorted_ts, act_codes, act_labels, n_cases=n_cases, tz=self.tz)
 
         self.case_col, self.activity_col, self.timestamp_col = case_col, activity_col, timestamp_col
         self.case_attributes = case_attributes

@@ -61,6 +61,8 @@ def test_the_arrays_read_by_0_1_0_callers_cannot_be_written() -> None:
     for arr in (log._codes, log._ts, log._valid, log._starts):
         with pytest.raises(ValueError, match="read-only"):
             arr[0] = arr[-1]
+    for arr in (log._codes, log._ts, log._valid, log._starts, log.case_index.activity_codes, log.case_index.sizes):
+        assert arr.base is None or not arr.base.flags.writeable  # no writable array behind the view
     with pytest.raises(AttributeError):
         log.case_index._codes = np.zeros(4, dtype=np.int64)
     np.testing.assert_array_equal(log.count("X").to_numpy(), [1.0, 1.0])

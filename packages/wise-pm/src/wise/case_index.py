@@ -53,9 +53,16 @@ def event_order(case_codes: ArrayLike, timestamps: ArrayLike, tie: ArrayLike | N
 
 
 def _frozen(arr: NDArray[Any]) -> NDArray[Any]:
+    """A read-only view of an array the caller owns."""
     view = arr.view()
     view.flags.writeable = False
     return view
+
+
+def _sealed(arr: NDArray[Any]) -> NDArray[Any]:
+    """An array the index built itself, made read-only in place so no writable alias remains."""
+    arr.flags.writeable = False
+    return arr
 
 
 class CaseIndex:
@@ -79,7 +86,8 @@ class CaseIndex:
         Time zone of the source timestamps, used by the conversions.
 
     The arrays are taken over without a copy: the index keeps read-only views
-    of them, so the caller must not modify them afterwards.
+    of them, so the caller must not modify them afterwards (or passes them
+    read-only). The arrays the index derives are read-only themselves.
     """
 
     __slots__ = ("_act_codes", "_act_labels", "_codes", "_sizes", "_starts", "_ts", "_tz", "_valid")
@@ -130,11 +138,11 @@ class CaseIndex:
         set_ = object.__setattr__
         set_(self, "_codes", _frozen(codes))
         set_(self, "_ts", _frozen(ts))
-        set_(self, "_valid", _frozen(valid))
-        set_(self, "_act_codes", _frozen(np.where(acts < 0, len(labels), acts)))
+        set_(self, "_valid", _sealed(valid))
+        set_(self, "_act_codes", _sealed(np.where(acts < 0, len(labels), acts)))
         set_(self, "_act_labels", labels)
-        set_(self, "_starts", _frozen(np.searchsorted(codes, np.arange(n)).astype(np.int64)))
-        set_(self, "_sizes", _frozen(np.bincount(codes, minlength=n).astype(np.int64)))
+        set_(self, "_starts", _sealed(np.searchsorted(codes, np.arange(n)).astype(np.int64)))
+        set_(self, "_sizes", _sealed(np.bincount(codes, minlength=n).astype(np.int64)))
         set_(self, "_tz", tz)
 
     def __setattr__(self, name: str, value: Any) -> None:

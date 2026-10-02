@@ -259,6 +259,14 @@ def test_arrays_cannot_be_written_through_the_interface(name: str) -> None:
     np.testing.assert_array_equal(getattr(idx, name), before)
 
 
+@pytest.mark.parametrize("name", ["valid", "activity_codes", "starts", "sizes"])
+def test_arrays_built_by_the_index_have_no_writable_alias(name: str) -> None:
+    arr = getattr(small_index(), name)
+    assert arr.base is None or not arr.base.flags.writeable
+    with pytest.raises(ValueError, match="read-only"):
+        np.asarray(arr)[0] = arr[0]
+
+
 def test_attributes_cannot_be_rebound() -> None:
     idx = small_index()
     with pytest.raises(AttributeError):
