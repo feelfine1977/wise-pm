@@ -48,9 +48,27 @@ MISSING_ANCHOR = "missing_anchor"
 MISSING_ACTIVITY = "missing_activity"
 #: The case attribute a constraint reads is missing or not numeric (Metric).
 MISSING_ATTRIBUTE = "missing_attribute"
+#: The activation of a Lag is absent and the constraint skips such cases.
+MISSING_ACTIVATION = "missing_activation"
+#: No response follows the activation of a Lag and the constraint skips such cases.
+MISSING_RESPONSE = "missing_response"
+#: The case has a value, scored on the time a response has been awaited by the end of the observation window.
+CENSORED = "censored"
 
 #: Every reason an :class:`Evaluation` can carry.
-REASONS: tuple[str, ...] = (EVALUATED, OUT_OF_SCOPE, NOT_EVALUABLE, MISSING_ANCHOR, MISSING_ACTIVITY, MISSING_ATTRIBUTE)
+REASONS: tuple[str, ...] = (
+    EVALUATED,
+    OUT_OF_SCOPE,
+    NOT_EVALUABLE,
+    MISSING_ANCHOR,
+    MISSING_ACTIVITY,
+    MISSING_ATTRIBUTE,
+    MISSING_ACTIVATION,
+    MISSING_RESPONSE,
+    CENSORED,
+)
+#: The reasons of a case that has a value.
+VALUED: frozenset[str] = frozenset({EVALUATED, CENSORED})
 
 
 @dataclass(frozen=True)
@@ -68,10 +86,10 @@ class Evaluation:
 
     ``value`` is ``ν_c(σ)`` as a float Series over the case ids, NaN where the
     case has no value. ``reason`` says why, per case: :data:`EVALUATED` where
-    there is a value, :data:`OUT_OF_SCOPE` where the constraint does not
-    apply, otherwise the reason the case is not evaluable (one of
-    :data:`REASONS`). A value is present exactly where the reason is
-    :data:`EVALUATED`.
+    there is a value (:data:`CENSORED` where the value scores an open case by
+    its age), :data:`OUT_OF_SCOPE` where the constraint does not apply,
+    otherwise the reason the case is not evaluable (one of :data:`REASONS`).
+    A value is present exactly where the reason is one of :data:`VALUED`.
     """
 
     value: pd.Series
@@ -80,8 +98,8 @@ class Evaluation:
     def __post_init__(self) -> None:
         if not self.value.index.equals(self.reason.index):
             raise NormError("an evaluation's values and reasons must share one index")
-        if not np.array_equal(self.value.notna().to_numpy(), (self.reason == EVALUATED).to_numpy()):
-            raise NormError(f"an evaluation must have a value exactly where its reason is {EVALUATED!r}")
+        if not np.array_equal(self.value.notna().to_numpy(), self.reason.isin(VALUED).to_numpy()):
+            raise NormError(f"an evaluation must have a value exactly where its reason is one of {sorted(VALUED)}")
 
     @classmethod
     def _consistent(cls, value: pd.Series, reason: pd.Series) -> Evaluation:
@@ -101,23 +119,29 @@ class Evaluation:
     ) -> Evaluation:
         """Build an evaluation from per-case values in case order.
 
-        Missing values get :data:`NOT_EVALUABLE` unless a ``(mask, reason)``
-        pair of ``why`` covers the case; the first pair that covers it wins.
-        The reasons are a categorical Series over :data:`REASONS` (and any
-        further reason a family names).
+        Present values get :data:`EVALUATED` and missing values
+        :data:`NOT_EVALUABLE` unless a ``(mask, reason)`` pair of ``why``
+        covers the case; the first pair that covers it wins. A pair with a
+        reason of :data:`VALUED` covers only cases with a value, any other
+        pair only cases without one. The reasons are a categorical Series over
+        :data:`REASONS` (and any further reason a family names).
         """
         value = pd.Series(np.asarray(values, dtype=float), index=index)
         missing = np.isnan(value.to_numpy())
         categories = list(REASONS)
         codes = np.zeros(len(value), dtype=np.int8)
         codes[missing] = categories.index(NOT_EVALUABLE)
-        open_ = missing.copy()
+        open_, valued_open = missing.copy(), ~missing
         for mask, code in why:
             if code not in categories:
                 categories.append(code)
-            hit = open_ & np.asarray(mask, dtype=bool)
+            if code in VALUED:
+                hit = valued_open & np.asarray(mask, dtype=bool)
+                valued_open &= ~hit
+            else:
+                hit = open_ & np.asarray(mask, dtype=bool)
+                open_ &= ~hit
             codes[hit] = categories.index(code)
-            open_ &= ~hit
         reason = pd.Series(pd.Categorical.from_codes(codes, categories=pd.Index(categories)), index=index)
         return cls._consistent(value, reason)
 
@@ -246,15 +270,19 @@ def families() -> tuple[Family[Any], ...]:
 
 
 __all__ = [
+    "CENSORED",
     "CONSTRAINT_TYPES",
     "EVALUATED",
+    "MISSING_ACTIVATION",
     "MISSING_ACTIVITY",
     "MISSING_ANCHOR",
     "MISSING_ATTRIBUTE",
+    "MISSING_RESPONSE",
     "NOT_EVALUABLE",
     "OUT_OF_SCOPE",
     "REASONS",
     "TYPE_ALIASES",
+    "VALUED",
     "Evaluation",
     "Family",
     "Inputs",
