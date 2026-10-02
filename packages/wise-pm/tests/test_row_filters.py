@@ -15,8 +15,10 @@ Expected counts are read off this table by hand; the 0.1.0 filters, frozen in
 
 from __future__ import annotations
 
+import ast
 import re
 import warnings
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -196,4 +198,12 @@ def test_where_that_selects_no_scored_case(result: wise.ScoreResult) -> None:
 def test_prioritization_does_not_reach_into_scoring_privates() -> None:
     import wise.prioritization as prioritization
 
-    assert not hasattr(prioritization, "_where_mask")
+    tree = ast.parse(Path(prioritization.__file__).read_text(encoding="utf-8"))
+    from_scoring = [
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module in ("scoring", "wise.scoring")
+        for alias in node.names
+    ]
+    assert from_scoring, "prioritization imports from scoring"
+    assert [name for name in from_scoring if name.startswith("_")] == []
