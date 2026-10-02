@@ -205,7 +205,7 @@ class EventLog:
                 raise LogSchemaError(f"window start must not be after window end, got {window!r}")
             self.window = (start, end)
 
-        self._fingerprint: str | None = None
+        self._fingerprint: tuple[str, str] | None = None  # (window, fingerprint)
         self._count_cache: dict[Labels, pd.Series] = {}
         self._first_cache: dict[Labels, pd.Series] = {}
         self._last_cache: dict[Labels, pd.Series] = {}
@@ -306,14 +306,16 @@ class EventLog:
         ``order_col``), nor does the order of the columns. A column the log does
         not keep (``keep_columns``) is not covered. Values compare by their
         pandas hash, so ``1`` and ``"1"`` in an object column are the same.
-        The fingerprint is computed once and kept until the case table changes.
+        The fingerprint is computed once and kept until the case table or the
+        ``window`` changes.
         """
-        if self._fingerprint is None:
-            h = hashlib.sha256(f"{_FINGERPRINT_FORMAT}\n{self._schema.digest}\n{self.window!r}\n".encode())
+        window = repr(self.window)
+        if self._fingerprint is None or self._fingerprint[0] != window:
+            h = hashlib.sha256(f"{_FINGERPRINT_FORMAT}\n{self._schema.digest}\n{window}\n".encode())
             _hash_frame(h, "events", self._events)
             _hash_frame(h, "cases", self._cases.reset_index())
-            self._fingerprint = h.hexdigest()
-        return self._fingerprint
+            self._fingerprint = (window, h.hexdigest())
+        return self._fingerprint[1]
 
     @property
     def case_index(self) -> CaseIndex:

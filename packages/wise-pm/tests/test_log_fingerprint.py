@@ -84,6 +84,16 @@ def test_the_schema_and_the_window_are_covered() -> None:
     assert _log(frame, window=("2024-01-01", "2024-02-01")).fingerprint() != base
 
 
+def test_assigning_a_window_after_fingerprinting_changes_the_fingerprint() -> None:
+    frame = _frame()
+    log = _log(frame)
+    base = log.fingerprint()
+    log.window = (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-02-01"))
+    assert log.fingerprint() == _log(frame, window=("2024-01-01", "2024-02-01")).fingerprint() != base
+    log.window = None
+    assert log.fingerprint() == base
+
+
 def test_an_attached_case_attribute_changes_the_fingerprint_and_the_old_log_keeps_its_own() -> None:
     log = _log(_frame())
     before = log.fingerprint()

@@ -260,7 +260,7 @@ snapshot writes the version as a placeholder and is unchanged.
   value changes it; the order of the input rows, where the schema orders the
   events, and the order of the columns do not; a column dropped by
   `keep_columns` is not covered. It is computed once per log and kept until
-  the case table changes.
+  the case table or the window changes.
 - `wise.Calibration` (module `wise.calibration`, with `CalibrationStatus` and
   `parse_calibration`): the frozen calibration record of a `quantile_scale`
   recipe (decision 0001, section 3). It holds the quantile, the status
