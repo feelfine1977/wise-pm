@@ -73,6 +73,7 @@ from .prioritization import (
     view_agreement,
 )
 from .scoring import ScoreResult, evaluate, evaluate_constraint, score, violation_matrix
+from .semantics import LegacySemanticsWarning, Semantics
 
 __all__ = [
     "CONSTRAINT_TYPES",
@@ -88,6 +89,7 @@ __all__ = [
     "Exclusion",
     "Lag",
     "Layer",
+    "LegacySemanticsWarning",
     "LogSchema",
     "LogSchemaError",
     "Metric",
@@ -99,6 +101,7 @@ __all__ = [
     "Precedence",
     "Presence",
     "ScoreResult",
+    "Semantics",
     "Singularity",
     "View",
     "WiseError",

@@ -128,6 +128,7 @@ layers = [
   "wise.derive",
   "wise.recipes",
   "wise.calibration",
+  "wise.semantics",
   "wise.selection",
   "wise.log_schema",
   "wise.families",

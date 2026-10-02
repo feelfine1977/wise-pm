@@ -40,6 +40,8 @@ C = TypeVar("C", bound="Constraint")
 EVALUATED = "evaluated"
 #: The constraint does not apply to the case (``σ ∉ C_app``).
 OUT_OF_SCOPE = "out_of_scope"
+#: Whether the constraint applies is unknown: its applicability reads an attribute the case lacks (three-valued policy).
+SCOPE_UNKNOWN = "scope_unknown"
 #: The case is in scope but has no value, for a reason the family does not name.
 NOT_EVALUABLE = "not_evaluable"
 #: An anchor activity is absent: ``after``/``before`` of Exclusion and Singularity, ``a`` of Precedence.
@@ -66,6 +68,7 @@ REASONS: tuple[str, ...] = (
     MISSING_ACTIVATION,
     MISSING_RESPONSE,
     CENSORED,
+    SCOPE_UNKNOWN,
 )
 #: The reasons of a case that has a value.
 VALUED: frozenset[str] = frozenset({EVALUATED, CENSORED})
@@ -88,8 +91,8 @@ class Evaluation:
     case has no value. ``reason`` says why, per case: :data:`EVALUATED` where
     there is a value (:data:`CENSORED` where the value scores an open case by
     its age), :data:`OUT_OF_SCOPE` where the constraint does not apply,
-    otherwise the reason the case is not evaluable (one of :data:`REASONS`).
-    A value is present exactly where the reason is one of :data:`VALUED`.
+    :data:`SCOPE_UNKNOWN` where it is unknown whether it applies, otherwise
+    the reason the case is not evaluable (one of :data:`REASONS`). A value is present exactly where the reason is one of :data:`VALUED`.
     """
 
     value: pd.Series
@@ -147,8 +150,8 @@ class Evaluation:
 
     @property
     def in_scope(self) -> pd.Series:
-        """Boolean per case: the constraint applies (``σ ∈ C_app``)."""
-        return self.reason != OUT_OF_SCOPE
+        """Boolean per case: the constraint is known to apply (``σ ∈ C_app``)."""
+        return ~self.reason.isin((OUT_OF_SCOPE, SCOPE_UNKNOWN))
 
     @property
     def evaluated(self) -> pd.Series:
@@ -156,7 +159,17 @@ class Evaluation:
         return self.value.notna()
 
     def within(self, scope: pd.Series) -> Evaluation:
-        """The evaluation restricted to the cases where ``scope`` is true; the others are out of scope."""
+        """The evaluation restricted to the cases where ``scope`` is true; the others are out of scope.
+
+        ``scope`` is a boolean Series, or a nullable boolean one whose ``<NA>``
+        marks the cases where it is unknown whether the constraint applies:
+        those have no value and the reason :data:`SCOPE_UNKNOWN`.
+        """
+        if scope.dtype == "boolean":
+            unknown = scope.isna()
+            known = scope.fillna(False).astype(bool)
+            reason = self.reason.where(known, OUT_OF_SCOPE).where(~unknown, SCOPE_UNKNOWN)
+            return self._consistent(self.value.where(known, np.nan), reason)
         return self._consistent(self.value.where(scope, np.nan), self.reason.where(scope, OUT_OF_SCOPE))
 
     def rename(self, name: Any) -> Evaluation:
@@ -281,6 +294,7 @@ __all__ = [
     "NOT_EVALUABLE",
     "OUT_OF_SCOPE",
     "REASONS",
+    "SCOPE_UNKNOWN",
     "TYPE_ALIASES",
     "VALUED",
     "Evaluation",

@@ -11,6 +11,9 @@ import wise
 from _support.builders import make_log
 from wise.errors import NormError
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 
 def test_json_roundtrip(tmp_path, p2p_norm, p2p_log):
     path = tmp_path / "norm.json"

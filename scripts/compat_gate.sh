@@ -14,6 +14,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 DEFAULT_LIB_SRC="$REPO_ROOT/packages/wise-pm/src"
 DEFAULT_WORKBENCH="$(cd "$REPO_ROOT/.." && pwd -P)/wise-workbench"
 DEFAULT_OUT="$REPO_ROOT/.compat-results"
+LEGACY_FILTER="ignore::wise.LegacySemanticsWarning"
 
 # Suite table: parallel arrays, same index. Dirs are relative to the workbench.
 SUITE_IDS=(backend analytics knowledge reference)
@@ -357,13 +358,15 @@ for i in "${SELECTED[@]}"; do
     else
       unset WISE_BPIC19_CSV        # the notes ran the three suites without it; only the reference gets the CSV
     fi
+    # The consumers read schema version 2 norms, which evaluate under the 0.1.0 semantics and announce it with a
+    # LegacySemanticsWarning on every read; their suites treat warnings as errors, so the gate filters it by name.
     # shellcheck disable=SC2086  # SUITE_PYTEST_ARGS is a deliberate word list
     if [ "$VERBOSE" = 1 ]; then
-      "$py" -m pytest -q -p no:cacheprovider --junitxml="$xml" ${SUITE_PYTEST_ARGS[$i]} \
+      "$py" -m pytest -q -p no:cacheprovider -W "$LEGACY_FILTER" --junitxml="$xml" ${SUITE_PYTEST_ARGS[$i]} \
         ${EXTRA_PYTEST_ARGS[@]+"${EXTRA_PYTEST_ARGS[@]}"} 2>&1 | tee "$log"
       exit "${PIPESTATUS[0]}"
     fi
-    "$py" -m pytest -q -p no:cacheprovider --junitxml="$xml" ${SUITE_PYTEST_ARGS[$i]} \
+    "$py" -m pytest -q -p no:cacheprovider -W "$LEGACY_FILTER" --junitxml="$xml" ${SUITE_PYTEST_ARGS[$i]} \
       ${EXTRA_PYTEST_ARGS[@]+"${EXTRA_PYTEST_ARGS[@]}"} >"$log" 2>&1
   )
   rc=$?

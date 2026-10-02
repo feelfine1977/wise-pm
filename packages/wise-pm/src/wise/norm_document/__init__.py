@@ -2,9 +2,15 @@
 
 A document names its format in the ``schema_version`` key, which is required.
 Each schema version is read and written by an adapter; :mod:`wise.norm_document.v2`
-reads the layout of 0.1.0 (schema versions 1 and 2). The norm keeps the
-version it was read with (``Norm.schema_version``) and :func:`write` emits it
-again, so reading and writing a document never changes its version.
+reads the layout of 0.1.0 (schema versions 1 and 2) and :mod:`wise.norm_document.v3`
+the layout of schema version 3. The norm keeps the version it was read with
+(``Norm.schema_version``) and :func:`write` emits it again, so reading and
+writing a document never changes its version.
+
+The schema version also selects the semantics profile the norm is evaluated
+under (:mod:`wise.semantics`). Reading a document of schema version 1 or 2
+emits one :class:`~wise.semantics.LegacySemanticsWarning` per norm read: it
+evaluates under the 0.1.0 semantics until 2.0.
 
 The fingerprint of a norm is defined here, beside the format: the SHA-256 of
 the canonical JSON (sorted keys, no whitespace) of the written document
@@ -20,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +35,8 @@ from typing import Any
 from .._json import jsonable
 from ..errors import NormError
 from ..norm import SCHEMA_VERSION, SCHEMA_VERSIONS, Norm, NormConstraint
-from . import v2
+from ..semantics import LEGACY_SEMANTICS, LegacySemanticsWarning
+from . import v2, v3
 
 
 @dataclass(frozen=True)
@@ -47,7 +55,8 @@ class Adapter:
 
 
 V2 = Adapter(v2.VERSIONS, v2.read, v2.write, v2.write_constraint, v2.identity)
-ADAPTERS: Mapping[int, Adapter] = dict.fromkeys(V2.versions, V2)
+V3 = Adapter(v3.VERSIONS, v3.read, v3.write, v3.write_constraint, v3.identity)
+ADAPTERS: Mapping[int, Adapter] = {**dict.fromkeys(V2.versions, V2), **dict.fromkeys(V3.versions, V3)}
 
 
 def adapter(schema_version: int) -> Adapter:
@@ -79,16 +88,29 @@ def schema_version_of(document: Mapping[str, Any]) -> int:
 
 # ----------------------------------------------------------------------------- documents
 def read(document: Mapping[str, Any]) -> Norm:
-    """The norm a document describes. Malformed documents raise :class:`NormError`."""
+    """The norm a document describes. Malformed documents raise :class:`NormError`.
+
+    A norm of schema version 1 or 2 is announced with one
+    :class:`~wise.semantics.LegacySemanticsWarning`.
+    """
     if not isinstance(document, Mapping):
         raise NormError(f"a norm must be a mapping, got {type(document).__name__}")
     version = schema_version_of(document)
     try:
-        return adapter(version).read(document, version)
+        norm = adapter(version).read(document, version)
     except NormError:
         raise
     except (TypeError, KeyError, AttributeError, ValueError) as exc:
         raise NormError(f"malformed norm: {exc}") from exc
+    if norm.semantics == LEGACY_SEMANTICS:
+        warnings.warn(
+            f"norm {norm.name!r} has schema_version {version} and is evaluated under the 0.1.0 semantics "
+            "(missing attributes resolved per operator, bare lag bounds, population quantiles); "
+            "schema version 3 evaluates under the corrected semantics",
+            LegacySemanticsWarning,
+            stacklevel=2,
+        )
+    return norm
 
 
 def write(norm: Norm) -> dict[str, Any]:
@@ -151,6 +173,7 @@ def fingerprint(norm: Norm) -> str:
 __all__ = [
     "ADAPTERS",
     "V2",
+    "V3",
     "Adapter",
     "adapter",
     "dump",

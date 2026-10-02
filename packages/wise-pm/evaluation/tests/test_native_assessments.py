@@ -13,6 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from native_assessments import carrier_log, prepare_native, weighted_coverage, write_prepared
 from run_native_parity import require_same_labels, residual, string_index
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 
 def example_assessments():
     index = pd.Index(["complete", "partial", "outside", "unscored"], name="case_id")

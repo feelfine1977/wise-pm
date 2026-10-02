@@ -6,6 +6,9 @@ import pytest
 
 import wise
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 ACTS = ["PO", "GR", "INV", "CLR", "CINV", "CHG"]
 
 

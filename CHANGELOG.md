@@ -250,6 +250,25 @@ snapshot writes the version as a placeholder and is unchanged.
   log remembers, as `EventLog.events` does (shallow under copy-on-write);
   writing into one no longer changes the log's later answers.
 
+- Reading a norm document of schema version 1 or 2 emits one
+  `wise.LegacySemanticsWarning` (a `FutureWarning`) per norm read, naming the
+  norm: the norm evaluates under the 0.1.0 semantics until 2.0 (decision
+  0001, section 4). Its numbers are unchanged. A norm built in Python, written,
+  fingerprinted or scored does not warn. The golden, paper (Section V) and
+  native evaluation tiers and the unit modules that read schema version 2
+  documents filter the warning by name.
+  `scripts/compat_gate.sh` passes `-W ignore::wise.LegacySemanticsWarning` to
+  every downstream suite, because those suites treat warnings as errors.
+  Callers that do the same must filter it by name, or migrate their norms to
+  schema version 3.
+- `wise.norm.SCHEMA_VERSIONS` is `(1, 2, 3)`; `wise.SCHEMA_VERSION`, the
+  version a norm built in Python carries, stays 2. A schema version above 3
+  is "newer than supported (3)", and the message for a missing
+  `schema_version` lists `[1, 2, 3]`.
+- `ScoreResult.in_scope` (and `Evaluation.in_scope`) is true where a
+  constraint is known to apply: a case whose scope is unknown under the
+  three-valued policy is not in scope. Under schema version 2 nothing is
+  unknown, so the frames are unchanged.
 - `ScoreResult(mode=...)` defaults to `None`, which becomes the norm's
   `scoring_mode` (see `Fixed: C13`); the contract snapshot records the new
   default and the annotation `str | None`.
@@ -450,6 +469,33 @@ snapshot writes the version as a placeholder and is unchanged.
 - The release workflow now runs the full CI gate for the release commit
   before building.
 
+- Schema version 3 of the norm document (`wise.norm_document.v3`, adapter
+  `wise.norm_document.V3`), read and written beside schema version 2, with
+  the corrected semantics of decision 0001, section 3. A v3 document names its
+  missing-value policy in the required top-level field `"missing_values":
+  "three_valued"`. A `lag` constraint states `delta` (with `width`) or
+  `"unbounded": true` without `delta`; a lag with neither, or with `"delta":
+  null`, is refused. A `quantile_scale` recipe carries its `calibration`
+  record: an unfitted record is admitted, and scoring refuses it with a
+  `NormError` that names the recipe and points to `wise.fit_calibration`. An
+  `eval` recipe is refused, also for a norm built in Python with
+  `schema_version=3`. `examples/running_p2p_norm_v3.json` is the v3 copy of
+  the running example norm; the golden tier scores it beside the v2 original
+  (delta report: `docs/semantics/schema-v3-delta.md`).
+- The semantics profile (`wise.semantics`): `wise.Semantics` (name,
+  `missing_values`, `fitted_calibration`), `LEGACY_SEMANTICS` (0.1.0, schema
+  versions 1 and 2), `CORRECTED_SEMANTICS` (schema version 3),
+  `semantics_of(schema_version)`, `wise.LegacySemanticsWarning`, and the
+  property `Norm.semantics`. Scoring takes the profile from the norm and hands
+  it to every evaluation as an argument; no module reads it from global state.
+  `wise.evaluate` and `wise.evaluate_constraint` take a keyword-only
+  `semantics` (default: the 0.1.0 profile).
+  `NormConstraint.applies_to` takes a keyword-only `missing` policy (default
+  `"legacy"`), and the new `NormConstraint.scope(cases, log=None, *,
+  missing="legacy")` gives the nullable scope with `<NA>` for unknown. The
+  reason `wise.family.SCOPE_UNKNOWN` (`"scope_unknown"`) marks a case whose
+  applicability is unknown.
+
 ### Deprecated
 
 - `EventLog._to_ts` emits a `DeprecationWarning` and delegates to
@@ -476,6 +522,20 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Fixed
 
+- Fixed: C4 — an `ne` or `not_in` applicability rule put a case whose
+  attribute is missing in scope (`NaN != v` is true). Under schema version 3
+  applicability is three-valued (decision 0001, section 3): such a case is
+  unknown under every operator, is not in scope, has no value (reason
+  `scope_unknown`) and is left out of the constraint's denominator. Schema
+  version 2 documents keep the 0.1.0 scope under the legacy profile (section
+  4). Delta on the golden dataset: none. The golden norm stays at schema
+  version 2 and every table is unchanged. The v3 copy of the running example
+  differs in no row (`docs/semantics/schema-v3-delta.md`).
+- Fixed: C25 — a `not` rule brought a case with a missing attribute into
+  scope. Under schema version 3, `not` keeps an unknown scope unknown, and
+  `all`/`any` combine by Kleene logic (decision 0001, section 3); schema
+  version 2 is unchanged. Delta on the golden dataset: none, as for C4
+  (`docs/semantics/schema-v3-delta.md`).
 - Fixed: C13 — `ScoreResult.mode` defaulted to `"flat"` while a norm defaults
   to `"layer_balanced"`, so a result built without a mode computed its
   effective weights in a mode the norm did not state. A result built without

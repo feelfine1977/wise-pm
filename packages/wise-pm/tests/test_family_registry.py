@@ -46,6 +46,9 @@ from wise.family import (
     unregister,
 )
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 NAN = math.nan
 CASES = ["1", "2", "3"]
 
