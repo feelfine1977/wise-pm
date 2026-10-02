@@ -30,8 +30,10 @@ from .scoring import ScoreResult
 
 
 def observation_window(log: EventLog, q: float = 0.001) -> tuple[pd.Timestamp, pd.Timestamp]:
-    """Robust ``(start, end)`` of the observation window (see
-    :meth:`EventLog.observation_window`)."""
+    """Robust ``(start, end)`` of the observation window.
+
+    An alias of :meth:`EventLog.observation_window`, kept so that the
+    diagnostics read as one family of functions of the log."""
     return log.observation_window(q)
 
 
@@ -109,17 +111,13 @@ def event_replication(log: EventLog) -> pd.DataFrame:
     """Per case: ``n_events``, ``n_distinct_ts``, ``replication_ratio``
     (events per distinct timestamp) and ``replicated_share`` (share of events
     whose timestamp is shared with another event of the same case)."""
-    codes, ts, valid = log._codes, log._ts, log._valid
-    n = len(log)
-    same_prev = (codes[1:] == codes[:-1]) & (ts[1:] == ts[:-1]) & valid[1:] & valid[:-1]
-    tied = np.zeros(len(codes), dtype=bool)
-    tied[1:] |= same_prev
-    tied[:-1] |= same_prev
-    n_events = np.bincount(codes, minlength=n).astype(float)
-    n_valid = np.bincount(codes[valid], minlength=n).astype(float)
-    n_dup = np.bincount(codes[1:][same_prev], minlength=n).astype(float)
-    distinct = n_valid - n_dup
-    replicated = np.bincount(codes[tied], minlength=n).astype(float)
+    idx = log.case_index
+    # a valid event that is not the first of its run of equal (case, timestamp) repeats a timestamp
+    repeats = idx.valid & (idx.run_starts() != np.arange(idx.n_events))
+    n_events = idx.count().astype(float)
+    n_valid = idx.count(idx.valid).astype(float)
+    distinct = n_valid - idx.count(repeats).astype(float)
+    replicated = idx.count(idx.tied()).astype(float)
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = np.where(distinct > 0, n_valid / distinct, np.nan)
         share = np.where(n_events > 0, replicated / n_events, np.nan)
@@ -155,7 +153,8 @@ def cross_case_replication(
     ev = log.events
     n_cases_per_key = ev.groupby([group_col, *keys], dropna=False, observed=True)[log.case_col].transform("nunique")
     replicated = (n_cases_per_key > 1).to_numpy()
-    share = np.bincount(log._codes[replicated], minlength=len(log)) / np.maximum(np.bincount(log._codes, minlength=len(log)), 1)
+    idx = log.case_index
+    share = idx.count(replicated) / np.maximum(idx.count(), 1)
     return pd.Series(share, index=log.case_ids, name="cross_case_replicated_share")
 
 
