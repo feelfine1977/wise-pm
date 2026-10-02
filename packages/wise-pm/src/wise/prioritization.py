@@ -29,7 +29,8 @@ import pandas as pd
 
 from .constraints import as_list
 from .errors import NormError, NotScoredError
-from .scoring import ScoreResult, _where_mask
+from .scoring import ScoreResult
+from .selection import select_cases
 
 
 def _keys(by: str | Sequence[str]) -> list[str]:
@@ -252,13 +253,15 @@ def constraint_drivers(
 ) -> pd.DataFrame:
     """Which constraints carry the penalty inside a slice (or the whole log)?
 
-    ``where`` is ``{attribute: value}`` (the case id is allowed) or a boolean
-    mask over cases. Returns one row per constraint with the mean effective
+    ``where`` is ``{attribute: value}`` (equality) or ``{attribute: [values]}``
+    (membership), the case id allowed under the name of the case index, a rule
+    of the selection grammar (:mod:`wise.selection`), or a boolean mask over
+    cases. Returns one row per constraint with the mean effective
     penalty ``w̃ ν``, the mean violation over evaluated cases, the share of
     evaluated cases with a non-zero violation, the share of cases in scope,
     and the share actually evaluated.
     """
-    mask = _where_mask(result.cases, where) & result.scores[view].notna()
+    mask = select_cases(result.cases, where, log=result.log) & result.scores[view].notna()
     V = result.violations[mask]
     S = result.in_scope[mask]
     pen = result.penalties(view)[mask]
@@ -291,10 +294,11 @@ def penalty_mass(
     as_index: bool = True,
 ) -> pd.DataFrame:
     """Sum of case penalties ``1 − S`` per slice (optionally within a filter),
-    with ``share``, ``cum_share`` and ``rank`` — the vendor Pareto of the paper."""
+    with ``share``, ``cum_share`` and ``rank`` — the vendor Pareto of the paper.
+    ``where`` filters cases as in :func:`constraint_drivers`."""
     by = _keys(by)
     f, score_col = _frame(result, view, "score", by)
-    mask = _where_mask(result.cases, where).to_numpy() & f[score_col].notna().to_numpy()
+    mask = select_cases(result.cases, where, log=result.log).to_numpy() & f[score_col].notna().to_numpy()
     d = f[mask]
     if d.empty:
         raise NotScoredError("no scored cases match the filter")

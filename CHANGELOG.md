@@ -103,6 +103,30 @@ snapshot writes the version as a placeholder and is unchanged.
   gone; the Lag rule moved unchanged into `wise.families.lag`. Delta on the
   golden dataset: none.
 
+- The where-clauses of derived-attribute recipes and the `where=` filters of
+  `ScoreResult.worst_cases`, `constraint_drivers` and `penalty_mass` are parsed
+  and evaluated by `wise.selection`, under the legacy missing-value policy.
+  Every recipe clause 0.1.0 accepted (`{"column": c, op: v}` with the first of
+  `in`, `not_in`, `regex`, `eq` taken and other keys ignored) selects the same
+  events (a compiled `regex` pattern is used as given, as in 0.1.0), and a
+  `where=` dict of scalars (equality, the case id under the name
+  of the case index) or a boolean Series selects the same cases. Both now also
+  take a rule of the selection grammar (`all`, `any`, `not`, the leaf
+  operators, `has`, `lacks`); a recipe clause reads event columns and tests
+  `has`/`lacks` on the event's case. A `where=` key named `all`, `any`, `not`,
+  `attr`, `has` or `lacks` is read as a rule, not as an attribute. Refusals:
+  a `where=` that is neither a mapping, a boolean Series nor `None` and an
+  empty list value raise `NormError` (0.1.0 raised `AttributeError` or
+  `ValueError`); a recipe clause with an invalid `regex` string raises
+  `NormError` when it is evaluated (0.1.0 raised the string backend's error,
+  `re.error` or `pyarrow.lib.ArrowInvalid`). A case
+  whose `where=` comparison is unknown (`<NA>` in a nullable column) is not
+  selected. Public signatures, output columns and the contract snapshot are
+  unchanged. The private `wise.scoring._where_mask` is gone; `prioritization`
+  and `scoring` share `wise.selection.select_cases`. In the import layers
+  `wise.selection` moved below `wise.derive`. Delta on the golden dataset:
+  none.
+
 ### Added
 
 - `wise.evaluate(constraint, log)` evaluates a constraint, or a
@@ -123,6 +147,15 @@ snapshot writes the version as a placeholder and is unchanged.
   `family`, `family_of`, `families`). A new constraint type takes one module
   with its parameter class and its `Family`, and one `register` call; scoring,
   the norm document and the norm's check then know it.
+
+- `wise.selection` grows the leaf operator `regex` (the value's text searched
+  with the pattern, as in the recipe where-clauses of 0.1.0; an invalid
+  pattern is refused with `NormError`), so applicability rules accept it too;
+  `parse_recipe_where` (the recipe where-clause), `parse_where` (the `where=`
+  filter: a scalar is equality, a list, tuple or set is membership) and
+  `select_cases(cases, where, *, log=None)` (the plain case mask of a
+  `where=` filter); `CaseTable(..., case_ids=True)` reads the case ids under
+  the name of the case index; `RECIPE_WHERE_OPERATORS`.
 
 - `wise.case_index.CaseIndex`, the immutable per-case index behind the event
   log: case codes, timestamps, validity, activity codes and case starts held
@@ -265,6 +298,16 @@ snapshot writes the version as a placeholder and is unchanged.
   `NormError` from the constructor instead of an escaping `TypeError` or
   `ValueError`. Delta on the golden dataset: none (its counts are integers;
   every table is unchanged).
+
+- Fixed: C29 — a list value in `where=` (`ScoreResult.worst_cases`,
+  `constraint_drivers`, `penalty_mass`) is a membership test, as in the
+  short form of the selection grammar (decision 0001: one owner for
+  selection); 0.1.0 compared the column element-wise with the list and raised
+  `ValueError` ("Lengths must match") unless the list had one entry per case.
+  `{"company": ["A", "B"]}` now selects the cases of both companies. A scalar
+  value still means equality. Delta on the golden dataset: none (the golden
+  pipeline passes no `where=`; its one recipe where-clause, a `regex`, selects
+  the same events, and every table is unchanged).
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.

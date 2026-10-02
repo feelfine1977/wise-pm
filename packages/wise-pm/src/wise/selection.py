@@ -13,8 +13,9 @@ The rule form allows ``all`` / ``any`` / ``not`` combinations of leaves::
              {"not": {"attr": "vendor", "in": ["V0"]}}]}
 
 Leaf operators: ``in``, ``not_in``, ``eq``, ``ne``, ``gt``, ``gte``, ``lt``,
-``lte``, ``isna``, ``notna`` on an attribute; ``has`` / ``lacks`` on activity
-occurrence in the row's case.
+``lte``, ``isna``, ``notna``, ``regex`` on an attribute; ``has`` / ``lacks`` on
+activity occurrence in the row's case. ``regex`` searches the value's text
+anywhere (``re.search``), as the recipe where-clauses of 0.1.0 did.
 
 :func:`parse` turns a rule into a :class:`Selection`: a small tree that states
 the columns and activities it needs. :meth:`Selection.evaluate` evaluates the
@@ -22,6 +23,15 @@ tree over a table, given through one of two adapters: :class:`CaseTable` (one
 row per case, attributes are case-table columns) and :class:`EventTable` (one
 row per event, attributes are event columns). The result is a nullable boolean
 Series: ``True`` in scope, ``False`` out of scope, ``<NA>`` unknown.
+
+Two callers write rules in their own 0.1.0 shapes, and both are read into the
+same tree. :func:`parse_recipe_where` reads the where-clause of a
+derived-attribute recipe, ``{"column": c, op: v}`` with ``op`` one of ``in``,
+``not_in``, ``regex``, ``eq`` (evaluated over the event table).
+:func:`parse_where` reads the ``where=`` filter of results, drivers and
+penalty mass, where a scalar value means equality and a list means
+membership; :func:`select_cases` turns it into a plain case mask. Both also
+accept the rule form.
 
 Missing values
 --------------
@@ -45,6 +55,8 @@ scope when one part is in scope, else unknown when one part is unknown.
 from __future__ import annotations
 
 import copy
+import re
+import warnings
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias
@@ -63,7 +75,8 @@ LEGACY: MissingPolicy = "legacy"
 THREE_VALUED: MissingPolicy = "three_valued"
 MISSING_POLICIES: tuple[MissingPolicy, ...] = (LEGACY, THREE_VALUED)
 
-LEAF_OPERATORS = ("in", "not_in", "eq", "ne", "gt", "gte", "lt", "lte", "isna", "notna")
+LEAF_OPERATORS = ("in", "not_in", "eq", "ne", "gt", "gte", "lt", "lte", "isna", "notna", "regex")
+RECIPE_WHERE_OPERATORS = ("in", "not_in", "regex", "eq")
 _RULE_KEYS = {"all", "any", "not", "attr", "has", "lacks"}
 
 
@@ -125,11 +138,15 @@ class Table(Protocol):
 
 
 class CaseTable:
-    """One row per case: attributes are columns of ``cases``; ``has`` / ``lacks`` need ``log``."""
+    """One row per case: attributes are columns of ``cases``; ``has`` / ``lacks`` need ``log``.
 
-    def __init__(self, cases: pd.DataFrame, log: EventLog | None = None) -> None:
+    With ``case_ids=True`` the name of the index reads the case ids when no column has that name.
+    """
+
+    def __init__(self, cases: pd.DataFrame, log: EventLog | None = None, *, case_ids: bool = False) -> None:
         self.cases = cases
         self.log = log
+        self.case_ids = case_ids
 
     @property
     def index(self) -> pd.Index:
@@ -137,6 +154,8 @@ class CaseTable:
 
     def column(self, name: str) -> pd.Series:
         if name not in self.cases.columns:
+            if self.case_ids and name == self.cases.index.name:
+                return pd.Series(self.cases.index, index=self.cases.index)
             raise NormError(f"selection refers to case attribute {name!r}, which is missing from the case table")
         return self.cases[name]
 
@@ -237,6 +256,10 @@ def _compare(s: pd.Series, op: str, v: Any) -> pd.Series:
         return s.isna() if v else s.notna()
     if op == "notna":
         return s.notna() if v else s.isna()
+    if op == "regex":
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)  # patterns with groups are fine here
+            return s.astype(str).str.contains(v, regex=True, na=False)
     num = pd.to_numeric(s, errors="coerce")
     compared: dict[str, pd.Series] = {"gt": num > v, "gte": num >= v, "lt": num < v, "lte": num <= v}
     return compared[op].fillna(False)
@@ -293,14 +316,92 @@ def _parse_rule(rule: Any, what: str) -> Rule:
         if len(ops) != 1 or not ops <= set(LEAF_OPERATORS):
             raise NormError(f"{what} leaf {dict(rule)} needs exactly one operator from {sorted(LEAF_OPERATORS)}")
         (op,) = ops
+        if op == "regex":
+            _check_pattern(rule[op], what)
         return Compare(str(rule["attr"]), op, copy.deepcopy(rule[op]))
     raise NormError(f"{what} rule {dict(rule)} is neither a short form nor a rule")
+
+
+def _check_pattern(pattern: Any, what: str) -> None:
+    if not isinstance(pattern, str):
+        raise NormError(f"{what} regex must be a string, got {pattern!r}")
+    try:
+        re.compile(pattern)
+    except re.error as e:
+        raise NormError(f"{what} regex {pattern!r} is not a valid pattern: {e}") from None
+
+
+def parse_recipe_where(where: Any, *, what: str = "recipe where-clause") -> Selection:
+    """Parse the where-clause of a derived-attribute recipe.
+
+    ``{"column": c, op: v}`` is the 0.1.0 clause: the first of ``in``, ``not_in``,
+    ``regex``, ``eq`` present is the operator and other keys are ignored, so every
+    clause 0.1.0 accepted selects the same rows. Without ``column`` the clause is
+    read as :func:`parse` reads a rule. ``None`` and ``{}`` select every row.
+    """
+    if not where:
+        return Selection(None, {})
+    if not isinstance(where, Mapping) or "column" not in where:
+        return parse(where, what=what)
+    op = next((o for o in RECIPE_WHERE_OPERATORS if o in where), None)
+    if op is None:
+        raise NormError(f"{what} needs one of in/not_in/regex/eq: {dict(where)}")
+    if op == "regex" and isinstance(where[op], re.Pattern):  # 0.1.0 passed a compiled pattern to pandas as is
+        return Selection(Compare(str(where["column"]), op, where[op]), copy.deepcopy(dict(where)))
+    return Selection(_parse_rule({"attr": where["column"], op: where[op]}, what), copy.deepcopy(dict(where)))
+
+
+def parse_where(where: Any, *, what: str = "where") -> Selection:
+    """Parse the ``where=`` filter of results, drivers and penalty mass.
+
+    A mapping without rule keys maps attributes to values, combined with AND: a
+    scalar means equality (``eq``, as in 0.1.0) and a list, tuple or set means
+    membership (``in``). Otherwise the mapping is read as :func:`parse` reads a
+    rule. ``None`` and ``{}`` select every row.
+    """
+    if where is None:
+        return Selection(None, {})
+    if not isinstance(where, Mapping):
+        raise NormError(f"{what} must be a mapping, a boolean Series or None, got {type(where).__name__}")
+    if not where or set(where) & _RULE_KEYS:
+        return parse(where, what=what)
+    leaves: list[Rule] = []
+    for attr, value in where.items():
+        if isinstance(value, str | bytes) or not isinstance(value, Iterable):
+            leaves.append(Compare(str(attr), "eq", copy.deepcopy(value)))
+            continue
+        values = list(value)
+        if not values:
+            raise NormError(f"{what} for {attr!r} is an empty list (nothing would be selected)")
+        leaves.append(Compare(str(attr), "in", copy.deepcopy(values)))
+    document = {"all": [{"attr": leaf.attr, leaf.op: jsonable(leaf.value)} for leaf in leaves if isinstance(leaf, Compare)]}
+    return Selection(AllOf(tuple(leaves)), document)
+
+
+def select_cases(cases: pd.DataFrame, where: Any, *, log: EventLog | None = None) -> pd.Series:
+    """Plain boolean mask over ``cases.index`` for a ``where=`` filter.
+
+    ``None`` selects every case. A boolean Series is aligned to the cases, and a
+    case it does not list is not selected. A mapping is parsed with
+    :func:`parse_where`; the name of the case index reads the case ids, and
+    ``has`` / ``lacks`` need ``log``. It is evaluated under the legacy policy,
+    and a row whose value is unknown is not selected.
+    """
+    if isinstance(where, pd.Series):
+        return where.reindex(cases.index, fill_value=False).astype(bool)
+    selection = parse_where(where)
+    for name in selection.columns:
+        if name not in cases.columns and name != cases.index.name:
+            raise NormError(f"unknown case attribute {name!r} in where; known: {list(cases.columns)}")
+    out = selection.evaluate(CaseTable(cases, log, case_ids=True), missing=LEGACY)
+    return out.fillna(False).astype(bool)
 
 
 __all__ = [
     "LEAF_OPERATORS",
     "LEGACY",
     "MISSING_POLICIES",
+    "RECIPE_WHERE_OPERATORS",
     "THREE_VALUED",
     "AllOf",
     "AnyOf",
@@ -314,4 +415,7 @@ __all__ = [
     "Selection",
     "Table",
     "parse",
+    "parse_recipe_where",
+    "parse_where",
+    "select_cases",
 ]

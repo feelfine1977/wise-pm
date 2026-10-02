@@ -32,6 +32,9 @@ from wise.selection import (
     Not,
     Occurs,
     parse,
+    parse_recipe_where,
+    parse_where,
+    select_cases,
 )
 
 T, F, U = True, False, None
@@ -77,9 +80,12 @@ TRUTH_TABLE = [
     ({"attr": "ft", "isna": False}, [T, T, F], [T, T, U]),
     ({"attr": "ft", "notna": True}, [T, T, F], [T, T, U]),
     ({"attr": "ft", "notna": False}, [F, F, T], [F, F, U]),
+    ({"attr": "ft", "regex": "^[XY]$"}, [T, T, F], [T, T, U]),
+    ({"attr": "val", "regex": "^5"}, [T, F, F], [T, F, U]),
     ({"not": {"attr": "ft", "eq": "X"}}, [F, T, T], [F, T, U]),
     ({"not": {"attr": "ft", "in": ["X"]}}, [F, T, T], [F, T, U]),
     ({"not": {"attr": "val", "gt": 3}}, [F, T, T], [F, T, U]),
+    ({"not": {"attr": "ft", "regex": "X"}}, [F, T, T], [F, T, U]),
     ({"ft": ["X", "Y"]}, [T, T, F], [T, T, U]),
     ({"has": "A"}, [T, T, F], [T, T, F]),
     ({"lacks": ["A"]}, [F, F, T], [F, F, T]),
@@ -217,6 +223,8 @@ REFUSED: list[Any] = [
     {"attr": "x", "like": "X%"},
     {"flow_type": []},
     {"any": [{"not": {"foo": "bar"}}]},
+    {"attr": "ft", "regex": "("},
+    {"attr": "ft", "regex": 5},
 ]
 
 
@@ -268,3 +276,36 @@ def test_rule_attributes_stays_importable_from_the_norm_module() -> None:
     rule = {"all": [{"attr": "ft", "eq": "X"}, {"has": "A"}, {"not": {"attr": "val", "lt": 1}}]}
     assert _rule_attributes(rule) == {"ft", "val"}
     assert _rule_attributes({}) == set()
+
+
+# ------------------------------------------------------------------ filters
+def test_recipe_where_clause_parses_into_one_leaf() -> None:
+    sel = parse_recipe_where({"column": "activity", "eq": "B", "in": ["A"], "note": "x"})
+    assert sel.rule == Compare("activity", "in", ["A"])
+    assert sel.document == {"column": "activity", "eq": "B", "in": ["A"], "note": "x"}
+    assert sel.columns == ("activity",)
+    assert parse_recipe_where({"has": "A"}).rule == Occurs(("A",), True)
+    assert parse_recipe_where(None).rule is None
+    with pytest.raises(NormError, match="needs one of in/not_in/regex/eq"):
+        parse_recipe_where({"column": "activity", "ne": "A"})
+
+
+@pytest.mark.spec("decision:0001/1")
+def test_where_filter_reads_a_scalar_as_equality_and_a_list_as_membership() -> None:
+    sel = parse_where({"ft": "X", "val": (np.float64(1.0), 2)})
+    assert sel.rule == AllOf((Compare("ft", "eq", "X"), Compare("val", "in", [1.0, 2])))
+    assert sel.document == {"all": [{"attr": "ft", "eq": "X"}, {"attr": "val", "in": [1.0, 2]}]}
+    assert parse_where({"not": {"has": "A"}}).rule == Not(Occurs(("A",), True))
+    assert parse_where({}).rule is None
+
+
+def test_select_cases_is_a_plain_mask_with_unknown_rows_left_out(log: wise.EventLog) -> None:
+    out = select_cases(log.cases, {"attr": "ft", "ne": "X"})
+    assert out.dtype == bool
+    assert out.tolist() == [F, T, T]  # legacy: case 3 (ft missing) is in scope under ne
+    assert select_cases(log.cases, {"case": [1, 3]}).tolist() == [T, F, T]
+    nullable = log.cases.assign(ft=log.cases["ft"].astype("string"))
+    assert select_cases(nullable, {"ft": "X"}).tolist() == [T, F, F]  # <NA> == "X" is unknown: not selected
+    with pytest.raises(NormError, match="needs the event log"):
+        select_cases(log.cases, {"has": "A"})
+    assert select_cases(log.cases, {"has": "B"}, log=log).tolist() == [T, F, T]
