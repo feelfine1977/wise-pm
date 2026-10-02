@@ -224,7 +224,7 @@ snapshot writes the version as a placeholder and is unchanged.
 - A norm carries the schema version of its document format as the frozen,
   keyword-only field `Norm.schema_version` (decision record 0001, section 4):
   the constructor defaults to `wise.SCHEMA_VERSION` (2) and accepts
-  `wise.norm.SCHEMA_VERSIONS` (1 and 2); reading a document requires the
+  `wise.norm.SCHEMA_VERSIONS` (1 and 2, as plain integers); reading a document requires the
   `schema_version` key (a document without it is refused with "norm document
   has no 'schema_version'", where 0.1.0 assumed the current version); `replace`,
   `replace_constraint` and `map_constraints` keep it and `replace` refuses to
