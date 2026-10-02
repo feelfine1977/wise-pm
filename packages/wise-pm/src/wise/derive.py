@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import json
 import warnings
+import weakref
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -59,6 +60,9 @@ from .errors import LogSchemaError, NormError
 
 if TYPE_CHECKING:  # pragma: no cover
     from .log import EventLog
+
+# Per log, the recipe that produced each derived attribute, so that an unchanged recipe is reused.
+_produced: weakref.WeakKeyDictionary[EventLog, dict[str, str]] = weakref.WeakKeyDictionary()
 
 KINDS = ("count", "count_events", "nunique", "agg", "cv", "lag", "ratio", "quantile_scale", "indicator_times", "eval")
 
@@ -111,38 +115,39 @@ def compute_recipe(log: EventLog, recipe: Mapping[str, Any]) -> pd.Series:
     """Evaluate one recipe on a log → Series aligned to ``log.cases``."""
     validate_recipe(recipe)
     kind = recipe["kind"]
-    codes = log._codes
-    n = len(log)
+    idx = log.case_index
+
+    def per_case(values: np.ndarray) -> pd.Series:
+        return pd.Series(values, index=log.case_ids)
 
     if kind == "count":
         return log.count_scoped(as_labels(recipe["activities"]), after=recipe.get("after"), before=recipe.get("before"))
     if kind == "count_events":
-        m = _where_mask(log, recipe["where"])
-        return log._series(np.bincount(codes[m], minlength=n).astype(float))
+        return per_case(idx.count(_where_mask(log, recipe["where"])).astype(float))
     if kind == "nunique":
         m = _where_mask(log, recipe.get("where"))
         col = recipe["column"]
         if col not in log.events.columns:
             raise LogSchemaError(f"recipe {recipe['name']!r}: unknown event column {col!r}")
-        s = log.events[col][m].groupby(codes[m]).nunique(dropna=True)
-        return log._series(s.reindex(range(n)).fillna(0).to_numpy(dtype=float))
+        return per_case(idx.aggregate(log.events[col], m, how="nunique", empty=0).astype(float))
     if kind == "agg":
         m = _where_mask(log, recipe.get("where"))
         col = recipe["column"]
         if col not in log.events.columns:
             raise LogSchemaError(f"recipe {recipe['name']!r}: unknown event column {col!r}")
         vals = pd.to_numeric(log.events[col], errors="coerce")
-        s = vals[m].groupby(codes[m]).agg(recipe["agg"])
-        return log._series(s.reindex(range(n)).to_numpy(dtype=float))
+        # pandas, not the index's "sum", so that a sum keeps pandas' compensated arithmetic
+        s = vals[m].groupby(idx.case_codes[m]).agg(recipe["agg"])
+        return per_case(s.reindex(range(idx.n_cases)).to_numpy(dtype=float))
     if kind == "cv":
         col = recipe["column"]
         if col not in log.events.columns:
             raise LogSchemaError(f"recipe {recipe['name']!r}: unknown event column {col!r}")
         vals = pd.to_numeric(log.events[col], errors="coerce")
-        g = vals.groupby(codes)
+        std = pd.Series(idx.aggregate(vals, how="std")).fillna(0.0)
+        mean = pd.Series(idx.aggregate(vals, how="mean"))
         eps = float(recipe.get("eps", 1e-9))
-        cv = (g.std().fillna(0.0) / g.mean().abs().clip(lower=eps)).reindex(range(n))
-        return log._series(cv.to_numpy(dtype=float))
+        return per_case((std / mean.abs().clip(lower=eps)).to_numpy(dtype=float))
     if kind == "lag":
         t_a, t_b = log.first_after(
             recipe["a"], recipe["b"], activation=recipe.get("activation", "first"), response=recipe.get("response", "first_after")
@@ -187,10 +192,11 @@ def apply_recipes(log: EventLog, recipes: Iterable[Mapping[str, Any]], *, overwr
         validate_recipe(r)
         name = str(r["name"])
         key = json.dumps(dict(r), sort_keys=True, default=str)
-        if name in log.cases.columns and not overwrite and log._recipe_cache.get(name) == key:
+        produced = _produced.setdefault(log, {})
+        if name in log.cases.columns and not overwrite and produced.get(name) == key:
             names.append(name)
             continue
         log.add_case_attribute(name, compute_recipe(log, r))
-        log._recipe_cache[name] = key
+        produced[name] = key
         names.append(name)
     return names

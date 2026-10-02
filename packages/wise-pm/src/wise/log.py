@@ -260,7 +260,6 @@ class EventLog:
         self._count_cache: dict[Labels, pd.Series] = {}
         self._first_cache: dict[Labels, pd.Series] = {}
         self._last_cache: dict[Labels, pd.Series] = {}
-        self._recipe_cache: dict[str, str] = {}
 
     # ------------------------------------------------------------------ constructors
     @classmethod
