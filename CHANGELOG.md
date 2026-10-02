@@ -250,6 +250,10 @@ snapshot writes the version as a placeholder and is unchanged.
   log remembers, as `EventLog.events` does (shallow under copy-on-write);
   writing into one no longer changes the log's later answers.
 
+- `ScoreResult(mode=...)` defaults to `None`, which becomes the norm's
+  `scoring_mode` (see `Fixed: C13`); the contract snapshot records the new
+  default and the annotation `str | None`.
+
 ### Added
 
 - `wise.case_slices(data, by, view=None, score_col="score")`: the slice each
@@ -471,6 +475,13 @@ snapshot writes the version as a placeholder and is unchanged.
   `backlog.table`.
 
 ### Fixed
+
+- Fixed: C13 — `ScoreResult.mode` defaulted to `"flat"` while a norm defaults
+  to `"layer_balanced"`, so a result built without a mode computed its
+  effective weights in a mode the norm did not state. A result built without
+  a mode now takes its norm's `scoring_mode` (Sec. IV-D). `score()` always
+  passed the mode, so every scored number is unchanged. Delta on the golden
+  dataset: none.
 
 - Fixed: C7 — frozen norm objects handed out mutable containers: writing into
   `View.constraint_weights` or `layer_weights`, a `NormConstraint.applicability`

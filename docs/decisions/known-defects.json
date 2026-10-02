@@ -135,11 +135,12 @@
       "id": "C13",
       "title": "ScoreResult.mode default differs from the norm default",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C14",

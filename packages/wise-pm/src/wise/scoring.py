@@ -122,6 +122,9 @@ class ScoreResult:
         record, or, for a recipe without one (schema version 2 legacy
         profile), the record of the divisor realised on the scored cases,
         stating the scored log's fingerprint. Empty with ``derive=False``.
+    mode
+        The scoring mode the scores were computed in; defaults to the
+        norm's ``scoring_mode``.
     """
 
     norm: Norm
@@ -130,13 +133,17 @@ class ScoreResult:
     in_scope: pd.DataFrame
     scores: pd.DataFrame
     contributions: dict[str, pd.DataFrame]
-    mode: str = "flat"
+    mode: str | None = None
     log: EventLog | None = field(default=None, repr=False)
     norm_fingerprint: str = ""
     wise_version: str = __version__
     _weights: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
     _eff_cache: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
     calibrations: Mapping[str, Calibration] = field(default_factory=dict, kw_only=True)
+
+    def __post_init__(self) -> None:
+        if self.mode is None:
+            self.mode = self.norm.scoring_mode
 
     def __repr__(self) -> str:
         return (
@@ -158,7 +165,7 @@ class ScoreResult:
         scored cases sum to 1."""
         if view not in self._eff_cache:
             M = self.violations.notna().to_numpy(dtype=float)
-            w_eff = _effective_weights(M, self._weights[view], self.norm, self.mode)
+            w_eff = _effective_weights(M, self._weights[view], self.norm, self.mode or self.norm.scoring_mode)
             self._eff_cache[view] = pd.DataFrame(
                 np.nan_to_num(w_eff), index=self.violations.index, columns=self.violations.columns
             )

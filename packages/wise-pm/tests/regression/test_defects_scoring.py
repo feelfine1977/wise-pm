@@ -66,15 +66,17 @@ def test_check_decomposition_on_tampered_result_raises_wise_error(p2p_result):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C13: ScoreResult.mode defaults to 'flat' while Norm.scoring_mode defaults to 'layer_balanced'",
-)
-def test_score_result_mode_default_equals_norm_default_scoring_mode():
-    default = wise.ScoreResult.__dataclass_fields__["mode"].default
+@pytest.mark.spec("IV-D")
+# C13 closed 2026-10-02: a result built without a mode takes its norm's scoring mode (Sec. IV-D: the mode is part
+# of the norm), not 'flat'.
+@pytest.mark.parametrize("mode", ["flat", "layer_balanced"])
+def test_score_result_mode_default_equals_norm_default_scoring_mode(p2p_result, mode):
+    frames = {f: getattr(p2p_result, f) for f in ("cases", "violations", "in_scope", "scores", "contributions")}
+    norm = p2p_result.norm.replace(scoring_mode=mode)
+    assert wise.ScoreResult(norm=norm, **frames).mode == mode
 
-    assert default == wise.norm.DEFAULT_SCORING_MODE
+    default = wise.Norm(norm.constraints, norm.layers, norm.views)
+    assert wise.ScoreResult(norm=default, **frames).mode == wise.norm.DEFAULT_SCORING_MODE == "layer_balanced"
 
 
 # ------------------------------------------------------------- characterisation
