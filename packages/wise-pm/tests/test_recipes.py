@@ -357,6 +357,23 @@ def test_the_bpic19_eval_recipe_is_its_column() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "document",
+    [*(d for d, _, _ in TRUTH_TABLE), {"name": "n", "kind": "quantile_scale", "attribute": "x", "divisor": 12.5}],
+    ids=[*(f"{r[0]['kind']}-{i}" for i, r in enumerate(TRUTH_TABLE)), "quantile_scale-divisor"],
+)
+def test_the_canonical_document_of_a_record_parses_back_into_it(document: dict[str, Any]) -> None:
+    record = parse_recipe(document)
+    assert parse_recipe(record.to_dict()) == record
+
+
+def test_a_quantile_scale_divisor_of_null_is_no_divisor(log: wise.EventLog) -> None:
+    # 0.1.0 read "divisor": null as absent; n_events (4, 7, 4, 4, 2) over its median 4
+    record = parse_recipe({"name": "x", "kind": "quantile_scale", "attribute": "n_events", "q": 0.5, "divisor": None})
+    assert record == QuantileScaleRecipe("x", "n_events", q=0.5)
+    assert record.compute(log).tolist() == [1, 1, 1, 1, 0.5]
+
+
 def test_equivalent_documents_share_one_record_and_reuse_it(log: wise.EventLog) -> None:
     assert parse_recipe({"name": "n", "kind": "count", "activities": GR}) == parse_recipe(
         {"name": "n", "kind": "count", "activities": [GR], "after": None}

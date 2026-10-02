@@ -34,7 +34,7 @@ Kinds and their keys (``?`` marks an optional key):
     ``numerator``, ``denominator``: a quotient of case attributes, NaN where
     the denominator is 0.
 ``quantile_scale`` — :class:`QuantileScaleRecipe`
-    ``attribute``, ``q?`` (0.95), ``divisor?``: the attribute divided by its
+    ``attribute``, ``q?`` (0.95), ``divisor?`` (``null``): the attribute divided by its
     ``q`` quantile over the scored cases, clipped to ``[0, 1]``. ``divisor``
     is carried with the recipe and not used.
 ``indicator_times`` — :class:`IndicatorTimesRecipe`
@@ -423,7 +423,7 @@ class QuantileScaleRecipe(Recipe):
         q = doc.number("q", 0.95)
         if not 0.0 <= q <= 1.0:
             raise doc.refuse("q", f"must be between 0 and 1, got {q!r}")
-        divisor = doc.number("divisor", math.nan) if "divisor" in doc.document else None
+        divisor = None if doc.document.get("divisor") is None else doc.number("divisor", math.nan)
         if divisor is not None and divisor <= 0:
             raise doc.refuse("divisor", f"must be > 0, got {divisor!r}")
         return cls(doc.name, doc.text("attribute"), q, divisor)
