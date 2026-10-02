@@ -89,7 +89,11 @@ TRUTH_TABLE: list[tuple[dict[str, Any], type[Recipe], Inputs]] = [
     ({"name": "n", "kind": "agg", "column": "amount", "agg": "max"}, AggRecipe, Inputs(event_columns=("amount",))),
     ({"name": "n", "kind": "cv", "column": "amount", "eps": 0.5}, CvRecipe, Inputs(event_columns=("amount",))),
     ({"name": "n", "kind": "lag", "a": GR, "b": [IR]}, LagRecipe, Inputs(activities=(GR, IR))),
-    ({"name": "n", "kind": "ratio", "numerator": "x", "denominator": "n_events"}, RatioRecipe, Inputs(case_attributes=("x", "n_events"))),
+    (
+        {"name": "n", "kind": "ratio", "numerator": "x", "denominator": "n_events"},
+        RatioRecipe,
+        Inputs(case_attributes=("x", "n_events")),
+    ),
     ({"name": "n", "kind": "quantile_scale", "attribute": "x"}, QuantileScaleRecipe, Inputs(case_attributes=("x",))),
     (
         {"name": "n", "kind": "indicator_times", "activities": ["Cancel Invoice Receipt"], "attribute": "x"},
@@ -102,8 +106,12 @@ TRUTH_TABLE: list[tuple[dict[str, Any], type[Recipe], Inputs]] = [
 
 
 @pytest.mark.spec("decision:0001/3")
-@pytest.mark.parametrize(("document", "record", "inputs"), TRUTH_TABLE, ids=[f"{r[0]['kind']}-{i}" for i, r in enumerate(TRUTH_TABLE)])
-def test_each_kind_parses_into_its_record_and_states_its_inputs(document: dict[str, Any], record: type[Recipe], inputs: Inputs) -> None:
+@pytest.mark.parametrize(
+    ("document", "record", "inputs"), TRUTH_TABLE, ids=[f"{r[0]['kind']}-{i}" for i, r in enumerate(TRUTH_TABLE)]
+)
+def test_each_kind_parses_into_its_record_and_states_its_inputs(
+    document: dict[str, Any], record: type[Recipe], inputs: Inputs
+) -> None:
     parsed = parse_recipe(document)
     assert type(parsed) is record
     assert parsed.name == "n"
@@ -218,7 +226,9 @@ REFUSALS: list[tuple[dict[str, Any], str]] = [
 @pytest.mark.spec("decision:0001/3")
 @pytest.mark.parametrize(("document", "key"), REFUSALS, ids=[f"{d['kind']}-{k}-{i}" for i, (d, k) in enumerate(REFUSALS)])
 def test_malformed_recipes_are_refused_when_the_norm_is_built(document: dict[str, Any], key: str) -> None:
-    with pytest.raises(NormError, match=rf"derived attribute '{document['name']}' \({document['kind']}\): (unknown key )?'?{key}\b"):
+    with pytest.raises(
+        NormError, match=rf"derived attribute '{document['name']}' \({document['kind']}\): (unknown key )?'?{key}\b"
+    ):
         _norm(document)
     with pytest.raises(NormError, match=rf"'{document['name']}'"):
         wise.Norm.from_dict({**_norm().to_dict(), "derived_attributes": [document]})
