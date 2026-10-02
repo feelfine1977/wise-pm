@@ -52,6 +52,19 @@ snapshot writes the version as a placeholder and is unchanged.
   with the log's (naive values are localised to the log's time zone, aware
   values become naive UTC on a naive log, `None` stays `None`).
 
+- `wise.selection`: one rule grammar for selecting rows. A rule (the short
+  form or the rule form of applicability) is parsed once into a small tree
+  that states the columns and activities it needs, and is evaluated over a
+  table to in scope, out of scope or unknown (a nullable boolean Series). Two
+  adapters: `CaseTable` (one row per case) and `EventTable` (one row per
+  event; `has`/`lacks` test the event's case). The missing-value policy is an
+  explicit argument: `"legacy"` reproduces 0.1.0 for every operator,
+  `"three_valued"` makes a missing attribute unknown under every operator
+  including negation, as decision 0001 prescribes. Applicability
+  (`NormConstraint.applies_to`) now parses and evaluates through this module
+  under the legacy policy; its masks, the norm file format and every number
+  are unchanged. Nothing selects under the three-valued policy yet.
+
 - Tests for `scripts/check_release.py`: a tag that agrees with the package,
   `CITATION.cff` and the changelog passes; a development version, the
   previous release tag and a tag without the `v` prefix are refused.
