@@ -40,7 +40,12 @@ def _private_reaches(source: str) -> list[tuple[int, str]]:
             hits += [(node.lineno, a.name) for a in node.names if _private(a.name)]
     modules = _imported_modules(tree)
     for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in modules and _private(node.attr):
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and node.value.id in modules
+            and _private(node.attr)
+        ):
             hits.append((node.lineno, node.attr))
     return sorted(hits)
 
