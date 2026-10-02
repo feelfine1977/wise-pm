@@ -19,21 +19,9 @@ each case.
 
 Applicability
 -------------
-``C_app(σ)`` is stated per constraint. The short form maps case attributes
-to allowed values, combined with AND::
-
-    {"flow_type": ["DF1", "DF2"], "document_type": ["Standard PO"]}
-
-The rule form allows ``all`` / ``any`` / ``not`` combinations of leaves::
-
-    {"all": [{"attr": "flow_type", "in": ["DF1"]},
-             {"attr": "exposure", "gte": 1000},
-             {"has": ["Record Goods Receipt"]},
-             {"not": {"attr": "vendor", "in": ["V0"]}}]}
-
-Leaf operators: ``in``, ``not_in``, ``eq``, ``ne``, ``gt``, ``gte``, ``lt``,
-``lte``, ``isna``, ``notna`` on a case attribute; ``has`` / ``lacks`` on
-activity occurrence.
+``C_app(σ)`` is stated per constraint as a selection rule over the case table
+(short form or rule form, see :mod:`wise.selection`). Scoring evaluates it
+under the 0.1.0 missing-value policy.
 """
 
 from __future__ import annotations
@@ -42,15 +30,16 @@ import copy
 import dataclasses
 import hashlib
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
 import pandas as pd
 
+from ._json import jsonable as _jsonable
 from ._version import __version__
 from .constraints import (
     CONSTRAINT_TYPES,
@@ -63,6 +52,7 @@ from .constraints import (
 )
 from .derive import validate_recipe
 from .errors import NormError
+from .selection import LEGACY, CaseTable, Selection, parse
 
 if TYPE_CHECKING:  # pragma: no cover
     from .log import EventLog
@@ -70,27 +60,6 @@ if TYPE_CHECKING:  # pragma: no cover
 SCHEMA_VERSION = 2
 SCORING_MODES = ("layer_balanced", "flat")
 DEFAULT_SCORING_MODE = "layer_balanced"
-
-_RULE_KEYS = {"all", "any", "not", "attr", "has", "lacks"}
-_LEAF_OPS = {"in", "not_in", "eq", "ne", "gt", "gte", "lt", "lte", "isna", "notna"}
-
-
-def _jsonable(obj: Any) -> Any:
-    if isinstance(obj, Mapping):
-        return {str(k): _jsonable(v) for k, v in obj.items()}
-    if isinstance(obj, list | tuple | set | frozenset):
-        return [_jsonable(v) for v in obj]
-    if isinstance(obj, np.generic):
-        return obj.item()
-    if isinstance(obj, pd.Timestamp):
-        return obj.isoformat()
-    if isinstance(obj, pd.Timedelta):
-        return obj.isoformat()
-    if isinstance(obj, np.ndarray):
-        return [_jsonable(v) for v in obj.tolist()]
-    if isinstance(obj, Path):
-        return str(obj)
-    return obj
 
 
 def _json_default(obj: Any) -> Any:
@@ -161,108 +130,6 @@ class View:
         return self.layer_weights if self.layer_weights is not None else self.constraint_weights  # type: ignore[return-value]
 
 
-# ----------------------------------------------------------------------------- applicability
-def _normalise_applicability(app: Any) -> dict[str, Any]:
-    if app is None:
-        return {}
-    if not isinstance(app, Mapping):
-        raise NormError(f"applicability must be a mapping, got {type(app).__name__}")
-    if not app:
-        return {}
-    keys = set(app)
-    if keys & _RULE_KEYS:
-        _validate_rule(app)
-        return copy.deepcopy(dict(app))
-    out: dict[str, list[Any]] = {}
-    for attr, values in app.items():
-        if isinstance(values, str | bytes) or not isinstance(values, Iterable):
-            values = [values]
-        out[str(attr)] = [_jsonable(v) for v in values]
-        if not out[str(attr)]:
-            raise NormError(f"applicability for {attr!r} is an empty list (nothing would apply)")
-    return out
-
-
-def _validate_rule(rule: Any) -> None:
-    if not isinstance(rule, Mapping):
-        raise NormError(f"applicability rule must be a mapping, got {rule!r}")
-    keys = set(rule)
-    if "all" in keys or "any" in keys:
-        if len(keys) != 1:
-            raise NormError(f"applicability rule {dict(rule)}: 'all'/'any' must be the only key")
-        items = rule["all"] if "all" in keys else rule["any"]
-        if not isinstance(items, list) or not items:
-            raise NormError("applicability 'all'/'any' must be a non-empty list of rules")
-        for r in items:
-            _validate_rule(r)
-        return
-    if "not" in keys:
-        if len(keys) != 1:
-            raise NormError("applicability 'not' must be the only key")
-        _validate_rule(rule["not"])
-        return
-    if "has" in keys or "lacks" in keys:
-        if len(keys) != 1:
-            raise NormError("applicability 'has'/'lacks' must be the only key")
-        as_labels(rule["has"] if "has" in keys else rule["lacks"])
-        return
-    if "attr" in keys:
-        ops = keys - {"attr"}
-        if len(ops) != 1 or not ops <= _LEAF_OPS:
-            raise NormError(f"applicability leaf {dict(rule)} needs exactly one operator from {sorted(_LEAF_OPS)}")
-        return
-    raise NormError(f"applicability rule {dict(rule)} is neither a short form nor a rule")
-
-
-def _eval_rule(rule: Mapping[str, Any], cases: pd.DataFrame, log: EventLog | None, cid: str) -> pd.Series:
-    if "all" in rule:
-        out = pd.Series(True, index=cases.index)
-        for r in rule["all"]:
-            out &= _eval_rule(r, cases, log, cid)
-        return out
-    if "any" in rule:
-        out = pd.Series(False, index=cases.index)
-        for r in rule["any"]:
-            out |= _eval_rule(r, cases, log, cid)
-        return out
-    if "not" in rule:
-        return ~_eval_rule(rule["not"], cases, log, cid)
-    if "has" in rule or "lacks" in rule:
-        if log is None:
-            raise NormError(f"constraint {cid!r}: 'has'/'lacks' applicability needs the event log")
-        labels = as_labels(rule.get("has", rule.get("lacks")))
-        present = (log.count(labels) > 0).reindex(cases.index).fillna(False).astype(bool)
-        return present if "has" in rule else ~present
-    if "attr" in rule:
-        attr = rule["attr"]
-        if attr not in cases.columns:
-            raise NormError(f"constraint {cid!r} is conditioned on case attribute {attr!r}, which is missing from the case table")
-        s = cases[attr]
-        (op,) = set(rule) - {"attr"}
-        v = rule[op]
-        if op == "in":
-            return s.isin(list(v))
-        if op == "not_in":
-            return ~s.isin(list(v))
-        if op == "eq":
-            return s == v
-        if op == "ne":
-            return s != v
-        if op == "isna":
-            return s.isna() if v else s.notna()
-        if op == "notna":
-            return s.notna() if v else s.isna()
-        num = pd.to_numeric(s, errors="coerce")
-        return {"gt": num > v, "gte": num >= v, "lt": num < v, "lte": num <= v}[op].fillna(False)
-    # short form
-    out = pd.Series(True, index=cases.index)
-    for attr, values in rule.items():
-        if attr not in cases.columns:
-            raise NormError(f"constraint {cid!r} is conditioned on case attribute {attr!r}, which is missing from the case table")
-        out &= cases[attr].isin(list(values))
-    return out
-
-
 # ----------------------------------------------------------------------------- constraints
 @dataclass(frozen=True)
 class NormConstraint:
@@ -274,6 +141,9 @@ class NormConstraint:
     weight: float = 1.0
     applicability: dict[str, Any] = field(default_factory=dict)
     description: str = ""
+
+    if TYPE_CHECKING:  # pragma: no cover
+        _selection: ClassVar[Selection]  # set per instance in __post_init__, not a dataclass field
 
     def __post_init__(self) -> None:
         if not str(self.id):
@@ -289,13 +159,22 @@ class NormConstraint:
         if not np.isfinite(w) or w < 0:
             raise NormError(f"constraint {self.id!r}: within-layer weight must be finite and >= 0")
         object.__setattr__(self, "weight", w)
-        object.__setattr__(self, "applicability", _normalise_applicability(self.applicability))
+        selection = parse(self.applicability, what="applicability")
+        object.__setattr__(self, "applicability", selection.document)
+        object.__setattr__(self, "_selection", selection)
 
     def applies_to(self, cases: pd.DataFrame, log: EventLog | None = None) -> pd.Series:
         """Boolean mask over ``cases`` (one row per case) for ``C_app``."""
         if not self.applicability:
             return pd.Series(True, index=cases.index)
-        return _eval_rule(self.applicability, cases, log, self.id).astype(bool)
+        for attr in self._selection.columns:
+            if attr not in cases.columns:
+                raise NormError(
+                    f"constraint {self.id!r} is conditioned on case attribute {attr!r}, which is missing from the case table"
+                )
+        if self._selection.activities and log is None:
+            raise NormError(f"constraint {self.id!r}: 'has'/'lacks' applicability needs the event log")
+        return self._selection.evaluate(CaseTable(cases, log), missing=LEGACY).astype(bool)
 
     def replace(self, **changes: Any) -> NormConstraint:
         """A copy with the given fields changed (constraints are immutable)."""
@@ -392,7 +271,7 @@ class Norm:
         """Case attributes referenced by applicability rules and Metric constraints."""
         attrs: set[str] = set()
         for c in self.constraints:
-            attrs.update(_rule_attributes(c.applicability))
+            attrs.update(c._selection.columns)
             if isinstance(c.constraint, Metric):
                 attrs.add(c.constraint.attribute)
         return sorted(attrs)
@@ -400,7 +279,7 @@ class Norm:
     def applicability_attributes(self) -> list[str]:
         attrs: set[str] = set()
         for c in self.constraints:
-            attrs.update(_rule_attributes(c.applicability))
+            attrs.update(c._selection.columns)
         return sorted(attrs)
 
     # ---------------------------------------------------------- validation
@@ -440,7 +319,7 @@ class Norm:
         for c in self.constraints:
             if not np.isfinite(c.weight) or c.weight < 0:
                 raise NormError(f"constraint {c.id!r}: within-layer weight must be finite and >= 0")
-            _normalise_applicability(c.applicability)
+            parse(c.applicability, what="applicability")
         if self.scoring_mode not in SCORING_MODES:
             raise NormError(f"scoring_mode must be one of {SCORING_MODES}, got {self.scoring_mode!r}")
         seen: set[str] = set()
@@ -468,10 +347,10 @@ class Norm:
                         if a not in labels:
                             issues.append(f"derived attribute {r['name']!r}: activity {a!r} never occurs in the log")
         for c in self.constraints:
-            for a in c.constraint.activities() + tuple(_rule_activities(c.applicability)):
+            for a in c.constraint.activities() + c._selection.activities:
                 if a not in labels:
                     issues.append(f"constraint {c.id!r}: activity {a!r} never occurs in the log")
-            for attr in _rule_attributes(c.applicability):
+            for attr in c._selection.columns:
                 if attr not in log.cases.columns and attr not in derived:
                     issues.append(f"constraint {c.id!r}: applicability attribute {attr!r} is not a case attribute")
             k = c.constraint
@@ -717,36 +596,9 @@ _TOP_KEYS = {
 _CONSTRAINT_KEYS = {"id", "layer", "type", "params", "weight", "applicability", "description"}
 
 
-def _rule_activities(rule: Mapping[str, Any]) -> set[str]:
-    if not rule:
-        return set()
-    if "all" in rule or "any" in rule:
-        out: set[str] = set()
-        for r in rule.get("all", rule.get("any", [])):
-            out |= _rule_activities(r)
-        return out
-    if "not" in rule:
-        return _rule_activities(rule["not"])
-    if "has" in rule or "lacks" in rule:
-        return set(as_labels(rule.get("has", rule.get("lacks"))))
-    return set()
-
-
 def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:
-    if not rule:
-        return set()
-    if "all" in rule or "any" in rule:
-        out: set[str] = set()
-        for r in rule.get("all", rule.get("any", [])):
-            out |= _rule_attributes(r)
-        return out
-    if "not" in rule:
-        return _rule_attributes(rule["not"])
-    if "has" in rule or "lacks" in rule:
-        return set()
-    if "attr" in rule:
-        return {str(rule["attr"])}
-    return {str(k) for k in rule}
+    """Case attributes an applicability rule reads (kept for consumers that import it from here)."""
+    return set(parse(rule, what="applicability").columns)
 
 
 __all__ = [
