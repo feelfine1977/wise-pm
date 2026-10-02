@@ -163,7 +163,10 @@ def test_scoring_adds_out_of_scope_and_keeps_the_lag_reasons(log: wise.EventLog)
     skipped = wise.NormConstraint("l", "L", wise.Lag("A", "B", delta=2, width=4, missing="skip"), applicability=flow_y)
     check(wise.evaluate(skipped, log), [NAN, NAN, NAN, NAN, NAN, NAN, 0.0], [OUT, OUT, OUT, RESP, ACT, OUT, E])
     censored = wise.NormConstraint(
-        "l", "L", wise.Lag("A", "B", delta=2, width=4, missing_a="skip", missing_b="censor", activation="last"), applicability=flow_y
+        "l",
+        "L",
+        wise.Lag("A", "B", delta=2, width=4, missing_a="skip", missing_b="censor", activation="last"),
+        applicability=flow_y,
     )
     check(wise.evaluate(censored, log), [NAN, NAN, NAN, 0.25, NAN, NAN, 0.75], [OUT, OUT, OUT, CEN, ACT, OUT, CEN])
 

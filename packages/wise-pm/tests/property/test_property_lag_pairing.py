@@ -57,7 +57,9 @@ def test_the_lag_recipe_and_a_lag_constraint_pair_alike(
 @pytest.mark.property
 @pytest.mark.spec("IV-B.lag")
 @given(log=event_logs(), activation=st.sampled_from(["first", "last", "each"]), censor=st.booleans())
-def test_the_recipe_and_the_constraint_both_pair_through_the_lag_family(log: wise.EventLog, activation: str, censor: bool) -> None:
+def test_the_recipe_and_the_constraint_both_pair_through_the_lag_family(
+    log: wise.EventLog, activation: str, censor: bool
+) -> None:
     calls: list[tuple[str, str]] = []
     pairs = lag_family.pairs
 
