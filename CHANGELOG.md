@@ -35,6 +35,14 @@ snapshot writes the version as a placeholder and is unchanged.
   dependency audit, and a tag-driven release workflow that refuses a tag whose
   version disagrees with the package, `CITATION.cff` or this changelog.
 - New optional extra `io` (pyarrow) for parquet input.
+- `EventLog(exposure_agg=...)` and `LogSchema(exposure_agg=...)` take one of
+  the names of `ExposureAggregation` (the pandas reductions that give one
+  number per case: max, sum, first, last, min, mean, median, prod, std, var,
+  sem, skew, count, nunique, size, any, all), checked even when no exposure
+  column is set; `idxmin`/`idxmax` (which gave a row label as exposure) and
+  callables are refused with a `LogSchemaError` that lists the names. An
+  unknown `missing_timestamps` is refused with "must be one of ['raise',
+  'drop', 'keep']". Delta on the golden dataset: none.
 
 ### Added
 
@@ -150,10 +158,7 @@ snapshot writes the version as a placeholder and is unchanged.
   matched `keep_transitions` and were dropped; the error gives their number
   and the first row); a lifecycle filter that keeps no event (the transitions
   found are listed); and `missing_timestamps="drop"` on a log where every
-  timestamp is missing. `exposure_agg` is now one of the names of
-  `ExposureAggregation` (the pandas reductions that give one number per case)
-  and is checked even when no exposure column is set; `idxmin`/`idxmax` and
-  callables are refused. Consumers that build an empty `EventLog` (two tests
+  timestamp is missing. Consumers that build an empty `EventLog` (two tests
   of the workbench do) must stop doing so. Delta on the golden dataset: none
   (its log has rows, no lifecycle column and no missing timestamps; every
   table is unchanged).
