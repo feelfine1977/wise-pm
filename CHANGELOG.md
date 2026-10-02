@@ -87,8 +87,42 @@ snapshot writes the version as a placeholder and is unchanged.
   score 1.12 → 1.07 s, total 3.99 → 4.10 s, peak 0.3197 → 0.3198 GB; medians of three runs, pandas 3);
   on pandas 2.3.3 with full copies also within noise (score 2.03 and 2.66 s → 2.25 and 2.21 s in two
   runs each, peak 0.4678 → 0.4698 GB).
+- Each constraint type is evaluated by its family, one module per type under
+  `wise.families`, found through the registry of `wise.family`.
+  `wise.scoring` and `Norm.check` no longer switch on the constraint type:
+  scoring asks the family for the values, and the norm's check of activities,
+  case attributes and event columns asks it what a constraint reads. Each
+  family parses its own parameters from a norm document (`constraint_from_dict`
+  delegates to it, with the same messages); `CONSTRAINT_TYPES` and
+  `wise.constraints.TYPE_ALIASES` are the registry's tables, in the same order
+  as before (alias order aside). `evaluate_constraint`, `violation_matrix` and
+  `score` return exactly what they returned before (checked on 300 generated
+  logs and norms and on the golden dataset, values, NaN masks and dtypes);
+  `Norm.check`, `attributes` and `activities` give the same answers. The
+  private `wise.scoring._evaluate`, `_evaluate_lag` and `_lag_missing` are
+  gone; the Lag rule moved unchanged into `wise.families.lag`. Delta on the
+  golden dataset: none.
 
 ### Added
+
+- `wise.evaluate(constraint, log)` evaluates a constraint, or a
+  `NormConstraint` with its applicability, on every case and returns a
+  `wise.Evaluation`: `value` (`ν_c(σ)`, NaN without a value) and `reason` per
+  case, `evaluated` if there is a value, `out_of_scope` outside the
+  applicability, otherwise why the case is not evaluable (`missing_anchor`,
+  `missing_activity`, `missing_attribute`, or `not_evaluable` where the family
+  names no reason, so far for Lag) as a categorical Series; `in_scope` and
+  `evaluated` give the masks. Scoring time on the 1.6 M-event benchmark is
+  unchanged (score 0.96 → 0.95 s, total 4.10 → 3.97 s, peak 0.3198 GB; medians
+  of three runs).
+  `evaluate_constraint` and `violation_matrix` are computed from it. The
+  public-API snapshot gains these two names and nothing else.
+- `wise.family`: the constraint-family interface (`Family` with `parse`,
+  `requires` returning `Inputs` of activities, case attributes and event
+  columns, and `evaluate`) and the registry (`register`, `unregister`,
+  `family`, `family_of`, `families`). A new constraint type takes one module
+  with its parameter class and its `Family`, and one `register` call; scoring,
+  the norm document and the norm's check then know it.
 
 - `wise.case_index.CaseIndex`, the immutable per-case index behind the event
   log: case codes, timestamps, validity, activity codes and case starts held
@@ -220,6 +254,17 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Fixed
 
+- Fixed: C1 — `constraint_from_dict` (and so `Norm.from_dict`, `load` and
+  `loads`) truncated a non-integer count before the constructor checked it, so
+  a document with `m: 2.7` built `Presence(m=2)` and `k: 0.9` built
+  `Singularity(k=0)`. The counts `m` and `k` of Sec. IV-B are integers: a
+  document now refuses a non-integer `m` (Presence) or `k` (Singularity,
+  Precedence) with the same `NormError` as the constructor ("m must be an
+  integer >= 1, got 2.7"); an integral value such as `2.0` or `"2"` is still
+  accepted as `2`. A boolean, a list or a non-finite count is refused with a
+  `NormError` from the constructor instead of an escaping `TypeError` or
+  `ValueError`. Delta on the golden dataset: none (its counts are integers;
+  every table is unchanged).
 - `Norm.dump()` and `Norm.to_json(path=...)` end the written file with a newline.
 - Three type annotations (`log.py`, `scoring.py`, `prioritization.py`) that
   the current pandas-stubs reject; no behavioural change.

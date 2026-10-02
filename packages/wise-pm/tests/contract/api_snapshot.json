@@ -477,6 +477,94 @@
         }
       }
     },
+    "wise.Evaluation": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "value",
+        "reason"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "pd.Series",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "value"
+          },
+          {
+            "annotation": "pd.Series",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "reason"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "evaluated": {
+          "kind": "property",
+          "returns": "pd.Series",
+          "settable": false
+        },
+        "in_scope": {
+          "kind": "property",
+          "returns": "pd.Series",
+          "settable": false
+        },
+        "of": {
+          "kind": "classmethod",
+          "parameters": [
+            {
+              "annotation": "Any",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "values"
+            },
+            {
+              "annotation": "pd.Index",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "index"
+            },
+            {
+              "annotation": "Iterable[tuple[Any, str]]",
+              "default": "()",
+              "kind": "KEYWORD_ONLY",
+              "name": "why"
+            }
+          ],
+          "returns": "Evaluation"
+        },
+        "rename": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "Any",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "name"
+            }
+          ],
+          "returns": "Evaluation"
+        },
+        "within": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "pd.Series",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "scope"
+            }
+          ],
+          "returns": "Evaluation"
+        }
+      }
+    },
     "wise.EventLog": {
       "bases": [
         "object"
@@ -2788,6 +2876,24 @@
         }
       ],
       "returns": "float"
+    },
+    "wise.evaluate": {
+      "kind": "function",
+      "parameters": [
+        {
+          "annotation": "Constraint | NormConstraint",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "constraint"
+        },
+        {
+          "annotation": "EventLog",
+          "default": "<required>",
+          "kind": "POSITIONAL_OR_KEYWORD",
+          "name": "log"
+        }
+      ],
+      "returns": "Evaluation"
     },
     "wise.evaluate_constraint": {
       "kind": "function",

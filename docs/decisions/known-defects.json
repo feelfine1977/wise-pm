@@ -6,11 +6,12 @@
       "id": "C1",
       "title": "constraint_from_dict truncates non-integer m/k before validation",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C2",

@@ -44,14 +44,13 @@ from ._version import __version__
 from .constraints import (
     CONSTRAINT_TYPES,
     TYPE_ALIASES,
-    Balance,
     Constraint,
-    Metric,
     as_labels,
     constraint_from_dict,
 )
 from .derive import validate_recipe
 from .errors import NormError
+from .family import Inputs, family_of
 from .selection import LEGACY, CaseTable, Selection, parse
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -196,6 +195,12 @@ class NormConstraint:
         }
 
 
+def _inputs(nc: NormConstraint) -> Inputs:
+    """What a constraint reads from a log, as its family states it (applicability not included)."""
+    needs: Inputs = family_of(nc.constraint).requires(nc.constraint)
+    return needs
+
+
 # ----------------------------------------------------------------------------- norm
 @dataclass(frozen=True)
 class Norm:
@@ -264,16 +269,15 @@ class Norm:
     def activities(self) -> list[str]:
         acts: set[str] = set()
         for c in self.constraints:
-            acts.update(c.constraint.activities())
+            acts.update(_inputs(c).activities)
         return sorted(acts)
 
     def attributes(self) -> list[str]:
-        """Case attributes referenced by applicability rules and Metric constraints."""
+        """Case attributes referenced by applicability rules and read by constraints (e.g. Metric)."""
         attrs: set[str] = set()
         for c in self.constraints:
             attrs.update(c._selection.columns)
-            if isinstance(c.constraint, Metric):
-                attrs.add(c.constraint.attribute)
+            attrs.update(_inputs(c).case_attributes)
         return sorted(attrs)
 
     def applicability_attributes(self) -> list[str]:
@@ -334,8 +338,9 @@ class Norm:
         list = fine); nothing is raised.
 
         Reports activities that never occur in the log, case attributes that
-        are missing (unless a recipe derives them), and balance attributes
-        that are not event columns.
+        are missing (unless a recipe derives them), and event columns that a
+        constraint reads but the log lacks (e.g. balance attributes). What a
+        constraint reads is stated by its family (:mod:`wise.family`).
         """
         issues: list[str] = []
         labels = set(log.activity_labels)
@@ -346,20 +351,22 @@ class Norm:
                     for a in as_labels(r[key]):
                         if a not in labels:
                             issues.append(f"derived attribute {r['name']!r}: activity {a!r} never occurs in the log")
+        case_columns = log.cases.columns
+        event_columns = log.events.columns
         for c in self.constraints:
-            for a in c.constraint.activities() + c._selection.activities:
+            needs = _inputs(c)
+            for a in needs.activities + c._selection.activities:
                 if a not in labels:
                     issues.append(f"constraint {c.id!r}: activity {a!r} never occurs in the log")
             for attr in c._selection.columns:
-                if attr not in log.cases.columns and attr not in derived:
+                if attr not in case_columns and attr not in derived:
                     issues.append(f"constraint {c.id!r}: applicability attribute {attr!r} is not a case attribute")
-            k = c.constraint
-            if isinstance(k, Metric) and k.attribute not in log.cases.columns and k.attribute not in derived:
-                issues.append(f"constraint {c.id!r}: metric attribute {k.attribute!r} is neither a case attribute nor derived")
-            if isinstance(k, Balance):
-                for attr in (k.attr_x, k.attr_y):
-                    if attr not in log.events.columns:
-                        issues.append(f"constraint {c.id!r}: balance attribute {attr!r} is not an event column")
+            for attr in needs.case_attributes:
+                if attr not in case_columns and attr not in derived:
+                    issues.append(f"constraint {c.id!r}: {c.type} attribute {attr!r} is neither a case attribute nor derived")
+            for attr in needs.event_columns:
+                if attr not in event_columns:
+                    issues.append(f"constraint {c.id!r}: {c.type} attribute {attr!r} is not an event column")
         return issues
 
     # ------------------------------------------------------------- weights

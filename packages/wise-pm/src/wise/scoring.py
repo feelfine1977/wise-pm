@@ -34,109 +34,44 @@ import numpy as np
 import pandas as pd
 
 from ._version import __version__
-from .constraints import Balance, Exclusion, Lag, Metric, Precedence, Presence, Singularity, in_units, sat
+from .constraints import Constraint
 from .derive import derived_log
 from .errors import NormError, NotScoredError
+from .family import Evaluation, family_of
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
 
 
 # ------------------------------------------------------------------ signals
-def _lag_missing(v: pd.Series, lag: pd.Series, t_a: pd.Series, c: Lag, log: EventLog) -> pd.Series:
-    a_missing = t_a.isna()
-    b_missing = (~a_missing) & lag.isna()
-    if c.missing_a == "violate":
-        v = v.where(~a_missing, 1.0)
-    if c.missing_b == "violate":
-        v = v.where(~b_missing, 1.0)
-    elif c.missing_b == "censor" and c.delta is not None:
-        end = log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit)
-        so_far = in_units(end - t_a, c.unit)
-        v = v.where(~b_missing, sat(so_far, c.delta, c.width))
-    return v
+def evaluate(constraint: Constraint | NormConstraint, log: EventLog) -> Evaluation:
+    """Evaluate one constraint on every case of ``log``, with the reason per case.
 
-
-def _evaluate_lag(log: EventLog, c: Lag) -> pd.Series:
-    if c.activation in ("first", "last"):
-        t_a, t_b = log.first_after(c.a, c.b, activation=c.activation, response=c.response)
-        lag = in_units(t_b - t_a, c.unit)
-        if c.response == "first_overall":
-            lag = lag.where(lag >= 0)  # b before the activation counts as missing
-        v = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
-        return _lag_missing(v, lag, t_a, c, log)
-
-    # activation == "each": one violation per a-event, averaged per case
-    pairs = log.activation_lags(c.a, c.b)
-    t_a_case = log.first_ts(c.a)
-    if pairs.empty:
-        v = pd.Series(np.nan, index=log.case_ids)
-        return _lag_missing(v, v, t_a_case, c, log)
-    lag = in_units(pairs["t_b"] - pairs["t_a"], c.unit)
-    vi = sat(lag, c.delta, c.width) if c.delta is not None else lag * 0.0
-    missing = lag.isna()
-    if c.missing_b == "violate":
-        vi = vi.where(~missing, 1.0)
-    elif c.missing_b == "censor" and c.delta is not None:
-        end = pd.Timestamp(log.censoring_end(tolerance=(c.delta + c.width) * c.timedelta_unit))
-        end = end.tz_convert("UTC").tz_localize(None) if end.tzinfo is not None else end
-        so_far = in_units(end - pairs["t_a"], c.unit)
-        vi = vi.where(~missing, sat(so_far, c.delta, c.width))
-    per_case = vi.groupby(pairs["code"].to_numpy()).mean()
-    v = pd.Series(per_case.reindex(range(len(log))).to_numpy(), index=log.case_ids)
-    a_missing = t_a_case.isna()
-    if c.missing_a == "violate":
-        v = v.where(~a_missing, 1.0)
-    return v
-
-
-def _evaluate(log: EventLog, nc: NormConstraint) -> pd.Series:
-    c = nc.constraint
-    if isinstance(c, Presence):
-        cnt = log.count(c.activity)
-        return pd.Series(1.0 - np.minimum(cnt.to_numpy() / c.m, 1.0), index=log.case_ids)
-    if isinstance(c, Exclusion):
-        cnt = log.count_scoped(c.activity, after=c.after, before=c.before) if (c.after or c.before) else log.count(c.activity)
-        return (cnt > 0).astype(float).where(cnt.notna())
-    if isinstance(c, Singularity):
-        cnt = log.count_scoped(c.activity, after=c.after, before=c.before) if (c.after or c.before) else log.count(c.activity)
-        return sat(cnt, c.k, c.K)
-    if isinstance(c, Lag):
-        return _evaluate_lag(log, c)
-    if isinstance(c, Precedence):
-        n_before = log.count_before(c.b, c.a)
-        v = sat(n_before, c.k, c.K)
-        if c.missing_a == "violate":
-            v = v.where(n_before.notna(), 1.0)
-        if c.missing_b == "skip":
-            v = v.where(log.count(c.b) > 0)
-        return v
-    if isinstance(c, Balance):
-        tot_x = log.total(c.attr_x, c.activities_x, agg=c.agg)
-        tot_y = log.total(c.attr_y, c.activities_y, agg=c.agg)
-        if (tot_x < 0).any() or (tot_y < 0).any():
-            raise NormError(
-                f"constraint {nc.id!r}: balance totals must be non-negative (paper Sec. IV-A); "
-                "net credit notes first or take absolute values"
-            )
-        denom = np.maximum(np.maximum(tot_x.to_numpy(), tot_y.to_numpy()), c.eps)
-        d = pd.Series((tot_x - tot_y).abs().to_numpy() / denom, index=log.case_ids)
-        return sat(d, c.tau, c.width)
-    if isinstance(c, Metric):
-        x = log.attribute(c.attribute)
-        return sat(x, c.threshold, c.width) if c.direction == "high" else sat(c.threshold - x, 0.0, c.width)
-    raise TypeError(f"unsupported constraint {type(c).__name__}")  # pragma: no cover
+    The constraint's family (:mod:`wise.family`) computes the values. For a
+    :class:`~wise.norm.NormConstraint` the result is restricted to its
+    applicability: cases outside it are :data:`~wise.family.OUT_OF_SCOPE`,
+    and both Series are named by the constraint id.
+    """
+    if not isinstance(constraint, NormConstraint):
+        ev: Evaluation = family_of(constraint).evaluate(constraint, log)
+        return ev
+    nc = constraint
+    try:
+        ev = family_of(nc.constraint).evaluate(nc.constraint, log)
+    except NormError as exc:
+        raise NormError(f"constraint {nc.id!r}: {exc}") from exc
+    if nc.applicability:
+        ev = ev.within(nc.applies_to(log.cases, log))
+    return ev.rename(nc.id)
 
 
 def evaluate_constraint(log: EventLog, nc: NormConstraint) -> pd.Series:
     """Evaluate one norm constraint on every case → ``ν_c(σ)``.
 
     Returns a float Series aligned to ``log.cases``; ``NaN`` marks cases to
-    which the constraint does not apply or on which it is not evaluable.
+    which the constraint does not apply or on which it is not evaluable
+    (:func:`evaluate` gives the reason).
     """
-    v = pd.Series(np.asarray(_evaluate(log, nc), dtype=float), index=log.case_ids, name=nc.id)
-    if nc.applicability:
-        v = v.where(nc.applies_to(log.cases, log), np.nan)
-    return v
+    return evaluate(nc, log).value
 
 
 def violation_matrix(log: EventLog, norm: Norm, *, return_scope: bool = False) -> Any:
@@ -148,10 +83,9 @@ def violation_matrix(log: EventLog, norm: Norm, *, return_scope: bool = False) -
     cols: dict[str, pd.Series] = {}
     scope: dict[str, pd.Series] = {}
     for nc in norm.constraints:
-        v = pd.Series(np.asarray(_evaluate(log, nc), dtype=float), index=log.case_ids, name=nc.id)
-        s = nc.applies_to(log.cases, log) if nc.applicability else pd.Series(True, index=log.case_ids)
-        cols[nc.id] = v.where(s, np.nan)
-        scope[nc.id] = s
+        ev = evaluate(nc, log)
+        cols[nc.id] = ev.value
+        scope[nc.id] = ev.in_scope
     V = pd.DataFrame(cols, index=log.case_ids)
     if return_scope:
         return V, pd.DataFrame(scope, index=log.case_ids)
