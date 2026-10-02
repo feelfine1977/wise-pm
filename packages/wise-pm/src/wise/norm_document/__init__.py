@@ -47,7 +47,7 @@ class Adapter:
 
 
 V2 = Adapter(v2.VERSIONS, v2.read, v2.write, v2.write_constraint, v2.identity)
-ADAPTERS: Mapping[int, Adapter] = {version: V2 for version in V2.versions}
+ADAPTERS: Mapping[int, Adapter] = dict.fromkeys(V2.versions, V2)
 
 
 def adapter(schema_version: int) -> Adapter:

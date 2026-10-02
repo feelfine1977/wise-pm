@@ -96,19 +96,24 @@ def test_shipped_norms_round_trip_byte_identically_through_the_module_and_the_no
 def test_the_norm_methods_give_what_the_module_gives() -> None:
     norm = norm_document.read(MINI)
     assert wise.Norm.from_dict(MINI) == norm
-    assert norm.to_dict() == norm_document.write(norm) == MINI | {
-        "views": [{"name": "v", "description": "the only view", "constraint_weights": {"c": 1.0, "m": 3.0}}],
-        "constraints": [
-            {**MINI["constraints"][0], "params": {"activity": ["A"], "m": 1}, "weight": 1.0},
-            {
-                **MINI["constraints"][1],
-                "params": {"attribute": "n_a", "threshold": 1.0, "width": 1.0, "direction": "high"},
-                "weight": 1.0,
-                "applicability": {},
-                "description": "",
-            },
-        ],
-    }
+    assert (
+        norm.to_dict()
+        == norm_document.write(norm)
+        == MINI
+        | {
+            "views": [{"name": "v", "description": "the only view", "constraint_weights": {"c": 1.0, "m": 3.0}}],
+            "constraints": [
+                {**MINI["constraints"][0], "params": {"activity": ["A"], "m": 1}, "weight": 1.0},
+                {
+                    **MINI["constraints"][1],
+                    "params": {"attribute": "n_a", "threshold": 1.0, "width": 1.0, "direction": "high"},
+                    "weight": 1.0,
+                    "applicability": {},
+                    "description": "",
+                },
+            ],
+        }
+    )
     assert norm.dumps(indent=1) == norm_document.dumps(norm, indent=1)
     assert norm.fingerprint() == norm_document.fingerprint(norm)
     assert norm.constraints[0].to_dict() == norm_document.write_constraint(norm.constraints[0])
@@ -132,9 +137,11 @@ def test_norm_py_holds_the_model_only() -> None:
 def test_the_written_document_is_independent_of_the_norm() -> None:
     norm = norm_document.read(MINI)
     doc = norm.to_dict()
-    assert type(doc["metadata"]) is dict and type(doc["metadata"]["tags"]) is list
+    assert type(doc["metadata"]) is dict
+    assert type(doc["metadata"]["tags"]) is list
     assert type(doc["constraints"][0]["applicability"]["flow_type"]) is list
-    assert type(doc["derived_attributes"][0]) is dict and type(doc["derived_attributes"][0]["activities"]) is list
+    assert type(doc["derived_attributes"][0]) is dict
+    assert type(doc["derived_attributes"][0]["activities"]) is list
     doc["metadata"]["tags"].append("x")
     doc["constraints"][0]["applicability"]["flow_type"].append("ZZ")
     doc["derived_attributes"][0]["activities"].append("B")
@@ -362,7 +369,7 @@ def test_nothing_read_from_a_norm_can_be_written_into() -> None:
         lambda: norm.metadata["tags"].append("x"),
         lambda: norm.metadata.update(owner="x"),
         lambda: norm.metadata.pop("owner"),
-        lambda: norm.metadata.clear(),
+        norm.metadata.clear,
         lambda: norm.derived_attributes[0].__setitem__("kind", "nunique"),
         lambda: norm.derived_attributes[0]["activities"].append("B"),
         lambda: norm.views[0].weights.__setitem__("c", 9),
@@ -371,8 +378,8 @@ def test_nothing_read_from_a_norm_can_be_written_into() -> None:
         lambda: norm.constraints[0].applicability.__setitem__("flow_type", []),
         lambda: norm.constraints[0].applicability["flow_type"].__setitem__(0, "DF9"),
         lambda: norm.constraints[0].applicability["flow_type"].extend(["DF9"]),
-        lambda: norm.constraints[0].applicability["flow_type"].sort(),
-        lambda: norm.constraints[0].applicability["flow_type"].pop(),
+        norm.constraints[0].applicability["flow_type"].sort,
+        norm.constraints[0].applicability["flow_type"].pop,
         lambda: norm.constraints[0]._selection.document["flow_type"].insert(0, "DF9"),
     ]
     for write in writes:
@@ -394,7 +401,9 @@ def test_the_inputs_of_a_norm_are_copied_on_construction() -> None:
     weights = {"c": 1.0}
     rule: dict[str, Any] = {"flow_type": ["DF1"]}
     nc = wise.NormConstraint("c", "L", wise.Presence("A"), applicability=rule)
-    norm = wise.Norm((nc,), (wise.Layer("L"),), (wise.View("v", constraint_weights=weights),), derived_attributes=(recipe,), metadata=meta)
+    norm = wise.Norm(
+        (nc,), (wise.Layer("L"),), (wise.View("v", constraint_weights=weights),), derived_attributes=(recipe,), metadata=meta
+    )
     meta["tags"].append("b")
     meta["array"][0] = 99
     recipe["activities"].append("B")
@@ -413,14 +422,15 @@ def test_the_inputs_of_a_norm_are_copied_on_construction() -> None:
 @pytest.mark.spec("IV-C")
 def test_read_only_values_still_behave_as_the_document_they_came_from(p2p_norm: wise.Norm) -> None:
     nc = p2p_norm.get_constraint("c4")
-    assert isinstance(nc.applicability, dict) and isinstance(nc.applicability["flow_type"], list)
+    assert isinstance(nc.applicability, dict)
+    assert isinstance(nc.applicability["flow_type"], list)
     assert nc.applicability == {"flow_type": ["DF1"]}
     assert json.dumps(nc.applicability) == '{"flow_type": ["DF1"]}'
     assert repr(nc.applicability) == "{'flow_type': ['DF1']}"
     plain = dict(nc.applicability)
     plain["flow_type"] = ["DF2"]
     assert nc.applicability == {"flow_type": ["DF1"]}
-    assert list(nc.applicability["flow_type"]) + ["DF2"] == ["DF1", "DF2"]
+    assert [*nc.applicability["flow_type"], "DF2"] == ["DF1", "DF2"]
     assert copy.copy(nc.applicability) is nc.applicability
     assert copy.deepcopy(p2p_norm) == p2p_norm
     assert pickle.loads(pickle.dumps(p2p_norm)) == p2p_norm
@@ -431,13 +441,16 @@ def test_read_only_values_still_behave_as_the_document_they_came_from(p2p_norm: 
 def test_freeze_and_thaw_are_inverse_on_documents() -> None:
     document = {"a": [1, {"b": (2, [3])}], "c": {"d": None}, "s": {1, 2}}
     frozen = freeze(document)
-    assert isinstance(frozen, FrozenDict) and isinstance(frozen["a"], FrozenList)
-    assert isinstance(frozen["a"][1]["b"], tuple) and isinstance(frozen["a"][1]["b"][1], FrozenList)
+    assert isinstance(frozen, FrozenDict)
+    assert isinstance(frozen["a"], FrozenList)
+    assert isinstance(frozen["a"][1]["b"], tuple)
+    assert isinstance(frozen["a"][1]["b"][1], FrozenList)
     assert frozen["s"] == frozenset({1, 2})
     assert freeze(frozen) is frozen
     thawed = thaw(frozen)
     assert thawed == {"a": [1, {"b": (2, [3])}], "c": {"d": None}, "s": frozenset({1, 2})}
-    assert type(thawed["a"]) is list and type(thawed["a"][1]["b"][1]) is list
+    assert type(thawed["a"]) is list
+    assert type(thawed["a"][1]["b"][1]) is list
     for method, args in [("__iadd__", ([1],)), ("__imul__", (2,)), ("remove", (1,)), ("reverse", ()), ("__delitem__", (0,))]:
         with pytest.raises(TypeError, match="'FrozenList' is read-only"):
             getattr(frozen["a"], method)(*args)
