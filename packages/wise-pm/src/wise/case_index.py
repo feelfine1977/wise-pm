@@ -114,6 +114,8 @@ class CaseIndex:
         if not (codes.ndim == ts.ndim == acts.ndim == 1 and len(codes) == len(ts) == len(acts)):
             raise LogSchemaError("case codes, timestamps and activity codes must be one-dimensional and of the same length")
         n = int(codes.max()) + 1 if n_cases is None and len(codes) else int(n_cases or 0)
+        if n < 0:
+            raise LogSchemaError(f"the number of cases must not be negative, got {n}")
         if len(codes) and (codes[0] < 0 or codes[-1] >= n):
             raise LogSchemaError(f"case codes must lie in [0, {n})")
         same_case = codes[1:] == codes[:-1]

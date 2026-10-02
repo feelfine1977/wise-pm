@@ -313,6 +313,12 @@ def test_unsorted_or_out_of_range_input_is_refused(codes: list[int], ts: list[in
         CaseIndex(np.array(codes), _days(*ts), np.array([0, 0]), ("A",), n_cases=2)
 
 
+def test_a_negative_number_of_cases_is_refused() -> None:
+    empty = np.array([], dtype=np.int64)
+    with pytest.raises(LogSchemaError, match="number of cases"):
+        CaseIndex(empty, empty, empty, ("A",), n_cases=-1)
+
+
 def test_inputs_of_different_lengths_are_refused() -> None:
     with pytest.raises(LogSchemaError, match="same length"):
         CaseIndex(np.array([0, 0]), _days(1), np.array([0, 0]), ("A",))
