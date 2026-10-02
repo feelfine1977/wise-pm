@@ -186,9 +186,7 @@ def test_no_shipped_norm_carries_a_fitted_divisor() -> None:
 
 # ----------------------------------------------------------------------------- scoring
 @pytest.mark.spec("decision:0001/3")
-def test_scoring_with_a_fitted_record_uses_its_divisor_whatever_cases_are_scored(
-    norm: wise.Norm, log: wise.EventLog
-) -> None:
+def test_scoring_with_a_fitted_record_uses_its_divisor_whatever_cases_are_scored(norm: wise.Norm, log: wise.EventLog) -> None:
     fitted = wise.fit_calibration(norm, log)
     sub = _cases(log, ["B", "E"])
     assert wise.score(sub, fitted).cases["scaled"].tolist() == [1.0, 0.5]  # 7/4 clipped, 2/4

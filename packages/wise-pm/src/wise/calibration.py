@@ -71,7 +71,9 @@ class Calibration:
         try:
             status = CalibrationStatus(self.status)
         except ValueError:
-            raise NormError(f"calibration status must be one of {[s.value for s in CalibrationStatus]}, got {self.status!r}") from None
+            raise NormError(
+                f"calibration status must be one of {[s.value for s in CalibrationStatus]}, got {self.status!r}"
+            ) from None
         object.__setattr__(self, "status", status)
         if not _number(self.quantile) or not 0.0 <= float(self.quantile) <= 1.0:
             raise NormError(f"calibration quantile must be a number between 0 and 1, got {self.quantile!r}")
