@@ -175,7 +175,9 @@ snapshot writes the version as a placeholder and is unchanged.
   the requested `baseline` or `volume`, with a `NormError` that names each
   differing field with both values; a caller who means the difference names
   the fields in `intended` (unknown names are refused). Frames carry no
-  specification and are compared as before. The output gains the column
+  specification and are compared as before; a record ranked with
+  `as_index=False` is aligned on its slice keys instead of its row
+  positions. The output gains the column
   `presence` (`"both"`, `"new"`, `"gone"`), and a slice ranked in one period
   only keeps missing `gap_change` and `PI_change` (see `Fixed: C24`).
 - A case without a value for a slice key falls in the slice labelled

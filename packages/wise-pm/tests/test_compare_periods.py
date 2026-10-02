@@ -100,3 +100,13 @@ def test_frames_carry_no_specification_and_are_compared_as_given() -> None:
     previous = wise.prioritize(PREVIOUS, "slice", baseline=1.0).table
     current = wise.prioritize(CURRENT, "slice", gamma=2.0).table
     assert wise.compare_periods(previous, current)["presence"].tolist() == ["both", "new", "gone"]
+
+
+@pytest.mark.spec("IV-E")
+def test_records_with_their_keys_as_columns_are_aligned_by_slice() -> None:
+    previous = wise.prioritize(PREVIOUS, "slice", baseline=1.0, as_index=False)
+    current = wise.prioritize(CURRENT, "slice", baseline=1.0, as_index=False)
+    out = wise.compare_periods(previous, current)
+    assert out.index.tolist() == ["a", "c", "b"]
+    assert out["presence"].tolist() == ["both", "new", "gone"]
+    assert out.loc["a", "gap_change"] == -0.25

@@ -620,7 +620,9 @@ def compare_periods(
     not differ in slice keys (``by``), ``view``, ``gamma``, the requested
     ``baseline`` or ``volume``, unless each differing field is named in
     ``intended``; otherwise :class:`~wise.errors.NormError` names the fields.
-    Frames carry no specification and are compared as given. Use a common
+    A record is aligned on its slice keys, also when ranked with
+    ``as_index=False``. Frames carry no specification and are compared as
+    given, on their index. Use a common
     ``baseline`` in :func:`prioritize` to compare gaps against one reference.
 
     ``presence`` is ``"both"``, ``"new"`` (ranked in ``current`` only) or
@@ -634,8 +636,8 @@ def compare_periods(
         raise NormError(f"intended names fields that are not compared: {unknown}; compared are {list(COMPARED_FIELDS)}")
     if isinstance(previous, Backlog) and isinstance(current, Backlog):
         _check_comparable(previous.spec, current.spec, accepted)
-    previous = _check_backlog(previous, "previous")
-    current = _check_backlog(current, "current")
+    previous = _by_slice(previous, "previous")
+    current = _by_slice(current, "current")
     cols = list(BACKLOG_COLUMNS)
     p = previous[cols].add_suffix("_prev")
     c = current[cols].add_suffix("_now")
@@ -645,6 +647,16 @@ def compare_periods(
     in_prev, in_now = out["n_cases_prev"].notna().to_numpy(), out["n_cases_now"].notna().to_numpy()
     out["presence"] = np.select([in_prev & in_now, in_now], ["both", "new"], "gone")
     return out.sort_values("stable_PI_now", ascending=False, kind="mergesort")
+
+
+def _by_slice(backlog: Backlog | pd.DataFrame, what: str) -> pd.DataFrame:
+    """The table of a backlog indexed by its slice keys; a record ranked with ``as_index=False`` is re-indexed."""
+    table = _check_backlog(backlog, what)
+    if isinstance(backlog, Backlog):
+        keys = list(backlog.spec.by)
+        if list(table.index.names) != keys and all(k in table.columns for k in keys):
+            return table.set_index(keys)
+    return table
 
 
 def _check_comparable(previous: BacklogSpec, current: BacklogSpec, intended: Sequence[str]) -> None:
