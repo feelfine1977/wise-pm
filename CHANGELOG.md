@@ -93,16 +93,18 @@ snapshot writes the version as a placeholder and is unchanged.
   and evaluated by `wise.selection`, under the legacy missing-value policy.
   Every recipe clause 0.1.0 accepted (`{"column": c, op: v}` with the first of
   `in`, `not_in`, `regex`, `eq` taken and other keys ignored) selects the same
-  events, and a `where=` dict of scalars (equality, the case id under the name
+  events (a compiled `regex` pattern is used as given, as in 0.1.0), and a
+  `where=` dict of scalars (equality, the case id under the name
   of the case index) or a boolean Series selects the same cases. Both now also
   take a rule of the selection grammar (`all`, `any`, `not`, the leaf
   operators, `has`, `lacks`); a recipe clause reads event columns and tests
   `has`/`lacks` on the event's case. A `where=` key named `all`, `any`, `not`,
   `attr`, `has` or `lacks` is read as a rule, not as an attribute. Refusals:
-  a `where=` that is neither a mapping, a boolean Series nor `None`, an empty
-  list value and an unknown operator raise `NormError` (0.1.0 raised
-  `AttributeError` or `ValueError`); a recipe clause with an invalid `regex`
-  raises `NormError` when it is evaluated (0.1.0 raised `re.error`). A case
+  a `where=` that is neither a mapping, a boolean Series nor `None` and an
+  empty list value raise `NormError` (0.1.0 raised `AttributeError` or
+  `ValueError`); a recipe clause with an invalid `regex` string raises
+  `NormError` when it is evaluated (0.1.0 raised the string backend's error,
+  `re.error` or `pyarrow.lib.ArrowInvalid`). A case
   whose `where=` comparison is unknown (`<NA>` in a nullable column) is not
   selected. Public signatures, output columns and the contract snapshot are
   unchanged. The private `wise.scoring._where_mask` is gone; `prioritization`

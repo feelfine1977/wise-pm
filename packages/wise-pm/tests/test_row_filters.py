@@ -15,6 +15,7 @@ Expected counts are read off this table by hand; the 0.1.0 filters, frozen in
 
 from __future__ import annotations
 
+import re
 import warnings
 from typing import Any
 
@@ -53,6 +54,8 @@ RECIPE_CLAUSES: list[tuple[Any, list[float]]] = [
     ({"column": "activity", "not_in": ["Record Goods Receipt", "Create Purchase Order Item"]}, [2, 2, 2, 2, 0]),
     ({"column": "activity", "regex": "^Record"}, [2, 5, 2, 2, 1]),
     ({"column": "activity", "regex": "(Goods|Invoice) Receipt"}, [2, 5, 2, 3, 1]),
+    # 0.1.0 handed the pattern to pandas as given, so a compiled pattern with flags worked
+    ({"column": "activity", "regex": re.compile("record", re.IGNORECASE)}, [2, 5, 2, 2, 1]),
     ({"column": "vendor", "eq": "V2"}, [0, 7, 0, 0, 2]),
     ({"column": "amount", "eq": 100.0}, [2, 1, 1, 2, 1]),
     # amount missing on Create PO / Clear Invoice / Cancel IR: out of 'in', inside 'not_in'

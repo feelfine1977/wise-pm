@@ -346,6 +346,8 @@ def parse_recipe_where(where: Any, *, what: str = "recipe where-clause") -> Sele
     op = next((o for o in RECIPE_WHERE_OPERATORS if o in where), None)
     if op is None:
         raise NormError(f"{what} needs one of in/not_in/regex/eq: {dict(where)}")
+    if op == "regex" and isinstance(where[op], re.Pattern):  # 0.1.0 passed a compiled pattern to pandas as is
+        return Selection(Compare(str(where["column"]), op, where[op]), copy.deepcopy(dict(where)))
     return Selection(_parse_rule({"attr": where["column"], op: where[op]}, what), copy.deepcopy(dict(where)))
 
 
