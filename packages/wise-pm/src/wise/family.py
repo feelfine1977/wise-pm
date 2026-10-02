@@ -84,6 +84,14 @@ class Evaluation:
             raise NormError(f"an evaluation has a value exactly where its reason is {EVALUATED!r}")
 
     @classmethod
+    def _consistent(cls, value: pd.Series, reason: pd.Series) -> Evaluation:
+        # built from an evaluation that passed the checks, by an operation that keeps them
+        ev = object.__new__(cls)
+        object.__setattr__(ev, "value", value)
+        object.__setattr__(ev, "reason", reason)
+        return ev
+
+    @classmethod
     def of(
         cls,
         values: Any,
@@ -95,17 +103,23 @@ class Evaluation:
 
         Missing values get :data:`NOT_EVALUABLE` unless a ``(mask, reason)``
         pair of ``why`` covers the case; the first pair that covers it wins.
+        The reasons are a categorical Series over :data:`REASONS` (and any
+        further reason a family names).
         """
         value = pd.Series(np.asarray(values, dtype=float), index=index)
         missing = np.isnan(value.to_numpy())
-        reason = np.full(len(value), EVALUATED, dtype=object)
-        reason[missing] = NOT_EVALUABLE
+        categories = list(REASONS)
+        codes = np.zeros(len(value), dtype=np.int8)
+        codes[missing] = categories.index(NOT_EVALUABLE)
         open_ = missing.copy()
         for mask, code in why:
+            if code not in categories:
+                categories.append(code)
             hit = open_ & np.asarray(mask, dtype=bool)
-            reason[hit] = code
+            codes[hit] = categories.index(code)
             open_ &= ~hit
-        return cls(value, pd.Series(reason, index=index, dtype=object))
+        reason = pd.Series(pd.Categorical.from_codes(codes, categories=pd.Index(categories)), index=index)
+        return cls._consistent(value, reason)
 
     @property
     def in_scope(self) -> pd.Series:
@@ -119,11 +133,11 @@ class Evaluation:
 
     def within(self, scope: pd.Series) -> Evaluation:
         """The evaluation restricted to the cases where ``scope`` is true; the others are out of scope."""
-        return Evaluation(self.value.where(scope, np.nan), self.reason.where(scope, OUT_OF_SCOPE))
+        return self._consistent(self.value.where(scope, np.nan), self.reason.where(scope, OUT_OF_SCOPE))
 
     def rename(self, name: Any) -> Evaluation:
         """The same evaluation with both Series named ``name``."""
-        return Evaluation(self.value.rename(name), self.reason.rename(name))
+        return self._consistent(self.value.rename(name), self.reason.rename(name))
 
 
 @dataclass(frozen=True, eq=False)

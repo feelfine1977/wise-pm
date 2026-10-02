@@ -111,7 +111,10 @@ snapshot writes the version as a placeholder and is unchanged.
   case, `evaluated` if there is a value, `out_of_scope` outside the
   applicability, otherwise why the case is not evaluable (`missing_anchor`,
   `missing_activity`, `missing_attribute`, or `not_evaluable` where the family
-  names no reason, so far for Lag); `in_scope` and `evaluated` give the masks.
+  names no reason, so far for Lag) as a categorical Series; `in_scope` and
+  `evaluated` give the masks. Scoring time on the 1.6 M-event benchmark is
+  unchanged (score 0.96 → 0.95 s, total 4.10 → 3.97 s, peak 0.3198 GB; medians
+  of three runs).
   `evaluate_constraint` and `violation_matrix` are computed from it. The
   public-API snapshot gains these two names and nothing else.
 - `wise.family`: the constraint-family interface (`Family` with `parse`,

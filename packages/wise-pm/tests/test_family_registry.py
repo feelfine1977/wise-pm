@@ -274,6 +274,13 @@ def test_an_evaluation_names_the_reason_of_every_missing_value() -> None:
     assert scoped.in_scope.tolist() == [True, False, True, True]
 
 
+def test_a_family_can_name_a_reason_of_its_own() -> None:
+    index = pd.Index(["a", "b"])
+    ev = Evaluation.of([NAN, 1.0], index, why=[(np.array([True, False]), "too_early")])
+    assert ev.reason.tolist() == ["too_early", EVALUATED]
+    assert ev.within(pd.Series([True, False], index=index)).reason.tolist() == ["too_early", OUT_OF_SCOPE]
+
+
 def test_an_evaluation_refuses_values_and_reasons_that_disagree() -> None:
     index = pd.Index(["a", "b"])
     with pytest.raises(NormError, match="value exactly where its reason is 'evaluated'"):
