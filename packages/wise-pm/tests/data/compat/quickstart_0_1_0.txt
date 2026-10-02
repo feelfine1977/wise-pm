@@ -1,82 +1,82 @@
 Norm('Running P2P example (paper Table V)' v1: 6 constraints, 5 layers, views=['Finance', 'Logistics'], scoring_mode='flat')
            layer         type           applicability
-id                                                   
+id
 c1  completeness     presence                  always
 c2    lead_times          lag                  always
 c3         match      balance                  always
 c4         match      balance  {'flow_type': ['DF1']}
 c5      handling  singularity                  always
-c6    exceptions    exclusion                  always 
+c6    exceptions    exclusion                  always
 
 Raw weights per view
                     layer  Finance  Logistics
-constraint                                  
+constraint
 c1          completeness     0.20       0.25
 c2            lead_times     0.45       0.15
 c3                 match     0.20       0.05
 c4                 match     0.05       0.25
 c5              handling     0.05       0.45
-c6            exceptions     0.10       0.10 
+c6            exceptions     0.10       0.10
 
 EventLog(21 events, 5 cases, 5 activities, attributes=['flow_type', 'company', 'vendor'])
 Violations ν_c(σ)  (NaN = not applicable)
         c1    c2    c3  c4     c5   c6
-case                                 
+case
 A     0.0  0.75  0.00 NaN  0.000  0.0
 B     0.0  0.00  0.00 NaN  0.667  0.0
 C     0.0  0.00  0.65 NaN  0.000  0.0
 D     0.0  0.00  0.00 NaN  0.000  1.0
-E     1.0  1.00  1.00 NaN  0.000  0.0 
+E     1.0  1.00  1.00 NaN  0.000  0.0
 
 Case scores S^(p)(σ)
        Finance  Logistics
-case                    
+case
 A      0.6625     0.8875
 B      0.9667     0.7000
 C      0.8700     0.9675
 D      0.9000     0.9000
-E      0.1500     0.5500 
+E      0.1500     0.5500
 
 Finance layer contributions Δ_λ (sum to 1 − S)
        completeness  lead_times  match  handling  exceptions
-case                                                       
+case
 A              0.0      0.3375   0.00    0.0000         0.0
 B              0.0      0.0000   0.00    0.0333         0.0
 C              0.0      0.0000   0.13    0.0000         0.0
 D              0.0      0.0000   0.00    0.0000         0.1
-E              0.2      0.4500   0.20    0.0000         0.0 
+E              0.2      0.4500   0.20    0.0000         0.0
 
 Backlog by company (Finance)
           n_cases  mean_score  volume  ...  stable_gap  stable_PI  global_mean
-company                               ...                                    
+company                               ...
 B              3      0.6400     3.0  ...      0.0524     0.1571       0.7098
 A              2      0.8146     2.0  ...      0.0000     0.0000       0.7098
 
-[2 rows x 9 columns] 
+[2 rows x 9 columns]
 
 Layer drivers per company
           n_cases  completeness  ...  exceptions__delta  dominant_layer
-company                         ...                                   
+company                         ...
 A              2        0.0000  ...            -0.0200      lead_times
 B              3        0.0667  ...             0.0133           match
 
-[2 rows x 12 columns] 
+[2 rows x 12 columns]
 
 Constraint drivers inside company B
                     layer  mean_penalty  share_violated
-constraint                                            
+constraint
 c2            lead_times         0.150           0.333
 c3                 match         0.110           0.667
 c1          completeness         0.067           0.333
 c6            exceptions         0.033           0.333
 c5              handling         0.000           0.000
-c4                 match         0.000             NaN 
+c4                 match         0.000             NaN
 
 Worst cases in company B
        score
-case       
+case
 E      0.15
 C      0.87
-D      0.90 
+D      0.90
 
 Norm written to <dir>/running_p2p_norm.json

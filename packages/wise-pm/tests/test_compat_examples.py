@@ -34,7 +34,7 @@ import pytest
 TESTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS))  # for --record, run as a script
 
-from _support.legacy_inputs import write_bpic19_csv, write_readme_csv  # noqa: E402
+from _support.legacy_inputs import write_bpic19_csv, write_readme_csv
 
 EXAMPLES = TESTS.parent / "examples"
 RECORDS = TESTS / "data" / "compat"
@@ -45,9 +45,11 @@ WARNING_LINE = re.compile(r"^\S.*:\d+: (\w+): ", re.M)
 
 
 def _normalise(output: str, directory: Path) -> str:
+    """The run's directory and timings replaced, trailing blanks dropped (pandas pads its index rows)."""
     output = output.replace(str(directory), "<dir>")
     output = re.sub(r"\(\d+\.\ds\)", "(<time>)", output)
-    return re.sub(r"in \d+\.\ds;", "in <time>;", output)
+    output = re.sub(r"in \d+\.\ds;", "in <time>;", output)
+    return "".join(line.rstrip() + "\n" for line in output.splitlines())
 
 
 def _run(script: str, directory: Path, *args: str) -> str:
@@ -100,7 +102,8 @@ def readme_quickstart(directory: Path) -> dict[str, Any]:
 
 def _close(actual: Any, expected: Any, path: str = "") -> None:
     if isinstance(expected, float) and isinstance(actual, float | int):
-        assert math.isnan(expected) == math.isnan(actual) and (math.isnan(expected) or abs(actual - expected) <= 1e-9), path
+        assert math.isnan(expected) == math.isnan(actual), path
+        assert math.isnan(expected) or abs(actual - expected) <= 1e-9, path
     elif isinstance(expected, dict):
         assert actual.keys() == expected.keys(), path
         for k in expected:
