@@ -64,3 +64,25 @@ def test_the_arrays_read_by_0_1_0_callers_cannot_be_written() -> None:
     with pytest.raises(AttributeError):
         log.case_index._codes = np.zeros(4, dtype=np.int64)
     np.testing.assert_array_equal(log.count("X").to_numpy(), [1.0, 1.0])
+
+
+@pytest.mark.spec("IV-A")
+def test_total_keeps_the_dtype_0_1_0_returned() -> None:
+    # case a has X and Y, case b only X: a count over X covers every case and stays integer,
+    # a count over Y leaves case b empty and becomes float with 0 there
+    df = pd.DataFrame(
+        {
+            "case": ["a", "a", "b"],
+            "activity": ["X", "Y", "X"],
+            "time": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]),
+            "cost": [5.0, 7.0, 2.0],
+        }
+    )
+    log = wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time")
+    over_x = log.total("cost", "X", agg="count")  # type: ignore[arg-type]  # accepted at run time, as in 0.1.0
+    assert over_x.dtype == np.int64
+    assert over_x.tolist() == [1, 1]
+    over_y = log.total("cost", "Y", agg="count")  # type: ignore[arg-type]
+    assert over_y.dtype == np.float64
+    assert over_y.tolist() == [1.0, 0.0]
+    assert log.total("cost", "X").tolist() == [5.0, 2.0]

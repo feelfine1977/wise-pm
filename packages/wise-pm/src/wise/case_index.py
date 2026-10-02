@@ -243,13 +243,14 @@ class CaseIndex:
 
     def aggregate(
         self, values: ArrayLike | pd.Series, select: Select = None, *, how: str = "sum", empty: float = np.nan
-    ) -> NDArray[np.float64]:
+    ) -> NDArray[Any]:
         """Per-case aggregate of an event column over the selected events.
 
         ``values`` holds one entry per event in index order. ``how`` is
-        ``"sum"`` (missing values count as 0, accumulated in event order) or
-        any pandas group aggregation name (missing values skipped). Cases
-        without a selected event get ``empty``.
+        ``"sum"`` (missing values count as 0, accumulated in event order,
+        always float) or any pandas group aggregation name (missing values
+        skipped, the aggregation's own dtype while every case has a selected
+        event, float otherwise). Cases without a selected event get ``empty``.
         """
         if not isinstance(values, pd.Series):
             values = np.asarray(values)
@@ -261,11 +262,11 @@ class CaseIndex:
         if how == "sum":
             v = np.asarray(values, dtype=np.float64)
             v = v if m is None else v[m]
-            out: NDArray[np.float64] = np.bincount(codes, weights=np.where(np.isnan(v), 0.0, v), minlength=n)
+            out: NDArray[Any] = np.bincount(codes, weights=np.where(np.isnan(v), 0.0, v), minlength=n)
         else:
             series = values if isinstance(values, pd.Series) else pd.Series(values, copy=False)
             picked = series if m is None else series[m]
-            out = picked.groupby(codes).agg(how).reindex(range(n)).to_numpy(dtype=np.float64, copy=True)
+            out = picked.groupby(codes).agg(how).reindex(range(n)).to_numpy(copy=True)
         none = np.bincount(codes, minlength=n) == 0
         if none.any():
             out[none] = empty

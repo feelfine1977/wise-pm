@@ -178,6 +178,17 @@ def test_aggregate_skips_missing_values_and_accepts_a_series_and_a_mask() -> Non
     _eq(idx.aggregate(labels, None, how="nunique", empty=0.0), [2.0, 1.0, 1.0])
 
 
+def test_aggregate_keeps_the_dtype_of_the_aggregation_until_a_case_is_empty() -> None:
+    idx = small_index()
+    counts = idx.aggregate(VALUES, None, how="count")  # every case has an event
+    _eq(counts, [4, 3, 1])
+    assert counts.dtype == np.int64
+    counts = idx.aggregate(VALUES, ["A", "B"], how="count", empty=0.0)  # case 2 has neither
+    _eq(counts, [3.0, 2.0, 0.0])
+    assert counts.dtype == np.float64
+    assert idx.aggregate(VALUES.astype(np.int64), "C").dtype == np.float64  # a sum is always float
+
+
 def test_aggregate_refuses_a_column_of_the_wrong_length() -> None:
     with pytest.raises(LogSchemaError, match="one entry per event"):
         small_index().aggregate(np.ones(3), None)
