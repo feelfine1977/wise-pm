@@ -100,9 +100,7 @@ class Usage:
     def to_dict(self) -> dict[str, object]:
         return {
             "names": {n: sorted(files) for n, files in sorted(self.names.items())},
-            "members": {
-                m: {c: sorted(files) for c, files in sorted(uses.items())} for m, uses in sorted(self.members.items())
-            },
+            "members": {m: {c: sorted(files) for c, files in sorted(uses.items())} for m, uses in sorted(self.members.items())},
         }
 
     @classmethod
@@ -201,7 +199,7 @@ def member_names(baseline: dict[str, dict[str, object]]) -> set[str]:
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
-        print(__doc__, file=sys.stderr)  # noqa: T201
+        print(__doc__, file=sys.stderr)
         return 2
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     usage = scan(Path(argv[1]), member_names(baseline))

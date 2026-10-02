@@ -21,12 +21,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
-from _support.api_shapes import Shape, canonical, compatible, shapes
-from _support.consumer_usage import BASELINE, DATA, RECORD, Usage, member_names, scan
 
 import wise
 import wise.compat
 import wise.norm
+from _support.api_shapes import Shape, canonical, compatible, shapes
+from _support.consumer_usage import BASELINE, DATA, RECORD, Usage, member_names, scan
 from wise.compat import PATHS
 from wise.log import EventLog
 
@@ -308,7 +308,7 @@ def test_the_committed_record_is_the_scan_of_the_checkout() -> None:
     )
 
 
-SOURCE = '''
+SOURCE = """
 import wise
 from wise.norm import _rule_attributes
 from wise import compare_periods as cp
@@ -322,7 +322,7 @@ self._codes = None
 wise.ScoreResult(_weights={})
 wise.not_a_name
 cp(a, b)
-'''
+"""
 
 
 def test_the_consumer_check_reports_each_kind_of_uncovered_use(tmp_path: Path, new: dict[str, Shape]) -> None:
