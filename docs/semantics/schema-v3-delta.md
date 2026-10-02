@@ -54,7 +54,7 @@ semantics, and every golden table is unchanged.
 
 ## Migrated norms
 
-`wise.migrate` rewrites a schema
+`wise.migrate` (and `wise migrate` on the command line) rewrites a schema
 version 1 or 2 document to schema version 3 and reports every rewrite. Each
 entry of the report names the ledger entries whose correction can change a
 row of the migrated norm:

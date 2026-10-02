@@ -527,6 +527,10 @@ snapshot writes the version as a placeholder and is unchanged.
   shipped norms migrate; the delta report
   (`docs/semantics/schema-v3-delta.md`) lists their rewrites and shows that no
   row of their tables differs.
+- `wise migrate NORM [--out PATH]` writes the migrated norm (by default
+  `<NORM>_v3.json` beside it) and prints the migration report as JSON. It
+  refuses to write over its input, also through another spelling of the path
+  or a link.
 
 ### Deprecated
 

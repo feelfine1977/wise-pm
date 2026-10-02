@@ -1,10 +1,11 @@
-"""Command-line interface: ``wise validate | describe | check | score``."""
+"""Command-line interface: ``wise validate | describe | check | score | migrate``."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 import pandas as pd
 
@@ -12,6 +13,7 @@ from ._version import __version__
 from .errors import WiseError
 from .log import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, EventLog
 from .norm import Norm
+from .norm_document import load_document, migrate
 from .prioritization import prioritize
 from .scoring import score
 
@@ -68,6 +70,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     s.add_argument("--out", default="-", help="output CSV path ('-' = stdout)")
     s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores")
 
+    m = sub.add_parser("migrate", help="migrate a norm file to schema version 3 and print the migration report")
+    m.add_argument("norm")
+    m.add_argument("--out", default=None, help="path of the migrated norm (default: <norm>_v3.json beside it)")
+
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -123,7 +129,20 @@ def _run(args: argparse.Namespace) -> int:
             result.frame().to_csv(args.cases_out)
             print(f"wrote {len(result.scores)} cases to {args.cases_out}", file=sys.stderr)
         return 0
+    if args.cmd == "migrate":
+        return _migrate(Path(args.norm), Path(args.out) if args.out else None)
     return 2  # pragma: no cover
+
+
+def _migrate(source: Path, out: Path | None) -> int:
+    target = out if out is not None else source.with_name(f"{source.stem}_v3{source.suffix or '.json'}")
+    if target.resolve() == source.resolve():
+        raise WiseError(f"migrate does not overwrite its input {str(source)!r}; give another path with --out")
+    migration = migrate(load_document(source))
+    target.write_text(migration.dumps() + "\n", encoding="utf-8")
+    print(migration.report.to_json())
+    print(f"wrote the schema version {migration.norm.schema_version} norm to {target}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

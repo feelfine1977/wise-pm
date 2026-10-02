@@ -136,6 +136,7 @@ wise validate packages/wise-pm/examples/running_p2p_norm.json
 wise describe packages/wise-pm/examples/running_p2p_norm.json
 wise score norm.json log.csv --case case --activity activity --timestamp time \
   --attr company --by company --view Finance --gamma 20 --out backlog.csv
+wise migrate norm.json   # writes norm_v3.json (or --out PATH), prints the migration report; never overwrites norm.json
 ```
 
 `make test` runs the unit, regression, property, golden, contract and paper
