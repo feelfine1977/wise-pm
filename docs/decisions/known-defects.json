@@ -77,11 +77,12 @@
       "id": "C8",
       "title": "count recipe and Presence disagree on kept NaT events",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C9",
@@ -169,11 +170,12 @@
       "id": "C17",
       "title": "within-case attribute variation resolved silently to first non-null",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C18",
@@ -219,11 +221,12 @@
       "id": "C22",
       "title": "missing-timestamp rules differ per primitive and are undocumented",
       "severity": "S3",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M1",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C23",

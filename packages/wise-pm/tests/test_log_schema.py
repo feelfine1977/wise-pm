@@ -33,6 +33,7 @@ from wise.log_schema import (
     ExposureAggregation,
     MissingTimestamps,
     TimeZone,
+    UntimedEvents,
 )
 
 COLS: dict[str, Any] = {"case_col": "case", "activity_col": "activity", "timestamp_col": "time"}
@@ -40,6 +41,7 @@ SCHEMA = wise.LogSchema(**COLS)
 
 POLICIES: dict[str, tuple[type[Enum], Enum]] = {
     "missing_timestamps": (MissingTimestamps, MissingTimestamps.RAISE),
+    "untimed_events": (UntimedEvents, UntimedEvents.LEGACY),
     "duplicates": (Duplicates, Duplicates.KEEP),
     "time_zone": (TimeZone, TimeZone.AS_PARSED),
     "date_order": (DateOrder, DateOrder.MONTH_FIRST),
@@ -146,10 +148,12 @@ ALTERNATIVES: dict[str, Any] = {
     "keep_columns": ("amount",),
     "timestamp_format": "%Y",
     "missing_timestamps": MissingTimestamps.KEEP,
+    "untimed_events": UntimedEvents.UNIFORM,
     "duplicates": Duplicates.DROP,
     "time_zone": TimeZone.UTC,
     "date_order": DateOrder.DAY_FIRST,
     "exposure_agg": ExposureAggregation.SUM,
+    "case_attribute_values": CaseAttributeValues.STRICT,
 }
 
 
@@ -199,6 +203,8 @@ _schemas = st.builds(
     keep_transitions=st.lists(st.sampled_from(["complete", "Complete", "start"]), max_size=2),
     keep_columns=st.sampled_from([None, (), ("amount",)]),
     missing_timestamps=st.sampled_from(MissingTimestamps),
+    untimed_events=st.sampled_from(UntimedEvents),
+    case_attribute_values=st.sampled_from(CaseAttributeValues),
     duplicates=st.sampled_from(Duplicates),
     exposure_agg=st.sampled_from([ExposureAggregation.MAX, ExposureAggregation.SUM]),
 )
@@ -254,6 +260,27 @@ def test_dropping_duplicates_keeps_the_first_event_of_each_group_in_input_order(
     assert kept.cases["exposure"].tolist() == [12.0, 5.0]
     assert dropped.cases["exposure"].tolist() == [7.0, 5.0]
     assert dropped.cases["n_events"].tolist() == [1, 2]
+
+
+@pytest.mark.spec("IV-A")
+def test_parse_records_case_attributes_that_vary_within_a_case() -> None:
+    # case b says 'n' then 'o', case a says 'm' twice; a null never counts as a second value
+    frame = _frame().assign(org=pd.Series(["n", "m", "o", None]), region=["r", "r", "r", "r"])
+    parsed = wise.parse(frame, dataclasses.replace(SCHEMA, case_attributes=("region", "org")))
+    assert dict(parsed.varying_case_attributes) == {"org": 1}
+    assert parsed.cases["org"].tolist() == ["m", "n"]
+    with pytest.raises(TypeError):
+        parsed.varying_case_attributes["org"] = 2  # type: ignore[index]
+    assert dict(wise.parse(_frame(), dataclasses.replace(SCHEMA, case_attributes=("org",))).varying_case_attributes) == {}
+
+
+@pytest.mark.spec("IV-A")
+def test_the_strict_policy_refuses_varying_case_attributes_by_name() -> None:
+    frame = _frame().assign(org=pd.Series(["n", "m", "o", None]), region=["r", "s", "t", "u"])
+    strict = dataclasses.replace(SCHEMA, case_attributes=("org", "region"), case_attribute_values=CaseAttributeValues.STRICT)
+    with pytest.raises(LogSchemaError, match=r"vary within a case: 'org' \(1 case\), 'region' \(2 cases\)"):
+        wise.parse(frame, strict)
+    assert wise.parse(_frame(), dataclasses.replace(strict, case_attributes=("org",))).cases["org"].tolist() == ["m", "n"]
 
 
 def test_parse_refuses_a_frame_without_the_named_columns() -> None:

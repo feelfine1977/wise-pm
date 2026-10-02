@@ -49,6 +49,11 @@ snapshot writes the version as a placeholder and is unchanged.
   callables are refused with a `LogSchemaError` that lists the names. An
   unknown `missing_timestamps` is refused with "must be one of ['raise',
   'drop', 'keep']". Delta on the golden dataset: none.
+- `EventLog.validate()` reports `varying_within_case[<attribute>]` from the
+  record of the parse step, for the case attributes of the schema. An
+  attribute attached later with `add_case_attribute` or `derive` whose name is
+  also an event column is no longer compared with that column. Delta on the
+  golden dataset: none.
 
 ### Added
 
@@ -85,6 +90,23 @@ snapshot writes the version as a placeholder and is unchanged.
   keyword-only `schema=` in place of those options and exposes the schema it
   was built with as `EventLog.schema`. `EventLog.from_csv`, `from_pm4py` and
   `from_xes` go through the same parse step.
+
+- Two rules of the method's input became schema policies, documented with
+  one table in `docs/semantics/log-policies.md`:
+  `LogSchema(untimed_events=...)` (`wise.log_schema.UntimedEvents`, the last
+  keyword of `LogSchema` and its last dataclass field) states what an event
+  kept without a timestamp contributes to every primitive of the case index
+  and the event log. `legacy` (default) is the 0.1.0 rule; `uniform` counts
+  an untimed event wherever no time is compared. The two differ only in
+  `EventLog.count_scoped` without `after` and `before`, and so in the
+  `count` recipe. `CaseAttributeValues.STRICT` (`case_attribute_values=
+  "strict"`) refuses a log in which a case attribute takes two non-null
+  values within one case, naming each attribute and its number of cases.
+  `ParsedLog.varying_case_attributes` (keyword-only, a read-only mapping)
+  records, under the default, each case attribute that varies within a case
+  with its number of such cases. Both new policies enter
+  `LogSchema.digest`, so every schema digest differs from the one of the
+  previous development state.
 
 - `wise.selection`: one rule grammar for selecting rows. A rule (the short
   form or the rule form of applicability) is parsed once into a small tree
@@ -168,6 +190,26 @@ snapshot writes the version as a placeholder and is unchanged.
   of the workbench do) must stop doing so. Delta on the golden dataset: none
   (its log has rows, no lifecycle column and no missing timestamps; every
   table is unchanged).
+- Fixed: C8 — a `count` recipe and a `Presence` constraint on the same
+  activity can be made to agree on events kept without a timestamp: under
+  `LogSchema(untimed_events="uniform")` `count_scoped` without a scope counts
+  them as `count` does. The default `legacy` keeps the 0.1.0 rule (the recipe
+  ignores them), so classic numbers do not move. Delta on the golden dataset:
+  none under the default. Under `uniform` every golden table is unchanged as
+  well (its norm has no `count` recipe); an unscoped `count_scoped` there
+  would change for 1 to 34 cases per activity (126 events without a
+  timestamp).
+- Fixed: C17 — a case attribute that varies within a case is no longer
+  resolved silently: the default `case_attribute_values="first_non_null"`
+  still takes the first non-null value and records the attributes and their
+  numbers of cases (`ParsedLog.varying_case_attributes`, reported by
+  `EventLog.validate()`); `"strict"` refuses the log with the attributes
+  named. Delta on the golden dataset: none (no attribute varies; the quality
+  report is unchanged).
+- Fixed: C22 — the rule for events without a timestamp is stated once, per
+  primitive, in the schema (`UntimedEvents`) and in the table of
+  `docs/semantics/log-policies.md`, which a test checks against the kernel
+  row by row. Delta on the golden dataset: none.
 - Fixed: C26 — `prioritize()` refuses `baseline=NaN` (and any non-finite baseline) with a `NormError` instead of returning null gaps and priorities. Delta on the golden dataset: none (the input was refused; every valid number is unchanged).
 - Fixed: C27 — `prioritize()` refuses a negative or non-finite `z`; a negative multiplier turned `PI_lower` into an upper bound. Delta on the golden dataset: none.
 - Fixed: C28 — `prioritize()` refuses a fractional, negative or non-finite `min_cases` instead of truncating it (an integral float such as `5.0` is still accepted). Delta on the golden dataset: none.

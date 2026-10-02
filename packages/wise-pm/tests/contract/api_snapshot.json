@@ -1203,7 +1203,8 @@
         "time_zone",
         "date_order",
         "exposure_agg",
-        "case_attribute_values"
+        "case_attribute_values",
+        "untimed_events"
       ],
       "init": {
         "parameters": [
@@ -1304,10 +1305,16 @@
             "name": "exposure_agg"
           },
           {
-            "annotation": "CaseAttributeValues | Literal['first_non_null']",
+            "annotation": "CaseAttributeValues | Literal['first_non_null', 'strict']",
             "default": "<CaseAttributeValues.FIRST_NON_NULL: 'first_non_null'>",
             "kind": "KEYWORD_ONLY",
             "name": "case_attribute_values"
+          },
+          {
+            "annotation": "UntimedEvents | Literal['legacy', 'uniform']",
+            "default": "<UntimedEvents.LEGACY: 'legacy'>",
+            "kind": "KEYWORD_ONLY",
+            "name": "untimed_events"
           }
         ],
         "returns": "None"
@@ -1981,7 +1988,8 @@
         "index",
         "cases",
         "n_missing_timestamps",
-        "n_null_activities"
+        "n_null_activities",
+        "varying_case_attributes"
       ],
       "init": {
         "parameters": [
@@ -2020,6 +2028,12 @@
             "default": "<required>",
             "kind": "POSITIONAL_OR_KEYWORD",
             "name": "n_null_activities"
+          },
+          {
+            "annotation": "Mapping[str, int]",
+            "default": "<factory>",
+            "kind": "KEYWORD_ONLY",
+            "name": "varying_case_attributes"
           }
         ],
         "returns": "None"
