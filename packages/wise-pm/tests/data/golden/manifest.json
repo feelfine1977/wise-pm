@@ -459,7 +459,7 @@
   },
   "norm": {
     "file": "golden/norm.json",
-    "fingerprint": "d97dd1b4d93a0d328b841087063c16fcaa82ca064deca25409208113c6bffb1b",
+    "fingerprint": "5ffdbef31bf546d8d89d6fbb8f5f572e74084799149eb9976b4fb9b3e0d52f47",
     "name": "Golden P2P norm",
     "scoring_mode": "layer_balanced",
     "version": "1"

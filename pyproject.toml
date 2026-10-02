@@ -122,6 +122,7 @@ layers = [
   "wise.prioritization",
   "wise.backlog",
   "wise.scoring",
+  "wise.norm_document",
   "wise.norm",
   "wise.log",
   "wise.derive",
@@ -132,5 +133,8 @@ layers = [
   "wise.constraints",
   "wise.family",
   "wise.case_index",
-  "wise.errors | wise._version | wise._json",
+  "wise.errors | wise._version | wise._json | wise._frozen",
 ]
+# The serialisation methods of Norm (load, dump, to_dict, fingerprint, ...) are kept for their callers and
+# delegate to the document format above the model, importing it when they are called.
+ignore_imports = ["wise.norm -> wise.norm_document"]

@@ -18,7 +18,10 @@ Typical use::
     backlog.spec                                          # what they were ranked with
 """
 
-from . import datasets
+from . import (
+    datasets,
+    norm_document,  # noqa: F401  (the document format of Norm; imported so that wise.norm_document is set)
+)
 from . import families as families  # registers the built-in constraint families
 from ._version import __version__
 from .backlog import Backlog, BacklogSpec

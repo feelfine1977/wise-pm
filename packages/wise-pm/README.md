@@ -116,7 +116,10 @@ A two-constraint example, loadable with `wise.Norm.loads(...)`:
 
 Slice tables are indexed by grouping keys (`as_index=False` returns columns).
 Parameters are recorded in `DataFrame.attrs`; preserve them when exporting.
-Norm schema version 2 supports JSON round trips and `norm.fingerprint()`.
+Norm schema version 2 supports JSON round trips and `norm.fingerprint()`. The document format lives in
+`wise.norm_document`; a document must state its `schema_version`, and the norm carries it and writes it back.
+The fingerprint covers what the norm measures and leaves out `metadata` and descriptions. A norm is read-only
+once built: its weights, rules, recipes and metadata cannot be changed in place; build a new one with `replace`.
 `score()` leaves its input log unchanged: norm-derived attributes are computed for the
 run and returned in `result.cases` and `result.log`. `EventLog.derive` attaches them to a log
 explicitly, and a recipe named like a case attribute it did not produce is refused.

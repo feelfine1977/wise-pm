@@ -282,7 +282,6 @@ def score(
         :class:`~wise.errors.NormError`. With ``derive=False`` the attributes
         must already be on ``log``.
     """
-    norm.validate()
     views = [views] if isinstance(views, str) else list(dict.fromkeys(views or norm.view_names))
     for v in views:
         norm.get_view(v)
@@ -297,7 +296,8 @@ def score(
     V0 = V.fillna(0.0).to_numpy(dtype=float)
     cids = list(V.columns)
     layer_ids = norm.layer_ids
-    onehot = np.array([[1.0 if norm.layer_of[cid] == layer else 0.0 for layer in layer_ids] for cid in cids])
+    layer_of = norm.layer_of
+    onehot = np.array([[1.0 if layer_of[cid] == layer else 0.0 for layer in layer_ids] for cid in cids])
 
     score_cols: list[np.ndarray] = []
     contributions: dict[str, pd.DataFrame] = {}

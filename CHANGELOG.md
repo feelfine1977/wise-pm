@@ -209,6 +209,47 @@ snapshot writes the version as a placeholder and is unchanged.
   kept) every kind with every valid option, 21 745 results, are identical to
   0.1.0. Delta on the golden dataset: none.
 
+- The norm document format moved out of `wise.norm` into `wise.norm_document`
+  (`read`, `write`, `write_constraint`, `loads`, `load`, `dumps`, `dump`,
+  `fingerprint`, `schema_version_of`, and one `Adapter` per schema version;
+  `wise.norm_document.v2` reads and writes the 0.1.0 layout for schema
+  versions 1 and 2). `wise.norm` holds the model only. `Norm.load`, `loads`,
+  `dump`, `dumps`, `from_dict`, `to_dict`, `from_json`, `to_json`,
+  `fingerprint` and `NormConstraint.to_dict` keep their signatures and
+  delegate to it; the shipped norms (`examples/bpic19_norm.json`,
+  `examples/running_p2p_norm.json`, the golden norm and the fifteen norms of
+  `evaluation/norms/native`) round-trip byte for byte. The import-linter
+  layers gain `wise.norm_document` above `wise.norm` (the delegating methods
+  are the one declared upward import) and `wise._frozen` at the bottom.
+- A norm carries the schema version of its document format as the frozen,
+  keyword-only field `Norm.schema_version` (decision record 0001, section 4):
+  the constructor defaults to `wise.SCHEMA_VERSION` (2) and accepts
+  `wise.norm.SCHEMA_VERSIONS` (1 and 2); reading a document requires the
+  `schema_version` key (a document without it is refused with "norm document
+  has no 'schema_version'", where 0.1.0 assumed the current version); `replace`,
+  `replace_constraint` and `map_constraints` keep it and `replace` refuses to
+  change it; writing emits the carried value, so a version 1 document is
+  written back as version 1 (0.1.0 rewrote it as 2). A `schema_version` that
+  is a boolean, a float, `null`, zero or negative is refused with `NormError`
+  (0.1.0 converted it with `int()`); an integer or a string of digits is read
+  as before.
+- A norm's structure is checked once, when it is built: each layer, view and
+  constraint checks its own fields, and the norm checks only what needs the
+  whole (ids, references, a non-zero view, scoring mode, schema version, recipe
+  names). `Norm.validate()` repeats that same check; it no longer re-parses the
+  applicability rules or re-checks the weights, and `score()` no longer calls
+  it, since a norm cannot change after it is built (see `Fixed: C7`). The
+  messages are unchanged.
+- `Norm.layer_of` is a property that hands out a copy of the Series on every
+  call (it was a cached Series that a caller could write into); the contract
+  snapshot records the new kind and the new field `schema_version`, and
+  nothing else. Scoring time on the golden log is unchanged (median of seven
+  runs 44.3 → 43.4 ms); loading and fingerprinting the golden norm 0.62 →
+  0.64 ms.
+- `EventLog.count`, `first_ts` and `last_ts` hand out a copy of the Series the
+  log remembers, as `EventLog.events` does (shallow under copy-on-write);
+  writing into one no longer changes the log's later answers.
+
 ### Added
 
 - `wise.case_slices(data, by, view=None, score_col="score")`: the slice each
@@ -406,6 +447,56 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Fixed
 
+- Fixed: C7 — frozen norm objects handed out mutable containers: writing into
+  `View.constraint_weights` or `layer_weights`, a `NormConstraint.applicability`
+  rule, `Norm.derived_attributes`, `Norm.metadata`, the cached `Norm.layer_of`
+  or the where-clause of a parsed recipe changed the norm (or, before a
+  re-validation, its scores). A norm is fixed once built (Sec. IV-C): these
+  values are now read-only `dict` and `list` subclasses
+  (`wise._frozen.FrozenDict`, `FrozenList`) that raise `TypeError` on any
+  in-place change but compare, serialise to JSON, pickle and pass
+  `isinstance(x, dict)` / `isinstance(x, list)` as before; numpy arrays in
+  metadata become read-only copies; inputs are copied on construction;
+  `to_dict()` returns plain, independent containers. Code that edited a norm
+  in place must build a new one (`replace`, `replace_constraint`, or a new
+  `View`). The event-log side of the entry (`EventLog.events`, `cases`,
+  `case_attributes`, `trace`) was fixed when scoring stopped writing into its
+  input log; `count`, `first_ts` and `last_ts` complete it (see Changed).
+  Delta on the golden dataset: none.
+- Fixed: C12 — `Norm.fingerprint()` hashed the whole document, so a note in
+  `metadata` or an edited description changed the provenance of every result.
+  The fingerprint is now defined beside the format (`wise.norm_document`): the
+  SHA-256 of the canonical JSON of the written document without `metadata` and
+  without the `description` of the norm, its layers, views and constraints.
+  Everything that changes what the norm measures (names and versions, the
+  schema version, layer names, weights, parameters, applicability, recipes,
+  scoring mode) still changes it. As a consequence `fingerprint()` no longer
+  fails on metadata that JSON cannot hold (`dumps()` still refuses it, see C9).
+  Declared delta of the fingerprints of the shipped norms:
+  `examples/bpic19_norm.json` e17ca18ed3c1a30114694c29455b86def27480bb34000e797e1e06a82dc644b0
+  → a284ebdb4a732e4029771220726cce2a3a4b9ed96e0daeec66d90e8b6b759fde;
+  `examples/running_p2p_norm.json` and `wise.running_p2p_norm()`
+  b76e8f39df8510658c4ffe45d07c360b97a834b1655ed70fddc4a758873ba995
+  → 68e8462a1d19d8076dcb50376b4390720489116c92c8e24f72c41263a0f9006e;
+  the golden norm `tests/data/golden/norm.json`
+  d97dd1b4d93a0d328b841087063c16fcaa82ca064deca25409208113c6bffb1b
+  → 5ffdbef31bf546d8d89d6fbb8f5f572e74084799149eb9976b4fb9b3e0d52f47.
+  Delta on the golden dataset: no table changes; the golden manifest's
+  `norm.fingerprint` is updated to the new value (that field only). The
+  BPIC'19 hash oracle keeps the fingerprint it was recorded with, as
+  provenance, like its library version; its digests are unchanged. Backlog
+  records and score results made before this change carry the old
+  fingerprints and are refused by `layer_drivers` and `constraint_drivers`
+  against a result scored after it.
+- Fixed: C20 — evaluation and validation logic existed twice. The evaluation
+  side went with the constraint families (one module per type, found through
+  the registry instead of type switches) and the one pairing rule that Lag
+  and the `lag` recipe share (see Changed). The validation side is closed
+  here: the norm checked its views' weights, its constraints' weights and
+  their applicability rules a second time on construction and again before
+  every scoring run; the structure is now checked once, in one place, and
+  `Norm.validate()` calls that same check (see Changed). Delta on the golden
+  dataset: none.
 - Fixed: C1 — `constraint_from_dict` (and so `Norm.from_dict`, `load` and
   `loads`) truncated a non-integer count before the constructor checked it, so
   a document with `m: 2.7` built `Presence(m=2)` and `k: 0.9` built

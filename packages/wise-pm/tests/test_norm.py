@@ -36,6 +36,7 @@ def test_to_dict_is_a_copy_and_numpy_safe(p2p_norm):
 
 def test_from_dict_accepts_mapping_style_layers_and_views():
     d = {
+        "schema_version": 2,
         "name": "mini",
         "layers": {"L1": {"name": "Closure"}, "L2": "Timing"},
         "views": {"Finance": {"layer_weights": {"L1": 0.7, "L2": 0.3}}},
@@ -55,11 +56,12 @@ def test_from_dict_accepts_mapping_style_layers_and_views():
 
 def test_strict_loading():
     base = {
+        "schema_version": 2,
         "layers": [{"id": "L"}],
         "views": [{"name": "v", "constraint_weights": {"c": 1}}],
         "constraints": [{"id": "c", "layer": "L", "type": "presence", "params": {"activity": "A"}}],
     }
-    wise.Norm.from_dict({**base, "schema_version": 2})
+    wise.Norm.from_dict(base)
     with pytest.raises(NormError, match="newer"):
         wise.Norm.from_dict({**base, "schema_version": 99})
     with pytest.raises(NormError, match="unknown keys"):
@@ -100,15 +102,14 @@ def test_validation_errors(p2p_norm):
         wise.NormConstraint("x", "L", "not a constraint")  # type: ignore[arg-type]
 
 
-def test_nested_mutation_is_caught_before_scoring(p2p_norm, p2p_log):
+@pytest.mark.spec("IV-C")
+def test_nested_values_cannot_be_edited_in_place(p2p_norm, p2p_log):
     norm = wise.running_p2p_norm()
-    norm.views[0].constraint_weights["c2"] = -5  # in-place edit of a nested mapping
-    with pytest.raises(NormError, match="finite and >= 0"):
-        wise.score(p2p_log, norm)
-    norm = wise.running_p2p_norm()
-    norm.constraints[3].applicability["flow_type"].clear()
-    with pytest.raises(NormError):
-        wise.score(p2p_log, norm)
+    with pytest.raises(TypeError, match="read-only"):
+        norm.views[0].constraint_weights["c2"] = -5  # in-place edit of a nested mapping
+    with pytest.raises(TypeError, match="read-only"):
+        norm.constraints[3].applicability["flow_type"].clear()
+    pd.testing.assert_frame_equal(wise.score(p2p_log, norm).scores, wise.score(p2p_log, p2p_norm).scores)
 
 
 def test_readme_norm_example_loads():
