@@ -28,7 +28,7 @@ def _imported_modules(tree: ast.Module) -> set[str]:
 
 
 def _private_reaches(source: str) -> list[tuple[int, str]]:
-    """``(line, name)`` for each underscore name imported from, or read off, another module of the package.
+    """``(line, name)`` for each underscore name imported from, or read off (also through a dotted path), another module of the package.
 
     Underscore modules (``_json``, ``_version``) are internal to the package; importing their public
     names is crossing their interface.
@@ -40,13 +40,12 @@ def _private_reaches(source: str) -> list[tuple[int, str]]:
             hits += [(node.lineno, a.name) for a in node.names if _private(a.name)]
     modules = _imported_modules(tree)
     for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.Attribute)
-            and isinstance(node.value, ast.Name)
-            and node.value.id in modules
-            and _private(node.attr)
-        ):
-            hits.append((node.lineno, node.attr))
+        if isinstance(node, ast.Attribute) and _private(node.attr):
+            root = node.value
+            while isinstance(root, ast.Attribute):
+                root = root.value
+            if isinstance(root, ast.Name) and root.id in modules:
+                hits.append((node.lineno, node.attr))
     return sorted(hits)
 
 
@@ -61,8 +60,10 @@ def test_the_scan_finds_private_imports_and_attribute_reads() -> None:
         "import wise._json\n"
         "from pandas import _libs\n"
         "y = self._own\n"
+        "import wise.prioritization\n"
+        "z = wise.prioritization._frame\n"
     )
-    assert _private_reaches(source) == [(1, "_frame"), (2, "_UNITS"), (4, "_keys")]
+    assert _private_reaches(source) == [(1, "_frame"), (2, "_UNITS"), (4, "_keys"), (11, "_frame")]
 
 
 @pytest.mark.regression
