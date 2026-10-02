@@ -12,7 +12,9 @@ returned the frame itself with the parameters in ``DataFrame.attrs``. Using a
 attribute access such as ``backlog.loc`` or ``backlog.attrs``) still works and
 emits one :class:`DeprecationWarning` per use naming the replacement. A frame
 handed out on that path carries the 0.1.0 ``attrs``; the record's own table does
-not. The path is removed in 1.0.
+not. Column assignment (``backlog[col] = ...``) reaches the table; any other
+in-place change on that path (``backlog.loc[...] = ...``, ``inplace=True``)
+acts on a copy and must be made on ``backlog.table``. The path is removed in 1.0.
 """
 
 from __future__ import annotations
@@ -144,3 +146,7 @@ class Backlog:
 
         def __contains__(self, key: Any) -> bool:
             return key in self._legacy_frame()
+
+        def __array__(self, dtype: Any = None, copy: bool | None = None) -> Any:
+            # numpy looks this up on the type; without it np.asarray would build an array of column names
+            return self._legacy_frame().__array__(dtype, copy=copy)

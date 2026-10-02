@@ -318,7 +318,10 @@ snapshot writes the version as a placeholder and is unchanged.
   1.0. A frame obtained this way carries the 0.1.0 `attrs` (`view`, `gamma`,
   `baseline` = the realised global mean, `volume`, `by`), so code that filters
   the backlog and reads `attrs["baseline"]` keeps working; the record's own
-  table carries none. `isinstance(backlog, pd.DataFrame)` and pandas functions
+  table carries none. `np.asarray(backlog)` gives the frame's values. Column
+  assignment reaches the record's table; any other in-place change on this
+  path (`backlog.loc[...] = ...`, `inplace=True`) acts on a copy and must be
+  made on `backlog.table`. `isinstance(backlog, pd.DataFrame)` and pandas functions
   that take a frame (`pd.concat`, `pd.testing.assert_frame_equal`) need
   `backlog.table`.
 

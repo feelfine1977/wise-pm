@@ -99,6 +99,15 @@ def test_assigning_a_column_still_reaches_the_table(p2p_result: wise.ScoreResult
     assert list(backlog.table["rank"]) == [1, 2]
 
 
+@pytest.mark.spec("decision:0001/2")
+def test_numpy_reads_the_values_of_the_frame(p2p_result: wise.ScoreResult) -> None:
+    backlog = _legacy(p2p_result)
+    with DEPRECATED:
+        values = np.asarray(backlog)
+    assert values.shape == (2, 9)  # companies A and B, the nine columns without a z bound
+    assert np.array_equal(values, backlog.table.to_numpy())
+
+
 def test_the_record_is_never_mistaken_for_an_empty_frame() -> None:
     empty = wise.prioritize(pd.DataFrame({"slice": ["a"], "score": [0.5]}), "slice", min_cases=2)
     assert empty.table.empty
