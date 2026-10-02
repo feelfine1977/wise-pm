@@ -248,5 +248,6 @@ def test_rule_evaluates_over_the_event_table(log: wise.EventLog) -> None:
 def test_rule_attributes_stays_importable_from_the_norm_module() -> None:
     from wise.norm import _rule_attributes
 
-    assert _rule_attributes({"all": [{"attr": "ft", "eq": "X"}, {"has": "A"}, {"not": {"attr": "val", "lt": 1}}]}) == {"ft", "val"}
+    rule = {"all": [{"attr": "ft", "eq": "X"}, {"has": "A"}, {"not": {"attr": "val", "lt": 1}}]}
+    assert _rule_attributes(rule) == {"ft", "val"}
     assert _rule_attributes({}) == set()
