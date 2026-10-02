@@ -270,12 +270,16 @@ def test_rule_evaluates_over_the_event_table(log: wise.EventLog) -> None:
         events({"attr": "nope", "eq": 1}, LEGACY)
 
 
-def test_rule_attributes_stays_importable_from_the_norm_module() -> None:
+@pytest.mark.spec("decision:0001/2")
+def test_rule_attributes_stays_importable_from_the_norm_module_with_a_deprecation_warning() -> None:
     from wise.norm import _rule_attributes
 
     rule = {"all": [{"attr": "ft", "eq": "X"}, {"has": "A"}, {"not": {"attr": "val", "lt": 1}}]}
-    assert _rule_attributes(rule) == {"ft", "val"}
-    assert _rule_attributes({}) == set()
+    with pytest.warns(DeprecationWarning, match=r"wise\.norm\._rule_attributes .* use wise\.selection\.parse\(rule\)\.columns"):
+        assert _rule_attributes(rule) == {"ft", "val"}
+    assert set(parse(rule).columns) == {"ft", "val"}
+    with pytest.warns(DeprecationWarning, match="_rule_attributes"):
+        assert _rule_attributes({}) == set()
 
 
 # ------------------------------------------------------------------ filters

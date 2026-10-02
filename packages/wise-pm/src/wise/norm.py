@@ -34,6 +34,7 @@ versions 1 and 2, three-valued for schema version 3.
 from __future__ import annotations
 
 import dataclasses
+import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -552,7 +553,12 @@ def _check_structure(norm: Norm) -> None:
 
 
 def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:
-    """Case attributes an applicability rule reads (kept for consumers that import it from here)."""
+    """Case attributes an applicability rule reads (kept for 0.1.0 callers that import it from here; removed in 1.0)."""
+    warnings.warn(
+        "wise.norm._rule_attributes is deprecated and will be removed in 1.0; use wise.selection.parse(rule).columns",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return set(parse(rule, what="applicability").columns)
 
 

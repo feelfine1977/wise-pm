@@ -8,6 +8,7 @@ import pytest
 
 import wise
 from wise.case_index import CaseIndex
+from wise.log import EventLog
 
 
 def _log(tz: str | None = None) -> wise.EventLog:
@@ -55,13 +56,32 @@ def test_the_case_index_is_aligned_with_events_and_cases() -> None:
     np.testing.assert_array_equal(idx.sizes, log.cases["n_events"].to_numpy())
 
 
+def _read_with_warning(log: EventLog, name: str, replacement: str) -> np.ndarray:
+    with pytest.warns(DeprecationWarning, match=rf"EventLog\.{name} .* use EventLog\.case_index\.{replacement}") as seen:
+        arr = getattr(log, name)
+    assert len(seen) == 1
+    assert isinstance(arr, np.ndarray)
+    return arr
+
+
+INDEX_ARRAYS = {"_codes": "case_codes", "_ts": "timestamps", "_valid": "valid", "_starts": "starts"}
+
+
+@pytest.mark.spec("decision:0001/2")
+@pytest.mark.parametrize(("name", "replacement"), INDEX_ARRAYS.items())
+def test_the_arrays_read_by_0_1_0_callers_warn_and_equal_the_case_index(name: str, replacement: str) -> None:
+    log = _log()
+    np.testing.assert_array_equal(_read_with_warning(log, name, replacement), getattr(log.case_index, replacement))
+
+
 def test_the_arrays_read_by_0_1_0_callers_cannot_be_written() -> None:
     log = _log()
-    np.testing.assert_array_equal(log._codes, [0, 0, 1, 1])
-    for arr in (log._codes, log._ts, log._valid, log._starts):
+    arrays = [_read_with_warning(log, name, replacement) for name, replacement in INDEX_ARRAYS.items()]
+    np.testing.assert_array_equal(arrays[0], [0, 0, 1, 1])
+    for arr in arrays:
         with pytest.raises(ValueError, match="read-only"):
             arr[0] = arr[-1]
-    for arr in (log._codes, log._ts, log._valid, log._starts, log.case_index.activity_codes, log.case_index.sizes):
+    for arr in (*arrays, log.case_index.activity_codes, log.case_index.sizes):
         assert arr.base is None or not arr.base.flags.writeable  # no writable array behind the view
     with pytest.raises(AttributeError):
         log.case_index._codes = np.zeros(4, dtype=np.int64)

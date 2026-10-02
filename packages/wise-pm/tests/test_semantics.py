@@ -167,7 +167,10 @@ def test_the_tiers_that_read_legacy_documents_filter_the_warning_by_name() -> No
     marker = 'pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")'
     for module in ("tests/golden/test_pipeline_golden.py", "tests/golden/test_schema_v3_golden.py", "tests/test_bpic19.py"):
         assert marker in (PKG / module).read_text(encoding="utf-8"), module
-    gate = (REPO / "scripts" / "compat_gate.sh").read_text(encoding="utf-8")
+    gate_script = REPO / "scripts" / "compat_gate.sh"
+    if not gate_script.exists():
+        pytest.skip("the repository scripts are not part of the package")
+    gate = gate_script.read_text(encoding="utf-8")
     assert 'LEGACY_FILTER="ignore::wise.LegacySemanticsWarning"' in gate
     assert gate.count('-W "$LEGACY_FILTER"') == 2  # both pytest commands of the gate
 

@@ -50,4 +50,4 @@ path = "src/wise/_version.py"
 packages = ["src/wise"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/wise", "tests", "scripts", "benchmarks", "/README.md", "LICENSE"]
+include = ["src/wise", "tests", "scripts", "benchmarks", "examples", "/README.md", "LICENSE"]

@@ -1,0 +1,352 @@
+{
+ "EventLog.validate": {
+  "index_values": [
+   "n_events",
+   "n_cases",
+   "n_activities",
+   "window_start",
+   "window_end",
+   "raw_max_timestamp",
+   "missing_timestamps",
+   "timestamp_outliers",
+   "null_activity_labels",
+   "tied_events_share",
+   "cases_with_ties_share"
+  ],
+  "name": "log_validation"
+ },
+ "Norm.describe": {
+  "columns": [
+   "layer",
+   "type",
+   "params",
+   "weight",
+   "applicability",
+   "description"
+  ],
+  "index": [
+   "id"
+  ]
+ },
+ "Norm.layer_weight_table": {
+  "columns": [
+   "Finance",
+   "Logistics"
+  ],
+  "index": [
+   "layer"
+  ]
+ },
+ "Norm.weight_table": {
+  "columns": [
+   "layer",
+   "Finance",
+   "Logistics"
+  ],
+  "index": [
+   "constraint"
+  ]
+ },
+ "ScoreResult.effective_weights": {
+  "columns": [
+   "c1",
+   "c2",
+   "c3",
+   "c4",
+   "c5",
+   "c6"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "ScoreResult.frame": {
+  "columns": [
+   "n_events",
+   "first_ts",
+   "last_ts",
+   "flow_type",
+   "company",
+   "vendor",
+   "score__Finance",
+   "contrib__Finance__completeness",
+   "contrib__Finance__lead_times",
+   "contrib__Finance__match",
+   "contrib__Finance__handling",
+   "contrib__Finance__exceptions",
+   "score__Logistics",
+   "contrib__Logistics__completeness",
+   "contrib__Logistics__lead_times",
+   "contrib__Logistics__match",
+   "contrib__Logistics__handling",
+   "contrib__Logistics__exceptions"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "ScoreResult.frame[view]": {
+  "columns": [
+   "n_events",
+   "first_ts",
+   "last_ts",
+   "flow_type",
+   "company",
+   "vendor",
+   "score",
+   "contrib__completeness",
+   "contrib__lead_times",
+   "contrib__match",
+   "contrib__handling",
+   "contrib__exceptions"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "ScoreResult.penalties": {
+  "columns": [
+   "c1",
+   "c2",
+   "c3",
+   "c4",
+   "c5",
+   "c6"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "ScoreResult.summary": {
+  "columns": [
+   "n_scored",
+   "mean_score",
+   "contrib__completeness",
+   "contrib__lead_times",
+   "contrib__match",
+   "contrib__handling",
+   "contrib__exceptions"
+  ],
+  "index": [
+   "view"
+  ]
+ },
+ "ScoreResult.worst_cases": {
+  "columns": [
+   "n_events",
+   "first_ts",
+   "last_ts",
+   "flow_type",
+   "company",
+   "vendor",
+   "score",
+   "contrib__completeness",
+   "contrib__lead_times",
+   "contrib__match",
+   "contrib__handling",
+   "contrib__exceptions"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "compare_periods": {
+  "columns": [
+   "n_cases_prev",
+   "stable_gap_prev",
+   "stable_PI_prev",
+   "n_cases_now",
+   "stable_gap_now",
+   "stable_PI_now",
+   "gap_change",
+   "PI_change"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "concentration": {
+  "columns": [
+   "top_k",
+   "share_of_slices"
+  ],
+  "index": [
+   "threshold"
+  ]
+ },
+ "constraint_drivers": {
+  "columns": [
+   "layer",
+   "type",
+   "mean_penalty",
+   "mean_violation",
+   "share_violated",
+   "share_in_scope",
+   "share_evaluated",
+   "description"
+  ],
+  "index": [
+   "constraint"
+  ]
+ },
+ "cross_case_replication": {
+  "name": "cross_case_replicated_share"
+ },
+ "estimate_gamma": {
+  "type": "float"
+ },
+ "event_replication": {
+  "columns": [
+   "n_events",
+   "n_distinct_ts",
+   "replication_ratio",
+   "replicated_share"
+  ],
+  "index": [
+   "case"
+  ]
+ },
+ "gap_retained": {
+  "columns": [
+   "n_cases",
+   "n_kept",
+   "stable_gap",
+   "stable_gap_kept",
+   "retained"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "hotspot_table": {
+  "columns": [
+   "n_cases",
+   "mean_score",
+   "volume",
+   "gap",
+   "PI",
+   "stable_mean",
+   "stable_gap",
+   "stable_PI",
+   "se",
+   "gap_lower",
+   "PI_lower",
+   "global_mean",
+   "hotspot",
+   "dominant_layer"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "layer_drivers": {
+  "columns": [
+   "n_cases",
+   "completeness",
+   "lead_times",
+   "match",
+   "handling",
+   "exceptions",
+   "completeness__delta",
+   "lead_times__delta",
+   "match__delta",
+   "handling__delta",
+   "exceptions__delta",
+   "dominant_layer"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "left_truncated": {
+  "name": "left_truncated"
+ },
+ "pareto": {
+  "columns": [
+   "n_cases",
+   "mean_score",
+   "volume",
+   "gap",
+   "PI",
+   "stable_mean",
+   "stable_gap",
+   "stable_PI",
+   "se",
+   "gap_lower",
+   "PI_lower",
+   "global_mean",
+   "rank",
+   "share",
+   "cum_share"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "penalty_mass": {
+  "columns": [
+   "n_cases",
+   "penalty_mass",
+   "mean_penalty",
+   "share",
+   "cum_share",
+   "rank"
+  ],
+  "index": [
+   "vendor"
+  ]
+ },
+ "prioritize": {
+  "columns": [
+   "n_cases",
+   "mean_score",
+   "volume",
+   "gap",
+   "PI",
+   "stable_mean",
+   "stable_gap",
+   "stable_PI",
+   "se",
+   "gap_lower",
+   "PI_lower",
+   "global_mean"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "right_censored": {
+  "name": "right_censored"
+ },
+ "timestamp_outliers": {
+  "name": "timestamp_outlier"
+ },
+ "top_k_overlap": {
+  "type": "float"
+ },
+ "validation_table": {
+  "columns": [
+   "n_cases",
+   "stable_gap",
+   "stable_PI",
+   "censored_share",
+   "stable_gap_kept",
+   "retained",
+   "replicated_share",
+   "reading"
+  ],
+  "index": [
+   "company"
+  ]
+ },
+ "view_agreement": {
+  "columns": [
+   "top20_overlap",
+   "score_correlation"
+  ],
+  "index": [
+   "view_a",
+   "view_b"
+  ]
+ }
+}

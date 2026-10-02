@@ -113,7 +113,8 @@ def _opt(x: Activities | None) -> Labels:
 
 def in_units(delta: pd.Series, unit: str) -> pd.Series:
     """Express a Series of time differences in ``unit`` (NaT → NaN)."""
-    return delta.dt.total_seconds() / pd.Timedelta(f"1{TIME_UNITS[unit]}").total_seconds()
+    seconds: pd.Series = delta.dt.total_seconds()
+    return seconds / pd.Timedelta(f"1{TIME_UNITS[unit]}").total_seconds()
 
 
 def _plain(value: Any) -> Any:

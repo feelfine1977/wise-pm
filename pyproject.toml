@@ -86,12 +86,6 @@ explicit_package_bases = true
 namespace_packages = true
 warn_unused_ignores = false
 ignore_missing_imports = true
-# Temporary relaxations for the unchanged 0.1.0 modules; each milestone removes its entries.
-[[tool.mypy.overrides]]
-module = ["wise.log", "wise.norm", "wise.constraints", "wise.derive", "wise.scoring", "wise.prioritization", "wise.diagnostics", "wise.cli", "wise.datasets"]
-disallow_any_generics = false
-disallow_untyped_calls = false
-warn_return_any = false
 [[tool.mypy.overrides]]
 module = ["conftest", "_support.*", "property.*", "regression.*", "golden.*", "contract.*", "perf.*"]
 disallow_untyped_defs = false
@@ -114,9 +108,10 @@ root_packages = ["wise"]
 exclude_type_checking_imports = true
 
 [[tool.importlinter.contracts]]
-name = "core layers (0.1.0 layout; tightened per milestone)"
+name = "core layers"
 type = "layers"
 layers = [
+  "wise.compat",
   "wise.cli | wise.datasets",
   "wise.diagnostics",
   "wise.prioritization",

@@ -6,17 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-The 0.2.0 line deepens the library's modules behind their current public
-interface; classic numbers do not change. The package version is
-`0.2.0.dev0`. `CITATION.cff` stays at the released version 0.1.0 and changes
-at release time. The committed records that name the library version that
-produced them (the golden manifest, the BPIC'19 oracle and the native
-evaluation summary) keep `0.1.0`: they are provenance, the golden check
-tolerates a version difference, and no golden value changes. The contract
-snapshot writes the version as a placeholder and is unchanged.
+The 0.2.0 line deepens the library's modules behind their public interface.
+Classic numbers do not change: a schema version 2 norm evaluates under the
+0.1.0 semantics and every golden table is unchanged; the corrections of the
+defect ledger apply to schema version 3 documents, to input that 0.1.0
+accepted although it was malformed, and to outputs that were wrong (each
+`Fixed: C<n>` below states its delta). The package version is `0.2.0.dev0`.
+`CITATION.cff` stays at the released version 0.1.0 and changes at release
+time. The committed records that name the library version that produced them
+(the golden manifest, the BPIC'19 oracle and the native evaluation summary)
+keep `0.1.0`: they are provenance, the golden check tolerates a version
+difference, and no golden value changes. The contract snapshot writes the
+version as a placeholder; every change to it is listed below. Callers of
+0.1.0 start with *Migrating from 0.1.0* at the end of this section.
 
 ### Changed
 
+- Tooling for the 0.2.0 layout: every module of the library is type-checked
+  by `mypy --strict` without a relaxation (the overrides for the 0.1.0
+  modules are gone; the 0.1.0 test modules keep theirs until they are
+  rewritten), the import-linter layer contract places every module of the
+  library with `wise.compat` on top, and a test keeps both true for new
+  modules. The sdist ships `examples/`, which the packaged tests read; the
+  packaged tests skip the checks that need the repository's changelog,
+  documents or scripts.
 - Repository layout: the library moved to `packages/wise-pm` inside a uv
   workspace with a committed `uv.lock`; the build backend is hatchling and
   `MANIFEST.in` is gone. Install from a checkout with
@@ -281,6 +294,27 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Added
 
+- `wise.compat`, the compatibility module of decision record 0001 (section
+  2), removed in 1.0. `wise.compat.PATHS` lists every 0.1.0 name whose
+  location, type or behaviour changed and every private name the workbench
+  consumers touch, each with its replacement and its status: `deprecated`
+  (the 0.1.0 form works and emits one `DeprecationWarning` per use naming the
+  replacement, returning what the replacement returns), `kept` (a private
+  that works as in 0.1.0 because nothing public replaces it yet:
+  `ScoreResult._weights`) or `changed` (a correction with no compatibility
+  path). It serves `wise.compat.prioritize` (the 0.1.0 DataFrame with its
+  `attrs`), `wise.compat.norm_from_dict` (a document without
+  `schema_version` read as version 2, as 0.1.0 did) and
+  `wise.compat._rule_attributes`, and re-exports `EventLog`, `ScoreResult`
+  and `Backlog`, whose members serve the remaining paths. A test scans the
+  Python sources of the workbench checkout (or, without one, the committed
+  record of that scan) and fails on a name or private they use that neither
+  works unchanged nor is listed; another fails on any 0.1.0 public name whose
+  shape changed without an entry. The 0.1.0 quick start of the README and
+  both example scripts run unchanged apart from deprecation warnings and
+  print what 0.1.0 printed (the BPIC'19 script on the synthetic log written in
+  the challenge's layout). `wise.backlog.legacy_frame(backlog)` gives the
+  0.1.0 frame of a record for these paths.
 - `wise.case_slices(data, by, view=None, score_col="score")`: the slice each
   case falls in, as `prioritize` forms it (missing keys labelled), and its
   score, one row per case indexed like the cases; `by` may be a backlog
@@ -534,10 +568,14 @@ snapshot writes the version as a placeholder and is unchanged.
 
 ### Deprecated
 
+- `wise.compat` as a whole: every path it serves is removed in 1.0.
 - `EventLog._to_ts` emits a `DeprecationWarning` and delegates to
   `EventLog.to_timestamp`; it is removed in 1.0. The arrays `EventLog._codes`,
-  `_ts`, `_valid` and `_starts` remain readable, but are now read-only views
-  of the case index.
+  `_ts`, `_valid` and `_starts` remain readable as read-only views of the
+  case index and emit a `DeprecationWarning` naming `EventLog.case_index`'s
+  `case_codes`, `timestamps`, `valid` and `starts`; removed in 1.0.
+- `wise.norm._rule_attributes(rule)` emits a `DeprecationWarning` naming
+  `wise.selection.parse(rule).columns`; removed in 1.0.
 - Assigning `EventLog.cases` emits a `DeprecationWarning` (removed in 1.0;
   use `add_case_attribute` or `with_case_attributes`). The assigned table
   must have the log's case ids as its index, in order, or a `LogSchemaError`
@@ -786,6 +824,54 @@ snapshot writes the version as a placeholder and is unchanged.
   per computation), and a test refuses any import of an underscore name from
   another module of the package. Delta on the golden dataset: none.
 - Fixed: C11 — `LogSchemaError` no longer inherits `KeyError`, and `NormError` and `NotScoredError` no longer inherit `ValueError`; an `except KeyError:` or `except ValueError:` in a caller cannot swallow a library error any more. Callers that relied on the builtin bases must catch the `wise` classes (or `WiseError`); the workbench already does. The public-API snapshot records the new bases. Delta on the golden dataset: none.
+
+### Migrating from 0.1.0
+
+Every item below is listed with its replacement in `wise.compat.PATHS`.
+Importing from `wise.compat` keeps a 0.1.0 caller running through 0.2.x with
+deprecation warnings; the module and its paths are removed in 1.0.
+
+- `wise.prioritize` returns a `Backlog` record: read `backlog.table` (the
+  ranked frame) and `backlog.spec` (its parameters) instead of the frame and
+  its `attrs`. Using the record as a DataFrame still works with a warning;
+  `isinstance(x, pd.DataFrame)`, `pd.concat` and `assert_frame_equal` need
+  `.table`. The record's `attrs["view"]` is the view the record was ranked on (`None`
+  for a frame), where 0.1.0 held the argument as passed.
+  `wise.compat.prioritize` returns the 0.1.0 frame, `attrs` included.
+- A norm document must state `schema_version` (C14); `wise.compat.norm_from_dict`
+  reads a document without it as version 2. A schema version 2 norm
+  evaluates under the 0.1.0 semantics and emits one `LegacySemanticsWarning`
+  per read until 2.0: filter it by name
+  (`-W "ignore::wise.LegacySemanticsWarning"`, as `scripts/compat_gate.sh`
+  does) or migrate the file with `wise migrate NORM` and, for a
+  `quantile_scale` recipe, fit it with `wise.fit_calibration` before scoring.
+  Norm fingerprints differ from those of 0.1.0 (C12).
+- `EventLog.events`, `cases` and `case_attributes` hand out copies (C3): a
+  write into them (`log.events[col] = ...`, `log.cases[col] = ...`) does not
+  reach the log, and `events` and `case_attributes` cannot be assigned. Add an
+  event column to the frame the log is built from; add case attributes with
+  `add_case_attribute` or `with_case_attributes`. Assigning `log.cases` still
+  works with a warning.
+- `log._to_ts(value)` is `log.to_timestamp(value)`; `log._codes`, `_ts`,
+  `_valid`, `_starts` are `log.case_index.case_codes`, `timestamps`, `valid`,
+  `starts`. `wise.norm._rule_attributes(rule)` is
+  `set(wise.selection.parse(rule).columns)`.
+- `NormError`, `NotScoredError` and `LogSchemaError` no longer inherit
+  `ValueError` or `KeyError` (C11): catch the `wise` classes or `WiseError`.
+- A `ScoreResult` built by hand without `mode` takes its norm's
+  `scoring_mode` (C13); pass `mode=` to keep a mode. Passing `_weights=` and
+  reading `result._weights` work as in 0.1.0; `dataclasses.replace(result,
+  log=None)` gives a result without its log.
+- `compare_periods` adds the column `presence`, leaves the change of a slice
+  absent from one period missing instead of comparing it with zero (C24), and
+  refuses two records ranked with different specifications unless the
+  difference is `intended`.
+- Input that 0.1.0 accepted although it was malformed is refused with a
+  `WiseError`: an empty event frame and null lifecycle transitions (C6),
+  non-integer `m`/`k` (C1), unknown recipe keys and options (C5), an `eval`
+  recipe other than one case-table column (C16), and invalid ranking
+  parameters (C26–C28); scoring refuses a schema version 3 norm whose
+  `quantile_scale` recipe has no fitted calibration (C15).
 
 ## [0.1.0] — 2026-09-05
 

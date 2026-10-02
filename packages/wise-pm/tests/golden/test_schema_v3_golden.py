@@ -163,6 +163,7 @@ def test_rows_that_differ_from_v2_carry_their_correction(
     _assert_rows_differ_only_by_correction(legacy, corrected, explained, DECLARED_DELTA[(dataset, mode)])
 
 
+@pytest.mark.skipif(not REPORT.exists(), reason="the changelog and the delta report are not part of the package")
 def test_the_delta_report_is_referenced_from_the_changelog() -> None:
     report = REPORT.read_text(encoding="utf-8")
     assert "running_p2p_norm_v3.json" in report

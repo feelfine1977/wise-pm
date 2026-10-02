@@ -53,6 +53,14 @@ def _copy(frame: _Pandas) -> _Pandas:
     return frame.copy(deep=not (_PANDAS_3 or pd.options.mode.copy_on_write is True))
 
 
+def _warn_index_array(name: str, replacement: str) -> None:
+    warnings.warn(
+        f"EventLog.{name} is deprecated and will be removed in 1.0; use EventLog.case_index.{replacement}",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
 def _hash_frame(h: Any, part: str, frame: pd.DataFrame) -> None:
     """Feed ``frame`` into ``h``: its length, then per column (in name order) its name, dtype and row hashes."""
     h.update(f"{part}:{len(frame)}\n".encode())
@@ -326,21 +334,25 @@ class EventLog:
         events are in the row order of :attr:`events`."""
         return self._index
 
-    # Read-only views of the index, kept for callers of 0.1.0.
+    # Read-only views of the index, kept for callers of 0.1.0 with a deprecation warning; removed in 1.0.
     @property
     def _codes(self) -> np.ndarray:
+        _warn_index_array("_codes", "case_codes")
         return self._index.case_codes
 
     @property
     def _ts(self) -> np.ndarray:
+        _warn_index_array("_ts", "timestamps")
         return self._index.timestamps
 
     @property
     def _valid(self) -> np.ndarray:
+        _warn_index_array("_valid", "valid")
         return self._index.valid
 
     @property
     def _starts(self) -> np.ndarray:
+        _warn_index_array("_starts", "starts")
         return self._index.starts
 
     @property
@@ -620,7 +632,7 @@ class EventLog:
         if not isinstance(pos, int | np.integer):
             raise LogSchemaError(f"case id {case_id!r} is not unique")
         i = int(pos)
-        start = int(self._starts[i])
+        start = int(self._index.starts[i])
         n = int(self._cases["n_events"].to_numpy()[i])
         return _copy(self._events.iloc[start : start + n])
 
@@ -639,7 +651,7 @@ class EventLog:
         ts = self._events[self.timestamp_col]
         outliers = int(((ts < start) | (ts > end)).sum())
         tied = self._index.tied()
-        cases_with_ties = len(np.unique(self._codes[tied]))
+        cases_with_ties = len(np.unique(self._index.case_codes[tied]))
         report: dict[str, Any] = {
             "n_events": len(self._events),
             "n_cases": len(self),
