@@ -242,6 +242,20 @@ def test_policies_are_read_from_the_schema_not_from_the_data() -> None:
     assert wise.parse(aware, SCHEMA).schema == SCHEMA
 
 
+@pytest.mark.spec("IV-A")
+def test_dropping_duplicates_keeps_the_first_event_of_each_group_in_input_order() -> None:
+    # rows 1 and 3 of the frame agree in case, activity and time; only row 1 differs in amount
+    frame = _frame().assign(amount=[2.0, 7.0, 3.0, 5.0])
+    schema = wise.LogSchema(**COLS, exposure_col="amount", exposure_agg="sum")
+    kept = wise.parse(frame, schema)
+    dropped = wise.parse(frame, dataclasses.replace(schema, duplicates=Duplicates.DROP))
+    assert kept.events["amount"].tolist() == [7.0, 5.0, 2.0, 3.0]
+    assert dropped.events["amount"].tolist() == [7.0, 2.0, 3.0]
+    assert kept.cases["exposure"].tolist() == [12.0, 5.0]
+    assert dropped.cases["exposure"].tolist() == [7.0, 5.0]
+    assert dropped.cases["n_events"].tolist() == [1, 2]
+
+
 def test_parse_refuses_a_frame_without_the_named_columns() -> None:
     with pytest.raises(LogSchemaError, match=r"missing columns \['lc'\]"):
         wise.parse(_frame().drop(columns="lc"), dataclasses.replace(SCHEMA, lifecycle_col="lc"))
