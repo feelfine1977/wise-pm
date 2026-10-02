@@ -104,7 +104,8 @@ snapshot writes the version as a placeholder and is unchanged.
   golden dataset: none.
 - Lag and the `lag` recipe pair activations with responses by one rule,
   `wise.families.lag.pairs` (activation first, last or each; response
-  first_after or first_overall; lags in the given unit). A Lag case that has
+  first_after or first_overall; lags in the given unit; activation times in
+  the log's time zone in every mode). A Lag case that has
   no value says why: `missing_activation` (no `a`, `missing_a="skip"`) or
   `missing_response` (no `b` follows, `missing_b="skip"`); 0.1.0's NaN cases
   of Lag were `not_evaluable`. A case scored by the age of an open activation
@@ -148,13 +149,14 @@ snapshot writes the version as a placeholder and is unchanged.
 - `wise.evaluate(constraint, log)` evaluates a constraint, or a
   `NormConstraint` with its applicability, on every case and returns a
   `wise.Evaluation`: `value` (`ν_c(σ)`, NaN without a value) and `reason` per
-  case, `evaluated` if there is a value, `out_of_scope` outside the
-  applicability, otherwise why the case is not evaluable (`missing_anchor`,
-  `missing_activity`, `missing_attribute`, `missing_activation`,
-  `missing_response`, or `not_evaluable` where the family names no reason) as
-  a categorical Series; `in_scope` and `evaluated` give the masks. Scoring time on the 1.6 M-event benchmark is
-  unchanged (score 0.96 → 0.95 s, total 4.10 → 3.97 s, peak 0.3198 GB; medians
-  of three runs).
+  case, `evaluated` if there is a value (`censored` where Lag scores an open
+  activation by its age), `out_of_scope` outside the applicability, otherwise
+  why the case is not evaluable (`missing_anchor`, `missing_activity`,
+  `missing_attribute`, `missing_activation`, `missing_response`, or
+  `not_evaluable` where the family names no reason) as a categorical Series;
+  `in_scope` and `evaluated` give the masks. Scoring time on the 1.6 M-event
+  benchmark is unchanged (score 0.96 → 0.95 s, total 4.10 → 3.97 s, peak
+  0.3198 GB; medians of three runs).
   `evaluate_constraint` and `violation_matrix` are computed from it. The
   public-API snapshot gains these two names and nothing else.
 - `wise.family`: the constraint-family interface (`Family` with `parse`,
