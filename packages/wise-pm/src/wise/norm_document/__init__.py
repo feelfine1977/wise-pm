@@ -69,8 +69,9 @@ def schema_version_of(document: Mapping[str, Any]) -> int:
         version = int(raw)
     except ValueError:
         raise NormError(f"norm schema_version {raw!r} is not an integer") from None
-    if version > SCHEMA_VERSION:
-        raise NormError(f"norm schema_version {version} is newer than supported ({SCHEMA_VERSION})")
+    newest = max(ADAPTERS)
+    if version > newest:
+        raise NormError(f"norm schema_version {version} is newer than supported ({newest})")
     if version not in ADAPTERS:
         raise NormError(f"norm schema_version {version} is not a known schema version; known: {sorted(ADAPTERS)}")
     return version

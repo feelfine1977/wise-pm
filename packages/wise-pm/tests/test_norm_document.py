@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import dataclasses
 import hashlib
 import inspect
 import json
@@ -187,7 +188,7 @@ def test_metadata_that_json_cannot_hold_is_refused_when_written() -> None:
 def test_the_constructor_defaults_to_the_current_schema_version(p2p_norm: wise.Norm) -> None:
     assert wise.SCHEMA_VERSION == 2
     assert p2p_norm.schema_version == wise.SCHEMA_VERSION
-    assert "schema_version" in {f.name for f in __import__("dataclasses").fields(wise.Norm)}
+    assert "schema_version" in {f.name for f in dataclasses.fields(wise.Norm)}
     assert p2p_norm.to_dict()["schema_version"] == 2
 
 
@@ -218,6 +219,15 @@ def test_reading_a_document_requires_its_schema_version() -> None:
 def test_an_unknown_schema_version_is_refused(value: Any, message: str) -> None:
     with pytest.raises(NormError, match=message):
         wise.Norm.from_dict(mini(schema_version=value))
+
+
+def test_a_document_is_read_up_to_the_newest_registered_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ "Newer than supported" is measured against the formats there are, not the version a new norm defaults to."""
+    assert set(norm_document.ADAPTERS) == set(wise.norm.SCHEMA_VERSIONS)
+    monkeypatch.setattr(norm_document, "ADAPTERS", {**norm_document.ADAPTERS, 3: norm_document.V2})
+    assert norm_document.schema_version_of({"schema_version": 3}) == 3
+    with pytest.raises(NormError, match=r"norm schema_version 4 is newer than supported \(3\)"):
+        norm_document.schema_version_of({"schema_version": 4})
 
 
 @pytest.mark.spec("decision:0001/4")
