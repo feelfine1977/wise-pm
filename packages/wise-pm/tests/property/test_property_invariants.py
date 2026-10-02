@@ -106,7 +106,7 @@ def test_modes_coincide_when_every_layer_holds_one_constraint(log, norm):
 def test_backlog_case_counts_times_means_sum_to_the_scored_total(view, log, norm):
     result = wise.score(log, norm)
     assume(result.scores[view].notna().any())
-    backlog = wise.prioritize(result, "region", view=view)
+    backlog = wise.prioritize(result, "region", view=view).table
     assert (backlog["n_cases"] * backlog["mean_score"]).sum() == pytest.approx(result.scores[view].dropna().sum())
     assert backlog["n_cases"].sum() == result.scores[view].notna().sum()
 
@@ -118,7 +118,7 @@ def test_backlog_case_counts_times_means_sum_to_the_scored_total(view, log, norm
 def test_priority_index_is_never_negative(view, log, norm):
     result = wise.score(log, norm)
     assume(result.scores[view].notna().any())
-    backlog = wise.prioritize(result, "region", view=view)
+    backlog = wise.prioritize(result, "region", view=view).table
     assert (backlog["PI"] >= 0).all()
     assert (backlog["stable_PI"] >= 0).all()
 
@@ -130,7 +130,7 @@ def test_priority_index_is_never_negative(view, log, norm):
 def test_shrinkage_never_raises_the_priority_index(view, log, norm, gamma):
     result = wise.score(log, norm)
     assume(result.scores[view].notna().any())
-    backlog = wise.prioritize(result, "region", view=view, gamma=gamma)
+    backlog = wise.prioritize(result, "region", view=view, gamma=gamma).table
     assert (backlog["stable_PI"] <= backlog["PI"] + 1e-12).all()
     assert (backlog["stable_gap"] <= backlog["gap"] + 1e-12).all()
 

@@ -352,6 +352,126 @@
     }
   },
   "symbols": {
+    "wise.Backlog": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "table",
+        "spec"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "pd.DataFrame",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "table"
+          },
+          {
+            "annotation": "BacklogSpec",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "spec"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {}
+    },
+    "wise.BacklogSpec": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "by",
+        "view",
+        "gamma",
+        "volume",
+        "baseline",
+        "global_mean",
+        "min_cases",
+        "z",
+        "norm_fingerprint",
+        "score_col"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "tuple[str, ...]",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "by"
+          },
+          {
+            "annotation": "str | None",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "view"
+          },
+          {
+            "annotation": "float",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "gamma"
+          },
+          {
+            "annotation": "str",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "volume"
+          },
+          {
+            "annotation": "float | None",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "baseline"
+          },
+          {
+            "annotation": "float",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "global_mean"
+          },
+          {
+            "annotation": "int",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "min_cases"
+          },
+          {
+            "annotation": "float | None",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "z"
+          },
+          {
+            "annotation": "str | None",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "norm_fingerprint"
+          },
+          {
+            "annotation": "str",
+            "default": "'score'",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "score_col"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {
+        "to_dict": {
+          "kind": "method",
+          "parameters": [],
+          "returns": "dict[str, Any]"
+        }
+      }
+    },
     "wise.Balance": {
       "bases": [
         "wise.constraints.Constraint"
@@ -2654,13 +2774,13 @@
       "kind": "function",
       "parameters": [
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "previous"
         },
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "current"
@@ -2672,7 +2792,7 @@
       "kind": "function",
       "parameters": [
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "backlog"
@@ -2702,7 +2822,7 @@
           "name": "result"
         },
         {
-          "annotation": "str",
+          "annotation": "str | Backlog",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "view"
@@ -2965,7 +3085,7 @@
       "kind": "function",
       "parameters": [
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "backlog"
@@ -2995,7 +3115,7 @@
           "name": "data"
         },
         {
-          "annotation": "str | Sequence[str]",
+          "annotation": "str | Sequence[str] | Backlog",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "by"
@@ -3089,7 +3209,7 @@
       "kind": "function",
       "parameters": [
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "backlog"
@@ -3131,14 +3251,14 @@
           "name": "result"
         },
         {
-          "annotation": "str",
+          "annotation": "str | Backlog",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "view"
         },
         {
-          "annotation": "str | Sequence[str]",
-          "default": "<required>",
+          "annotation": "str | Sequence[str] | None",
+          "default": "None",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "by"
         },
@@ -3221,7 +3341,7 @@
           "name": "as_index"
         }
       ],
-      "returns": "pd.DataFrame"
+      "returns": "Backlog"
     },
     "wise.right_censored": {
       "kind": "function",
@@ -3368,13 +3488,13 @@
       "kind": "function",
       "parameters": [
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "backlog_a"
         },
         {
-          "annotation": "pd.DataFrame",
+          "annotation": "Backlog | pd.DataFrame",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "backlog_b"
@@ -3464,7 +3584,7 @@
           "name": "result"
         },
         {
-          "annotation": "str | Sequence[str]",
+          "annotation": "str | Sequence[str] | Backlog",
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "by"

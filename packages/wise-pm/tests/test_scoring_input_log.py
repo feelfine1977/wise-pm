@@ -162,7 +162,7 @@ def test_drill_down_drivers_and_prioritisation_work_by_a_derived_attribute() -> 
 
     pd.testing.assert_frame_equal(result.trace("B"), log.trace("B"))
     assert result.worst_cases("v", where={"n_gr": 4.0}).index.tolist() == ["B"]
-    backlog = wise.prioritize(result, by="n_gr", view="v")
+    backlog = wise.prioritize(result, by="n_gr", view="v").table
     assert backlog["n_cases"].to_dict() == {1.0: 4, 4.0: 1}
     assert backlog["mean_score"].to_dict()[4.0] == pytest.approx(1 / 3)
     assert wise.layer_drivers(result, by="n_gr", view="v").index.tolist() == [1.0, 4.0]

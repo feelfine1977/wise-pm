@@ -228,7 +228,7 @@ def output_tables() -> dict[str, dict[str, Any]]:
         "left_truncated": _series(wise.left_truncated(log, opening="Create Purchase Order Item")),
         "pareto": _table(wise.pareto(backlog)),
         "penalty_mass": _table(wise.penalty_mass(result, view, by="vendor")),
-        "prioritize": _table(backlog),
+        "prioritize": _table(backlog.table),
         "right_censored": _series(censored),
         "timestamp_outliers": _series(wise.timestamp_outliers(log)),
         "top_k_overlap": {"type": type(overlap).__name__},

@@ -193,11 +193,12 @@
       "id": "C19",
       "title": "parameters carried in DataFrame.attrs",
       "severity": "S3",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M4",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C20",

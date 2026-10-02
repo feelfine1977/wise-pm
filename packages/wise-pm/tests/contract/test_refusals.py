@@ -24,7 +24,7 @@ def test_no_public_symbol_promises_a_sigma_cost_or_effect_computation():
 
 @pytest.mark.spec("contract")
 def test_backlog_and_driver_tables_carry_no_monetary_or_effect_columns(p2p_result):
-    backlog = wise.prioritize(p2p_result, "company", view="Finance", gamma=1.0)
+    backlog = wise.prioritize(p2p_result, "company", view="Finance", gamma=1.0).table
     drivers = wise.layer_drivers(p2p_result, "company", view="Finance")
     constraints = wise.constraint_drivers(p2p_result, "Finance")
     for table in (backlog, drivers, constraints, p2p_result.frame("Finance"), p2p_result.summary()):

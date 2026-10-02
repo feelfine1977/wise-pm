@@ -173,13 +173,13 @@ def gap_retained(
     slice's best ones; a slice whose gap collapses was a window artefact.
     """
     by = _keys(by)
-    full = prioritize(result, by, view=view, gamma=gamma)
-    baseline = float(full.attrs["baseline"])
+    ranked = prioritize(result, by, view=view, gamma=gamma)
+    full, baseline = ranked.table, ranked.spec.global_mean
     frame, score_col = _frame(result, view, "score", by)
     keep = ~exclude.reindex(result.cases.index, fill_value=False).astype(bool).to_numpy()
     if not (keep & frame[score_col].notna().to_numpy()).any():
         raise NotScoredError("every scored case is excluded")
-    kept = prioritize(frame[keep], by, gamma=gamma, baseline=baseline, score_col=score_col)
+    kept = prioritize(frame[keep], by, gamma=gamma, baseline=baseline, score_col=score_col).table
     out = pd.DataFrame(
         {
             "n_cases": full["n_cases"],
@@ -211,7 +211,7 @@ def validation_table(
     Series (e.g. from :func:`cross_case_replication` thresholded).
     """
     by = _keys(by)
-    full = prioritize(result, by, view=view, gamma=gamma)
+    full = prioritize(result, by, view=view, gamma=gamma).table
     frame, score_col = _frame(result, view, "score", by)
     scored = frame[score_col].notna().to_numpy()
     out = pd.DataFrame({"n_cases": full["n_cases"], "stable_gap": full["stable_gap"], "stable_PI": full["stable_PI"]})

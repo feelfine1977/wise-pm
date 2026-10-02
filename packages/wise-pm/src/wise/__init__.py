@@ -14,11 +14,14 @@ Typical use::
     result = wise.score(log, norm)                        # Phase 2
     backlog = wise.prioritize(result, by=["company"],     # Phase 3
                               view="Finance", gamma=20)
+    backlog.table                                         # the ranked slices
+    backlog.spec                                          # what they were ranked with
 """
 
 from . import datasets
 from . import families as families  # registers the built-in constraint families
 from ._version import __version__
+from .backlog import Backlog, BacklogSpec
 from .constraints import (
     CONSTRAINT_TYPES,
     Balance,
@@ -67,6 +70,8 @@ from .scoring import ScoreResult, evaluate, evaluate_constraint, score, violatio
 __all__ = [
     "CONSTRAINT_TYPES",
     "SCHEMA_VERSION",
+    "Backlog",
+    "BacklogSpec",
     "Balance",
     "Constraint",
     "Evaluation",

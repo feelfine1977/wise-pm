@@ -24,15 +24,16 @@ def _frame(n_slices=3, seed=0):
 def test_pi_illustration_from_paper():
     # μ̄ = 0.94, μ_s = 0.80, n_s = 240 → PI = 33.6
     df = pd.DataFrame({"slice": ["big"] * 240 + ["rest"] * 760, "score": [0.80] * 240 + [0.94 + 0.14 * 240 / 760] * 760})
-    b = wise.prioritize(df, "slice")
+    b = wise.prioritize(df, "slice").table
     assert b.index.name == "slice"
     assert b.loc["big", "global_mean"] == pytest.approx(0.94)
     assert b.loc["big", "gap"] == pytest.approx(0.14)
     assert b.loc["big", "PI"] == pytest.approx(33.6)
     assert b.loc["rest", "PI"] == 0.0
-    assert b.attrs["gamma"] == 0.0
-    assert b.attrs["by"] == ["slice"]
-    flat = wise.prioritize(df, ["slice"], as_index=False)
+    spec = wise.prioritize(df, "slice").spec
+    assert spec.gamma == 0.0
+    assert spec.by == ("slice",)
+    flat = wise.prioritize(df, ["slice"], as_index=False).table
     assert "slice" in flat.columns
 
 
@@ -40,8 +41,8 @@ def test_pi_illustration_from_paper():
 @pytest.mark.spec("IV-E.shrinkage")
 def test_shrinkage_closed_form():
     df = _frame()
-    raw = wise.prioritize(df, ["slice"])
-    stab = wise.prioritize(df, ["slice"], gamma=30)
+    raw = wise.prioritize(df, ["slice"]).table
+    stab = wise.prioritize(df, ["slice"], gamma=30).table
     for s in raw.index:
         n = raw.loc[s, "n_cases"]
         assert stab.loc[s, "stable_gap"] == pytest.approx(n / (n + 30) * raw.loc[s, "gap"])
@@ -55,17 +56,17 @@ def test_shrinkage_closed_form():
 @pytest.mark.spec("IV-E.exposure")
 def test_exposure_weighted_pi_and_min_cases():
     df = _frame()
-    b = wise.prioritize(df, ["slice"], volume="exposure")
+    b = wise.prioritize(df, ["slice"], volume="exposure").table
     assert b.loc["s1", "volume"] == pytest.approx(30 * 20.0)
     assert b.loc["s1", "PI"] == pytest.approx(600 * b.loc["s1", "gap"])
-    assert set(wise.prioritize(df, ["slice"], min_cases=10).index) == {"s0", "s1"}
+    assert set(wise.prioritize(df, ["slice"], min_cases=10).table.index) == {"s0", "s1"}
     with pytest.raises(NormError):
         wise.prioritize(df, ["slice"], volume="nope")
 
 
 def test_conservative_lower_bound_and_singletons():
     df = pd.concat([_frame(), pd.DataFrame([{"slice": "solo", "score": 0.1, "exposure": 1.0}])], ignore_index=True)
-    b = wise.prioritize(df, ["slice"], z=1.96)
+    b = wise.prioritize(df, ["slice"], z=1.96).table
     assert (b["PI_lower"] <= b["stable_PI"] + 1e-12).all()
     assert (b.loc[["s0", "s1", "s2"], "se"] > 0).all()
     assert np.isnan(b.loc["solo", "se"])
@@ -75,13 +76,13 @@ def test_conservative_lower_bound_and_singletons():
 
 def test_deterministic_tie_break():
     df = pd.DataFrame({"slice": list("bbbaac"), "score": [0.5] * 6})  # every slice at the global mean → all PI 0
-    b1 = wise.prioritize(df, ["slice"])
-    b2 = wise.prioritize(df.iloc[::-1], ["slice"])
+    b1 = wise.prioritize(df, ["slice"]).table
+    b2 = wise.prioritize(df.iloc[::-1], ["slice"]).table
     assert list(b1.index) == ["b", "a", "c"] == list(b2.index)  # more cases first, then key order
 
 
 def test_pareto_and_concentration():
-    b = wise.prioritize(_frame(), ["slice"])
+    b = wise.prioritize(_frame(), ["slice"]).table
     p = wise.pareto(b)
     assert p["cum_share"].iloc[-1] == pytest.approx(1.0)
     assert list(p["rank"]) == [1, 2, 3]
@@ -108,7 +109,7 @@ def test_estimate_gamma_moments():
 
 
 def test_running_example_backlog_and_drivers(p2p_result):
-    b = wise.prioritize(p2p_result, ["company"], view="Finance")
+    b = wise.prioritize(p2p_result, ["company"], view="Finance").table
     assert b.loc["B", "PI"] > 0
     assert b.loc["A", "PI"] == 0.0
     ld = wise.layer_drivers(p2p_result, ["company"], view="Finance")
@@ -132,22 +133,22 @@ def test_view_agreement_overlap_and_methods(p2p_result):
     pytest.importorskip("scipy")
     sp = wise.view_agreement(p2p_result, "case", k=2, method="spearman")
     assert -1 <= sp["score_correlation"].iloc[0] <= 1
-    a = wise.prioritize(p2p_result, ["case"], view="Finance")
+    a = wise.prioritize(p2p_result, ["case"], view="Finance").table
     assert wise.top_k_overlap(a, a, k=3) == 1.0
     # slices without priority mass are not part of the top-k
     zero = pd.DataFrame({"slice": list("xyzw"), "score": [0.9, 0.9, 0.9, 0.1]})
-    b1 = wise.prioritize(zero, "slice")
-    b2 = wise.prioritize(zero.iloc[::-1], "slice")
+    b1 = wise.prioritize(zero, "slice").table
+    b2 = wise.prioritize(zero.iloc[::-1], "slice").table
     assert wise.top_k_overlap(b1, b2, k=3) == 1.0
 
 
 def test_hotspot_table_and_penalty_mass(p2p_result):
-    b = wise.prioritize(p2p_result, ["case"], view="Finance")
+    b = wise.prioritize(p2p_result, ["case"], view="Finance").table
     h = wise.hotspot_table(b, top=5, drivers=wise.layer_drivers(p2p_result, ["case"], view="Finance"))
     assert set(h["hotspot"]) <= {"reservoir", "severity", "mechanism"}
     assert "dominant_layer" in h.columns
     df = _frame()
-    hb = wise.hotspot_table(wise.prioritize(df, "slice"))
+    hb = wise.hotspot_table(wise.prioritize(df, "slice").table)
     assert "s0" not in hb.index  # above the baseline: no priority
     assert hb.loc["s1", "hotspot"] == "reservoir"
     assert hb.loc["s2", "hotspot"] == "severity"
@@ -160,22 +161,22 @@ def test_hotspot_table_and_penalty_mass(p2p_result):
 
 def test_baseline_and_compare_periods():
     df = _frame()
-    b = wise.prioritize(df, ["slice"], baseline=1.0)
+    b = wise.prioritize(df, ["slice"], baseline=1.0).table
     assert (b["global_mean"] == 1.0).all()
     assert (b["PI"] > 0).all()
-    now = wise.prioritize(df.assign(score=df["score"] + 0.05), ["slice"], baseline=1.0)
+    now = wise.prioritize(df.assign(score=df["score"] + 0.05), ["slice"], baseline=1.0).table
     cmp_ = wise.compare_periods(b, now)
     assert (cmp_["gap_change"] < 0).all()
     assert set(cmp_.columns) >= {"stable_PI_prev", "stable_PI_now", "PI_change"}
 
 
 def test_slice_by_case_id_index(p2p_result):
-    b = wise.prioritize(p2p_result, "case", view="Finance")
+    b = wise.prioritize(p2p_result, "case", view="Finance").table
     assert b.loc["E", "PI"] > b.loc["A", "PI"] > 0
     assert b.loc["B", "PI"] == 0.0
     # a frame whose case id is both index and column
     f = p2p_result.frame("Finance").assign(case=lambda d: d.index)
-    assert wise.prioritize(f, "case").loc["E", "PI"] > 0
+    assert wise.prioritize(f, "case").table.loc["E", "PI"] > 0
     # the case id listed as a case attribute
     log = wise.EventLog(
         wise.running_p2p_events(),
@@ -186,11 +187,11 @@ def test_slice_by_case_id_index(p2p_result):
     )
     res = wise.score(log, wise.running_p2p_norm())
     assert wise.penalty_mass(res, "Finance", "case").loc["E", "penalty_mass"] == pytest.approx(0.85)
-    assert wise.prioritize(res, "case", view="Finance").loc["E", "PI"] > 0
+    assert wise.prioritize(res, "case", view="Finance").table.loc["E", "PI"] > 0
     assert wise.layer_drivers(res, "case", view="Finance").loc["E", "dominant_layer"] == "lead_times"
     tab = wise.validation_table(res, "Finance", "case", censored=pd.Series({"E": True}))
     assert tab.loc["E", "censored_share"] == 1.0
     with pytest.raises(NormError):
         wise.prioritize(res, "case", view="Finance", gamma="five")
-    assert len(wise.concentration(wise.prioritize(res, "case", view="Finance"), thresholds=0.8)) == 1
+    assert len(wise.concentration(wise.prioritize(res, "case", view="Finance").table, thresholds=0.8)) == 1
     assert "match" in wise.layer_drivers(res, "case", view="Finance", layers="match").columns
