@@ -28,29 +28,23 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
-from .case_index import NAT, CaseIndex, event_order
-from .constraints import Labels, as_labels, as_list
+from .case_index import NAT, CaseIndex
+from .constraints import Labels, as_labels
 from .errors import LogSchemaError
+from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, check_attribute_name, parse
+
+__all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
 _INT_MAX = np.iinfo(np.int64).max
-
-CASE_COL = "case:concept:name"
-ACTIVITY_COL = "concept:name"
-TIMESTAMP_COL = "time:timestamp"
-
-_RESERVED = {"n_events", "first_ts", "last_ts", "exposure", "score"}
-
-
-def _check_attribute_name(name: str) -> None:
-    if name in _RESERVED or name.startswith(("contrib__", "score__")):
-        raise LogSchemaError(
-            f"{name!r} is reserved for computed columns; rename the attribute "
-            f"(reserved: {sorted(_RESERVED)}, prefixes 'contrib__' and 'score__')"
-        )
 
 
 class EventLog:
     """A case-based event log.
+
+    The constructor is a façade over :func:`~wise.log_schema.parse`: its column
+    and policy options build a :class:`~wise.log_schema.LogSchema`
+    (:meth:`LogSchema.from_options <wise.log_schema.LogSchema.from_options>`),
+    or a ready schema is passed as ``schema``; :attr:`schema` holds it.
 
     Parameters
     ----------
@@ -67,8 +61,8 @@ class EventLog:
         Optional numeric column recording business exposure ``exp(σ) ≥ 0``,
         aggregated per case with ``exposure_agg`` (``"max"`` for cumulative
         amounts, ``"sum"`` for per-event amounts, ``"first"`` for constant
-        attributes; any pandas aggregation name). Cases without a numeric
-        value get exposure 0.
+        attributes; a name of :class:`~wise.log_schema.ExposureAggregation`).
+        Cases without a numeric value get exposure 0.
     order_col
         Column that orders events sharing a timestamp (an event id or a
         sequence number); it determines the order of traces and of
@@ -81,7 +75,8 @@ class EventLog:
     lifecycle_col, keep_transitions
         If the log has lifecycle transitions, keep only the listed ones
         (default ``("complete",)``, compared case-insensitively) so that
-        start/complete pairs are not counted twice.
+        start/complete pairs are not counted twice. A null transition is
+        refused.
     utc
         Convert timestamps to UTC (required for strings with mixed offsets).
     timestamp_format, dayfirst
@@ -101,6 +96,13 @@ class EventLog:
         save memory on wide logs.
     dedupe
         Drop exact duplicate events (same case, activity, timestamp).
+    schema
+        A :class:`~wise.log_schema.LogSchema` to build the log with, instead
+        of the column and policy options above (``window`` still applies).
+
+    Raises :class:`~wise.errors.LogSchemaError` for input that cannot form a
+    log, among them a frame without rows, a null lifecycle transition and a
+    log whose filters leave no event (see :func:`~wise.log_schema.parse`).
     """
 
     def __init__(
@@ -124,131 +126,42 @@ class EventLog:
         window: tuple[Any, Any] | None = None,
         keep_columns: Iterable[str] | None = None,
         dedupe: bool = False,
+        schema: LogSchema | None = None,
     ):
-        case_attributes = as_list(case_attributes)
-        keep_columns = None if keep_columns is None else as_list(keep_columns)
-        required = [case_col, activity_col, timestamp_col, *case_attributes]
-        for c in (exposure_col, order_col, event_id_col, lifecycle_col):
-            if c is not None:
-                required.append(c)
-        missing = [c for c in required if c not in events.columns]
-        if missing:
-            raise LogSchemaError(
-                f"event log is missing columns {missing}; available: {list(events.columns)[:30]}"
-                + (" ..." if events.shape[1] > 30 else "")
-            )
-        for attr in case_attributes:
-            _check_attribute_name(attr)
-        if missing_timestamps not in ("raise", "drop", "keep"):
-            raise LogSchemaError(f"missing_timestamps must be 'raise', 'drop' or 'keep', got {missing_timestamps!r}")
-
-        df = events
-        if lifecycle_col is not None:
-            keep = {str(t).lower() for t in as_list(keep_transitions)}
-            df = df[df[lifecycle_col].astype(str).str.lower().isin(keep)]
-        if dedupe:
-            df = df.drop_duplicates(subset=[case_col, activity_col, timestamp_col])
-
-        # ---- case ids -------------------------------------------------------------------
-        case_series = df[case_col]
-        n_null_case = int(case_series.isna().sum())
-        if n_null_case:
-            raise LogSchemaError(f"{n_null_case} events have a null case id; drop or fill them first")
-        if isinstance(case_series.dtype, pd.CategoricalDtype):
-            case_series = case_series.astype(case_series.cat.categories.dtype)
-        codes, uniques = pd.factorize(case_series, sort=True)
-        codes = codes.astype(np.int64)
-
-        # ---- timestamps -----------------------------------------------------------------
-        ts_raw = df[timestamp_col]
-        if pd.api.types.is_datetime64_any_dtype(ts_raw):
-            ts = ts_raw if not utc else ts_raw.dt.tz_convert("UTC") if ts_raw.dt.tz is not None else ts_raw.dt.tz_localize("UTC")
-        else:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", FutureWarning)
-                warnings.simplefilter("ignore", UserWarning)
-                ts = pd.to_datetime(ts_raw, errors="coerce", utc=utc, format=timestamp_format, dayfirst=dayfirst)
-                retry = ts.isna() & ts_raw.notna()
-                if retry.any() and pd.api.types.is_datetime64_any_dtype(ts):
-                    again = pd.to_datetime(ts_raw[retry], errors="coerce", utc=utc, format="mixed", dayfirst=dayfirst)
-                    if pd.api.types.is_datetime64_any_dtype(again) and (again.dt.tz is None) == (ts.dt.tz is None):
-                        ts = ts.copy()
-                        ts[retry] = again
-            if not pd.api.types.is_datetime64_any_dtype(ts):
-                raise LogSchemaError(f"timestamp column {timestamp_col!r} has mixed time zones or types; pass utc=True")
-        n_missing_ts = int(ts.isna().sum())
-        if n_missing_ts and missing_timestamps == "raise":
-            first_bad = ts_raw[ts.isna()].iloc[0]
-            raise LogSchemaError(
-                f"{n_missing_ts} timestamps are null or unparseable (first: {first_bad!r}); "
-                "pass missing_timestamps='drop' or 'keep', or utc=True for mixed offsets"
-            )
-        if n_missing_ts and missing_timestamps == "drop":
-            keep_mask = ts.notna().to_numpy()
-            df, ts, codes = df[keep_mask], ts[keep_mask], codes[keep_mask]
-            codes, uniques = pd.factorize(pd.Series(uniques[codes]), sort=True)
-            codes = codes.astype(np.int64)
-            n_missing_ts = 0
-        self.tz = ts.dt.tz
-        ts_int = (
-            ts.to_numpy("datetime64[ns]").view("int64")
-            if self.tz is None
-            else ts.dt.tz_convert("UTC").dt.tz_localize(None).to_numpy("datetime64[ns]").view("int64")
+        options = LogSchema.from_options(
+            case_col=case_col,
+            activity_col=activity_col,
+            timestamp_col=timestamp_col,
+            case_attributes=case_attributes,
+            exposure_col=exposure_col,
+            exposure_agg=exposure_agg,
+            order_col=order_col,
+            event_id_col=event_id_col,
+            lifecycle_col=lifecycle_col,
+            keep_transitions=keep_transitions,
+            utc=utc,
+            timestamp_format=timestamp_format,
+            dayfirst=dayfirst,
+            missing_timestamps=missing_timestamps,
+            keep_columns=keep_columns,
+            dedupe=dedupe,
         )
+        if schema is None:
+            schema = options
+        elif options != LogSchema():
+            raise LogSchemaError("pass either schema= or the column and policy options of EventLog, not both")
+        parsed = parse(events, schema)
 
-        # ---- order: (case, timestamp, tie-break) ------------------------------------------
-        tie = pd.factorize(df[order_col], sort=True)[0] if order_col is not None else None
-        order = event_order(codes, ts_int, tie)
-        n_cases = len(uniques)
-
-        cols = list(df.columns)
-        if keep_columns is not None:
-            wanted = set(required) | set(keep_columns)
-            cols = [c for c in cols if c in wanted]
-        ev = df.iloc[order][cols].reset_index(drop=True)
-        ev[timestamp_col] = ts.to_numpy()[order] if self.tz is None else ts.iloc[order].reset_index(drop=True)
-        self.events = ev
-
-        act = ev[activity_col]
-        self.n_null_activities = int(act.isna().sum())
-        if isinstance(act.dtype, pd.CategoricalDtype):
-            act_codes = act.cat.codes.to_numpy().astype(np.int64)
-            act_labels = pd.Index(act.cat.categories.astype(str))
-        else:
-            act_codes, act_uniques = pd.factorize(act, sort=False)
-            act_codes = act_codes.astype(np.int64)
-            act_labels = pd.Index(pd.Index(act_uniques).astype(str))
-        sorted_codes, sorted_ts = codes[order], ts_int[order]
-        sorted_codes.flags.writeable = sorted_ts.flags.writeable = False  # the index keeps views of them
-        self._index = CaseIndex(sorted_codes, sorted_ts, act_codes, act_labels, n_cases=n_cases, tz=self.tz)
-
-        self.case_col, self.activity_col, self.timestamp_col = case_col, activity_col, timestamp_col
-        self.case_attributes = case_attributes
-        self.exposure_col, self.order_col, self.event_id_col = exposure_col, order_col, event_id_col
-        self.n_missing_timestamps = n_missing_ts
-
-        # ---- case table -----------------------------------------------------------------
-        index = pd.Index(uniques, name=case_col)
-        cases = pd.DataFrame(index=index)
-        cases["n_events"] = self._index.count()
-        cases["first_ts"] = self._index.to_datetime(self._index.first())
-        cases["last_ts"] = self._index.to_datetime(self._index.last())
-        for attr in case_attributes:
-            cases[attr] = ev[attr].groupby(self._codes).first().reindex(range(n_cases)).to_numpy()
-        if exposure_col is not None:
-            vals = pd.to_numeric(ev[exposure_col], errors="coerce")
-            try:
-                per_case = vals.groupby(self._codes).agg(exposure_agg)
-            except (AttributeError, TypeError, ValueError) as exc:
-                raise LogSchemaError(f"exposure_agg must be a pandas aggregation name, got {exposure_agg!r}") from exc
-            exp = per_case.reindex(range(n_cases)).fillna(0.0).to_numpy()
-            if (exp < 0).any():
-                raise LogSchemaError(
-                    f"exposure column {exposure_col!r} yields negative case exposure for "
-                    f"{int((exp < 0).sum())} cases; the paper assumes exp(σ) >= 0"
-                )
-            cases["exposure"] = exp.astype(float)
-        self.cases = cases
+        self._schema = schema
+        self.events = parsed.events
+        self._index = parsed.index
+        self.cases = parsed.cases
+        self.tz = parsed.tz
+        self.case_col, self.activity_col, self.timestamp_col = schema.case_col, schema.activity_col, schema.timestamp_col
+        self.case_attributes = list(schema.case_attributes)
+        self.exposure_col, self.order_col, self.event_id_col = schema.exposure_col, schema.order_col, schema.event_id_col
+        self.n_missing_timestamps = parsed.n_missing_timestamps
+        self.n_null_activities = parsed.n_null_activities
 
         self.window: tuple[pd.Timestamp | None, pd.Timestamp | None] | None = None
         if window is not None:
@@ -308,6 +221,11 @@ class EventLog:
             f"EventLog({len(self.events):,} events, {len(self):,} cases, "
             f"{len(self._index.activity_labels)} activities, attributes={self.case_attributes})"
         )
+
+    @property
+    def schema(self) -> LogSchema:
+        """The column roles and policies the log was built with."""
+        return self._schema
 
     @property
     def case_index(self) -> CaseIndex:
@@ -541,7 +459,7 @@ class EventLog:
 
     def add_case_attribute(self, name: str, values: pd.Series | Mapping[Any, Any] | np.ndarray) -> None:
         """Attach an engineered case-level attribute (aligned on case id)."""
-        _check_attribute_name(name)
+        check_attribute_name(name)
         if isinstance(values, Mapping):
             values = pd.Series(values)
         if isinstance(values, pd.Series):

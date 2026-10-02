@@ -45,6 +45,7 @@ from .diagnostics import (
 )
 from .errors import LogSchemaError, NormError, NotScoredError, WiseError
 from .log import EventLog
+from .log_schema import LogSchema, ParsedLog, parse
 from .norm import SCHEMA_VERSION, Layer, Norm, NormConstraint, View
 from .prioritization import (
     compare_periods,
@@ -70,12 +71,14 @@ __all__ = [
     "Exclusion",
     "Lag",
     "Layer",
+    "LogSchema",
     "LogSchemaError",
     "Metric",
     "Norm",
     "NormConstraint",
     "NormError",
     "NotScoredError",
+    "ParsedLog",
     "Precedence",
     "Presence",
     "ScoreResult",
@@ -99,6 +102,7 @@ __all__ = [
     "left_truncated",
     "observation_window",
     "pareto",
+    "parse",
     "penalty_mass",
     "prioritize",
     "right_censored",
