@@ -20,6 +20,9 @@ import wise.errors
 from wise.cli import main
 from wise.errors import LogSchemaError, NormError, NotScoredError, WiseError
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 _PUBLIC_EXCEPTIONS = [
     cls
     for name, cls in inspect.getmembers(wise.errors, inspect.isclass)

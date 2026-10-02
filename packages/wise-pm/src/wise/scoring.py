@@ -22,6 +22,14 @@ applicable layer keeps its full weight. ``"flat"`` renormalises the raw
 constraint weights over the applicable set. The two coincide when all
 constraints of a layer apply to a case. The mode is part of the norm
 (``Norm.scoring_mode``) and can be overridden per call.
+
+A norm is evaluated under its semantics profile (``Norm.semantics``,
+:mod:`wise.semantics`), which :func:`score` and :func:`violation_matrix` take
+from the norm and hand to every evaluation. Under the corrected profile of
+schema version 3 a case whose applicability is unknown (an attribute the rule
+reads is missing) has no value for the constraint and is left out of its
+denominator, and a ``quantile_scale`` recipe is computed only with a fitted
+calibration record.
 """
 
 from __future__ import annotations
@@ -41,17 +49,22 @@ from .errors import NormError, NotScoredError
 from .family import Evaluation, family_of
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
-from .selection import select_cases
+from .recipes import QuantileScaleRecipe, Recipe
+from .selection import LEGACY, select_cases
+from .semantics import LEGACY_SEMANTICS, Semantics
 
 
 # ------------------------------------------------------------------ signals
-def evaluate(constraint: Constraint | NormConstraint, log: EventLog) -> Evaluation:
+def evaluate(constraint: Constraint | NormConstraint, log: EventLog, *, semantics: Semantics = LEGACY_SEMANTICS) -> Evaluation:
     """Evaluate one constraint on every case of ``log``, with the reason per case.
 
     The constraint's family (:mod:`wise.family`) computes the values. For a
     :class:`~wise.norm.NormConstraint` the result is restricted to its
-    applicability: cases outside it are :data:`~wise.family.OUT_OF_SCOPE`,
-    and both Series are named by the constraint id.
+    applicability, evaluated under the missing-value policy of ``semantics``:
+    cases outside it are :data:`~wise.family.OUT_OF_SCOPE`, cases whose scope
+    is unknown :data:`~wise.family.SCOPE_UNKNOWN`, and both Series are named
+    by the constraint id. A constraint of a norm is evaluated under the norm's
+    profile (``norm.semantics``); the default is the 0.1.0 profile.
     """
     if not isinstance(constraint, NormConstraint):
         ev: Evaluation = family_of(constraint).evaluate(constraint, log)
@@ -62,30 +75,36 @@ def evaluate(constraint: Constraint | NormConstraint, log: EventLog) -> Evaluati
     except NormError as exc:
         raise NormError(f"constraint {nc.id!r}: {exc}") from exc
     if nc.applicability:
-        ev = ev.within(nc.applies_to(log.cases, log))
+        if semantics.missing_values == LEGACY:
+            ev = ev.within(nc.applies_to(log.cases, log))
+        else:
+            ev = ev.within(nc.scope(log.cases, log, missing=semantics.missing_values))
     return ev.rename(nc.id)
 
 
-def evaluate_constraint(log: EventLog, nc: NormConstraint) -> pd.Series:
+def evaluate_constraint(log: EventLog, nc: NormConstraint, *, semantics: Semantics = LEGACY_SEMANTICS) -> pd.Series:
     """Evaluate one norm constraint on every case → ``ν_c(σ)``.
 
     Returns a float Series aligned to ``log.cases``; ``NaN`` marks cases to
-    which the constraint does not apply or on which it is not evaluable
-    (:func:`evaluate` gives the reason).
+    which the constraint does not apply, whose scope is unknown, or on which
+    it is not evaluable (:func:`evaluate` gives the reason).
     """
-    return evaluate(nc, log).value
+    return evaluate(nc, log, semantics=semantics).value
 
 
 def violation_matrix(log: EventLog, norm: Norm, *, return_scope: bool = False) -> Any:
-    """``V``: cases × constraints (``ν_c(σ)``, NaN if not applicable/evaluable).
+    """``V``: cases × constraints (``ν_c(σ)``, NaN if not applicable/evaluable),
+    evaluated under the norm's semantics profile (``norm.semantics``).
 
     With ``return_scope=True`` also return the boolean scope matrix ``S``
-    (``σ ∈ C_app``), which distinguishes "out of scope" from "not evaluable".
+    (``σ ∈ C_app``, known to apply), which distinguishes "out of scope" from
+    "not evaluable".
     """
+    semantics = norm.semantics
     cols: dict[str, pd.Series] = {}
     scope: dict[str, pd.Series] = {}
     for nc in norm.constraints:
-        ev = evaluate(nc, log)
+        ev = evaluate(nc, log, semantics=semantics)
         cols[nc.id] = ev.value
         scope[nc.id] = ev.in_scope
     V = pd.DataFrame(cols, index=log.case_ids)
@@ -107,7 +126,8 @@ class ScoreResult:
     violations
         ``V`` matrix, NaN where not applicable or not evaluable.
     in_scope
-        Boolean cases × constraints: ``σ ∈ C_app`` (scope only).
+        Boolean cases × constraints: ``σ ∈ C_app`` (scope only; a case whose
+        scope is unknown under the three-valued policy is not in scope).
     scores
         Cases × views, ``S^(p)(σ)``; NaN = unscored.
     contributions
@@ -122,6 +142,9 @@ class ScoreResult:
         record, or, for a recipe without one (schema version 2 legacy
         profile), the record of the divisor realised on the scored cases,
         stating the scored log's fingerprint. Empty with ``derive=False``.
+    mode
+        The scoring mode the scores were computed in; defaults to the
+        norm's ``scoring_mode``.
     """
 
     norm: Norm
@@ -130,13 +153,17 @@ class ScoreResult:
     in_scope: pd.DataFrame
     scores: pd.DataFrame
     contributions: dict[str, pd.DataFrame]
-    mode: str = "flat"
+    mode: str | None = None
     log: EventLog | None = field(default=None, repr=False)
     norm_fingerprint: str = ""
     wise_version: str = __version__
     _weights: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
     _eff_cache: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
     calibrations: Mapping[str, Calibration] = field(default_factory=dict, kw_only=True)
+
+    def __post_init__(self) -> None:
+        if self.mode is None:
+            self.mode = self.norm.scoring_mode
 
     def __repr__(self) -> str:
         return (
@@ -158,7 +185,7 @@ class ScoreResult:
         scored cases sum to 1."""
         if view not in self._eff_cache:
             M = self.violations.notna().to_numpy(dtype=float)
-            w_eff = _effective_weights(M, self._weights[view], self.norm, self.mode)
+            w_eff = _effective_weights(M, self._weights[view], self.norm, self.mode or self.norm.scoring_mode)
             self._eff_cache[view] = pd.DataFrame(
                 np.nan_to_num(w_eff), index=self.violations.index, columns=self.violations.columns
             )
@@ -265,6 +292,19 @@ def _layer_balanced_weights(M: np.ndarray, w: np.ndarray, norm: Norm) -> np.ndar
         return np.where(a_app[:, None] > 0, w_eff / a_app[:, None], np.nan)
 
 
+def _check_calibrations(recipes: Sequence[Recipe], semantics: Semantics) -> None:
+    """Refuse a population-dependent recipe without a fitted record where the profile requires one."""
+    if not semantics.fitted_calibration:
+        return
+    for r in recipes:
+        if isinstance(r, QuantileScaleRecipe) and (r.calibration is None or not r.calibration.is_fitted):
+            status = "no calibration record" if r.calibration is None else "an unfitted calibration record"
+            raise NormError(
+                f"derived attribute {r.name!r} (quantile_scale) has {status}; under the {semantics.name} semantics a "
+                "population-dependent recipe is computed only with a fitted record (fit it with wise.fit_calibration)"
+            )
+
+
 def score(
     log: EventLog,
     norm: Norm,
@@ -288,7 +328,12 @@ def score(
         that :meth:`EventLog.derive` attached with the same recipe is reused;
         a recipe named like any other case attribute of ``log`` raises
         :class:`~wise.errors.NormError`. With ``derive=False`` the attributes
-        must already be on ``log``.
+        must already be on ``log``. Under the corrected semantics (schema
+        version 3) a ``quantile_scale`` recipe without a fitted calibration
+        record is refused with :class:`~wise.errors.NormError`, with or
+        without ``derive``.
+
+    The norm is evaluated under its semantics profile, ``norm.semantics``.
     """
     views = [views] if isinstance(views, str) else list(dict.fromkeys(views or norm.view_names))
     for v in views:
@@ -297,6 +342,7 @@ def score(
     if mode not in SCORING_MODES:
         raise NormError(f"mode must be one of {SCORING_MODES}, got {mode!r}")
     calibrations: dict[str, Calibration] = {}
+    _check_calibrations(norm.recipes, norm.semantics)
     if derive and norm.derived_attributes:
         scored, log = log, derived_log(log, norm.recipes)
         calibrations = realised_calibrations(scored, log, norm.recipes)

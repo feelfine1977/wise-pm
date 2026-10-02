@@ -28,12 +28,16 @@ from wise import norm_document
 from wise._frozen import FrozenDict, FrozenList, freeze, thaw
 from wise.errors import NormError
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 PKG = Path(__file__).resolve().parents[1]
 SHIPPED = [
     PKG / "examples" / "bpic19_norm.json",
     PKG / "examples" / "running_p2p_norm.json",
     PKG / "tests" / "data" / "golden" / "norm.json",
     *sorted((PKG / "evaluation" / "norms" / "native").glob("*.json")),
+    PKG / "examples" / "running_p2p_norm_v3.json",
 ]
 
 #: One layer, one view, two constraints, one recipe; every free-form field filled in.
@@ -196,7 +200,7 @@ def test_the_constructor_defaults_to_the_current_schema_version(p2p_norm: wise.N
 def test_reading_a_document_requires_its_schema_version() -> None:
     document = mini()
     del document["schema_version"]
-    with pytest.raises(NormError, match=r"norm document has no 'schema_version'; give one of \[1, 2\] \(current: 2\)"):
+    with pytest.raises(NormError, match=r"norm document has no 'schema_version'; give one of \[1, 2, 3\] \(current: 2\)"):
         wise.Norm.from_dict(document)
     with pytest.raises(NormError, match="no 'schema_version'"):
         wise.Norm.loads(json.dumps(document))
@@ -206,7 +210,7 @@ def test_reading_a_document_requires_its_schema_version() -> None:
 @pytest.mark.parametrize(
     ("value", "message"),
     [
-        (3, "newer than supported"),
+        (4, "newer than supported"),
         (99, "newer than supported"),
         (0, "is not a known schema version"),
         (-1, "is not a known schema version"),
@@ -224,10 +228,13 @@ def test_an_unknown_schema_version_is_refused(value: Any, message: str) -> None:
 def test_a_document_is_read_up_to_the_newest_registered_format(monkeypatch: pytest.MonkeyPatch) -> None:
     """ "Newer than supported" is measured against the formats there are, not the version a new norm defaults to."""
     assert set(norm_document.ADAPTERS) == set(wise.norm.SCHEMA_VERSIONS)
-    monkeypatch.setattr(norm_document, "ADAPTERS", {**norm_document.ADAPTERS, 3: norm_document.V2})
     assert norm_document.schema_version_of({"schema_version": 3}) == 3
     with pytest.raises(NormError, match=r"norm schema_version 4 is newer than supported \(3\)"):
         norm_document.schema_version_of({"schema_version": 4})
+    monkeypatch.setattr(norm_document, "ADAPTERS", {**norm_document.ADAPTERS, 4: norm_document.V3})
+    assert norm_document.schema_version_of({"schema_version": 4}) == 4
+    with pytest.raises(NormError, match=r"norm schema_version 5 is newer than supported \(4\)"):
+        norm_document.schema_version_of({"schema_version": 5})
 
 
 @pytest.mark.spec("decision:0001/4")
@@ -252,11 +259,11 @@ def test_replace_and_its_variants_keep_the_schema_version() -> None:
 
 
 @pytest.mark.spec("decision:0001/4")
-@pytest.mark.parametrize("value", [0, 3, True, "2", None, 2.0, 1.0, np.int64(2)])
+@pytest.mark.parametrize("value", [0, 4, True, "2", None, 2.0, 1.0, np.int64(2)])
 def test_the_constructor_refuses_an_unknown_schema_version(p2p_norm: wise.Norm, value: Any) -> None:
     """Only a plain ``int`` is a schema version: a float such as ``2.0`` would be written as ``2.0``, which no
     reader accepts."""
-    with pytest.raises(NormError, match=r"schema_version must be one of \[1, 2\]"):
+    with pytest.raises(NormError, match=r"schema_version must be one of \[1, 2, 3\]"):
         wise.Norm(p2p_norm.constraints, p2p_norm.layers, p2p_norm.views, schema_version=value)
 
 
@@ -264,6 +271,7 @@ def test_a_schema_version_without_an_adapter_is_refused() -> None:
     with pytest.raises(NormError, match="no document format for norm schema_version 7"):
         norm_document.adapter(7)
     assert norm_document.adapter(1) is norm_document.adapter(2) is norm_document.V2
+    assert norm_document.adapter(3) is norm_document.V3
 
 
 # ----------------------------------------------------------------------------- one structural check
@@ -368,6 +376,9 @@ def test_the_fingerprints_of_the_shipped_norms() -> None:
     for path in SHIPPED[:3]:
         assert wise.Norm.load(path).fingerprint() == expected[path.name], path.name
     assert wise.running_p2p_norm().fingerprint() == expected["running_p2p_norm.json"]
+    # the schema version 3 copy of the running example (schema version and missing-value policy differ)
+    v3 = wise.Norm.load(PKG / "examples" / "running_p2p_norm_v3.json")
+    assert v3.fingerprint() == "f675d41633acf29d420cb7cca7e17c0ce154af43c7c78571c019cffeb2c5aed5"
 
 
 # ----------------------------------------------------------------------------- read-only values (C7)

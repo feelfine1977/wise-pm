@@ -38,11 +38,12 @@
       "id": "C4",
       "title": "ne/not_in applicability puts cases with a missing attribute in scope",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C5",
@@ -135,11 +136,12 @@
       "id": "C13",
       "title": "ScoreResult.mode default differs from the norm default",
       "severity": "S2",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M2",
       "kind": "defect",
-      "release_blocking": false
+      "release_blocking": false,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C14",
@@ -264,11 +266,12 @@
       "id": "C25",
       "title": "the not combinator brings cases with a missing attribute into scope",
       "severity": "S1",
-      "status": "open",
+      "status": "fixed",
       "owner": "maintainer",
       "milestone": "M3",
       "kind": "defect",
-      "release_blocking": true
+      "release_blocking": true,
+      "fixed_on": "2026-10-02"
     },
     {
       "id": "C26",

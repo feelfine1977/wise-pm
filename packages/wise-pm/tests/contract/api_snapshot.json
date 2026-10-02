@@ -1526,6 +1526,16 @@
       "kind": "class",
       "members": {}
     },
+    "wise.LegacySemanticsWarning": {
+      "bases": [
+        "FutureWarning"
+      ],
+      "class_constants": {},
+      "dataclass_fields": null,
+      "init": null,
+      "kind": "class",
+      "members": {}
+    },
     "wise.LogSchema": {
       "bases": [
         "object"
@@ -2170,6 +2180,11 @@
           ],
           "returns": "Norm"
         },
+        "semantics": {
+          "kind": "property",
+          "returns": "Semantics",
+          "settable": false
+        },
         "to_dict": {
           "kind": "method",
           "parameters": [],
@@ -2292,6 +2307,12 @@
               "default": "None",
               "kind": "POSITIONAL_OR_KEYWORD",
               "name": "log"
+            },
+            {
+              "annotation": "MissingPolicy",
+              "default": "'legacy'",
+              "kind": "KEYWORD_ONLY",
+              "name": "missing"
             }
           ],
           "returns": "pd.Series"
@@ -2307,6 +2328,30 @@
             }
           ],
           "returns": "NormConstraint"
+        },
+        "scope": {
+          "kind": "method",
+          "parameters": [
+            {
+              "annotation": "pd.DataFrame",
+              "default": "<required>",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "cases"
+            },
+            {
+              "annotation": "EventLog | None",
+              "default": "None",
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "log"
+            },
+            {
+              "annotation": "MissingPolicy",
+              "default": "'legacy'",
+              "kind": "KEYWORD_ONLY",
+              "name": "missing"
+            }
+          ],
+          "returns": "pd.Series"
         },
         "to_dict": {
           "kind": "method",
@@ -2596,8 +2641,8 @@
             "name": "contributions"
           },
           {
-            "annotation": "str",
-            "default": "'flat'",
+            "annotation": "str | None",
+            "default": "None",
             "kind": "POSITIONAL_OR_KEYWORD",
             "name": "mode"
           },
@@ -2754,6 +2799,42 @@
           "returns": "pd.DataFrame"
         }
       }
+    },
+    "wise.Semantics": {
+      "bases": [
+        "object"
+      ],
+      "class_constants": {},
+      "dataclass_fields": [
+        "name",
+        "missing_values",
+        "fitted_calibration"
+      ],
+      "init": {
+        "parameters": [
+          {
+            "annotation": "str",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "name"
+          },
+          {
+            "annotation": "MissingPolicy",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "missing_values"
+          },
+          {
+            "annotation": "bool",
+            "default": "<required>",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "fitted_calibration"
+          }
+        ],
+        "returns": "None"
+      },
+      "kind": "class",
+      "members": {}
     },
     "wise.Singularity": {
       "bases": [
@@ -3182,6 +3263,12 @@
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "log"
+        },
+        {
+          "annotation": "Semantics",
+          "default": "Semantics(name='0.1.0', missing_values='legacy', fitted_calibration=False)",
+          "kind": "KEYWORD_ONLY",
+          "name": "semantics"
         }
       ],
       "returns": "Evaluation"
@@ -3200,6 +3287,12 @@
           "default": "<required>",
           "kind": "POSITIONAL_OR_KEYWORD",
           "name": "nc"
+        },
+        {
+          "annotation": "Semantics",
+          "default": "Semantics(name='0.1.0', missing_values='legacy', fitted_calibration=False)",
+          "kind": "KEYWORD_ONLY",
+          "name": "semantics"
         }
       ],
       "returns": "pd.Series"

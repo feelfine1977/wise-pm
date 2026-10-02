@@ -8,6 +8,9 @@ import wise
 from _support.builders import make_log
 from wise.errors import NormError, NotScoredError
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 TABLE_VI = {
     "A": (0.6625, 0.8875),
     "B": (0.9667, 0.7000),

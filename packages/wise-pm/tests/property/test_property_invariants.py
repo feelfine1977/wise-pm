@@ -12,6 +12,9 @@ import wise
 from _support.builders import make_log
 from _support.strategies import VIEW_BY_CONSTRAINT, VIEWS, event_logs, log_kwargs, norms
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 MODES = ["flat", "layer_balanced"]
 
 

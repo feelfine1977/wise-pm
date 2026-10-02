@@ -1,9 +1,13 @@
 """Command-line interface."""
 
 import pandas as pd
+import pytest
 
 import wise
 from wise.cli import main
+
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
 
 
 def _files(tmp_path):

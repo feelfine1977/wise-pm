@@ -16,6 +16,10 @@ import wise
 from _support.builders import make_log
 from wise.derive import validate_recipe
 from wise.errors import NormError
+from wise.selection import THREE_VALUED
+
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
 
 #: Smallest valid norm in dictionary form; tests override one key at a time.
 BASE: dict[str, Any] = {
@@ -60,14 +64,26 @@ def _norm_with_recipe(recipe):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="C4: ne/not_in put a case with a missing attribute in scope (NaN != v is True)",
-)
+@pytest.mark.spec("decision:0001/3")
+# C4 closed 2026-10-02: under schema version 3 applicability is three-valued (decision 0001, section 3): a case whose
+# attribute is missing is unknown under ne/not_in, is not in scope and is left out of the denominator. Schema
+# version 2 keeps the 0.1.0 scope under the legacy profile (section 4).
 @pytest.mark.parametrize("rule", [{"attr": "ft", "ne": "X"}, {"attr": "ft", "not_in": ["X"]}], ids=["ne", "not_in"])
-def test_missing_attribute_is_out_of_scope_under_negated_operators(missing_attr_log, rule):
-    assert _applies(missing_attr_log, rule) == [False, False]
+def test_missing_attribute_is_unknown_under_negated_operators(missing_attr_log, rule):
+    nc = wise.NormConstraint("c", "L", wise.Presence("A"), applicability=rule)
+    assert nc.scope(missing_attr_log.cases, missing=THREE_VALUED).tolist() == [False, pd.NA]
+    assert nc.applies_to(missing_attr_log.cases, missing=THREE_VALUED).tolist() == [False, False]
+    constraints = [{**BASE["constraints"][0], "applicability": rule}]
+    corrected = wise.Norm.from_dict({**BASE, "schema_version": 3, "missing_values": "three_valued", "constraints": constraints})
+    result = wise.score(missing_attr_log, corrected)
+    assert result.in_scope["c"].tolist() == [False, False]
+    assert wise.evaluate(corrected.get_constraint("c"), missing_attr_log, semantics=corrected.semantics).reason.astype(
+        str
+    ).tolist() == ["out_of_scope", "scope_unknown"]
+    # c is the only constraint: case 1 is out of its scope and case 2 has no denominator left, so both are unscored
+    assert result.scores["v"].isna().tolist() == [True, True]
+    legacy = wise.Norm.from_dict({**BASE, "constraints": constraints})
+    assert wise.score(missing_attr_log, legacy).scores["v"].tolist() == pytest.approx([np.nan, 1.0], nan_ok=True)
 
 
 @pytest.mark.spec("IV-C")

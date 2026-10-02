@@ -1,4 +1,4 @@
-"""Defect ledger C9 in prioritisation and diagnostics, plus characterisation
+"""Defect ledger C9 and C25 in prioritisation and diagnostics, plus characterisation
 of the priority algebra that must survive the fix.
 
 Regression tests pin the *desired* behaviour and are strict xfails until the
@@ -300,9 +300,10 @@ def test_slice_helpers_label_a_missing_key(p2p_log, p2p_norm):
 
 
 @pytest.mark.regression
-@pytest.mark.xfail(
-    strict=True, raises=AssertionError, reason="C25: the 'not' combinator brings a case with a missing attribute into scope"
-)
+@pytest.mark.spec("decision:0001/3")
+# C25 closed 2026-10-02: under schema version 3 a missing attribute is unknown under every operator and 'not' keeps
+# it unknown (decision 0001, section 3), so the negated rule does not bring the case into scope. Schema version 2
+# keeps the 0.1.0 scope under the legacy profile (section 4).
 def test_negated_rule_keeps_missing_attribute_out_of_scope():
     df = pd.DataFrame(
         {
@@ -314,8 +315,21 @@ def test_negated_rule_keeps_missing_attribute_out_of_scope():
     )
     log = wise.EventLog(df, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["ft"])
     rule = {"not": {"attr": "ft", "eq": "X"}}
-    applies = wise.NormConstraint("c", "L", wise.Presence("B"), applicability=rule).applies_to(log.cases).tolist()
-    assert applies == [False, False], "case 2 has no ft value; negating eq must not make it eligible"
+    document = {
+        "schema_version": 3,
+        "missing_values": "three_valued",
+        "layers": [{"id": "L"}],
+        "views": [{"name": "v", "constraint_weights": {"c": 1}}],
+        "constraints": [{"id": "c", "layer": "L", "type": "presence", "params": {"activity": "B"}, "applicability": rule}],
+    }
+    norm = wise.Norm.from_dict(document)
+    nc = norm.get_constraint("c")
+    assert nc.scope(log.cases, missing=norm.semantics.missing_values).tolist() == [False, pd.NA]
+    result = wise.score(log, norm)
+    assert result.in_scope["c"].tolist() == [False, False], "case 2 has no ft value; negating eq must not make it eligible"
+    assert result.scores["v"].isna().all()
+    legacy = wise.NormConstraint("c", "L", wise.Presence("B"), applicability=rule)
+    assert legacy.applies_to(log.cases).tolist() == [False, True]
 
 
 # ---------------------------------------------------------------- C26–C28: ranking parameters accepted unchecked

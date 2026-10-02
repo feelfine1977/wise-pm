@@ -21,7 +21,11 @@ from wise.calibration import Calibration, CalibrationStatus, parse_calibration
 from wise.errors import NormError
 from wise.recipes import QuantileScaleRecipe, parse_recipe
 
-pytestmark = pytest.mark.spec("decision:0001/3")
+pytestmark = [
+    pytest.mark.spec("decision:0001/3"),
+    # Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+    pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning"),
+]
 
 SCALED: dict[str, Any] = {"name": "scaled", "kind": "quantile_scale", "attribute": "n_events", "q": 0.5}
 FULL_WINDOW = ("2023-12-31T00:00:00", "2024-01-31T00:00:00")

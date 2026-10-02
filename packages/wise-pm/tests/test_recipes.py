@@ -44,6 +44,9 @@ from wise.recipes import (
     parse_recipe,
 )
 
+# Schema version 2 documents are read here; each read announces the 0.1.0 semantics (LegacySemanticsWarning).
+pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
+
 GR, IR, PO = "Record Goods Receipt", "Record Invoice Receipt", "Create Purchase Order Item"
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 

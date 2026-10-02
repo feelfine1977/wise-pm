@@ -26,7 +26,9 @@ Applicability
 -------------
 ``C_app(σ)`` is stated per constraint as a selection rule over the case table
 (short form or rule form, see :mod:`wise.selection`). Scoring evaluates it
-under the 0.1.0 missing-value policy.
+under the missing-value policy of the norm's semantics profile
+(:attr:`Norm.semantics`, :mod:`wise.semantics`): the 0.1.0 policy for schema
+versions 1 and 2, three-valued for schema version 3.
 """
 
 from __future__ import annotations
@@ -51,7 +53,8 @@ from .constraints import (
 from .errors import NormError
 from .family import Inputs, family_of
 from .recipes import Recipe, parse_recipe
-from .selection import LEGACY, CaseTable, Selection, parse
+from .selection import LEGACY, CaseTable, MissingPolicy, Selection, parse
+from .semantics import Semantics, semantics_of
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
@@ -60,8 +63,9 @@ if TYPE_CHECKING:  # pragma: no cover
 
 #: The schema version a norm built in Python carries by default.
 SCHEMA_VERSION = 2
-#: The schema versions a norm can carry; both are read and written in the 0.1.0 layout (:mod:`wise.norm_document.v2`).
-SCHEMA_VERSIONS = (1, 2)
+#: The schema versions a norm can carry: 1 and 2 in the 0.1.0 layout (:mod:`wise.norm_document.v2`), evaluated under
+#: the 0.1.0 semantics, and 3 (:mod:`wise.norm_document.v3`), evaluated under the corrected semantics.
+SCHEMA_VERSIONS = (1, 2, 3)
 SCORING_MODES = ("layer_balanced", "flat")
 DEFAULT_SCORING_MODE = "layer_balanced"
 
@@ -153,10 +157,23 @@ class NormConstraint:
         object.__setattr__(self, "applicability", selection.document)
         object.__setattr__(self, "_selection", selection)
 
-    def applies_to(self, cases: pd.DataFrame, log: EventLog | None = None) -> pd.Series:
-        """Boolean mask over ``cases`` (one row per case) for ``C_app``."""
+    def applies_to(self, cases: pd.DataFrame, log: EventLog | None = None, *, missing: MissingPolicy = LEGACY) -> pd.Series:
+        """Boolean mask over ``cases`` (one row per case) for ``C_app``.
+
+        ``missing`` is the missing-value policy (:mod:`wise.selection`); under
+        ``"three_valued"`` a case whose scope is unknown is not in the mask
+        (:meth:`scope` tells it apart from a case out of scope).
+        """
         if not self.applicability:
             return pd.Series(True, index=cases.index)
+        if missing == LEGACY:
+            return self.scope(cases, log, missing=missing).astype(bool)
+        return self.scope(cases, log, missing=missing).fillna(False).astype(bool)
+
+    def scope(self, cases: pd.DataFrame, log: EventLog | None = None, *, missing: MissingPolicy = LEGACY) -> pd.Series:
+        """Nullable boolean Series over ``cases``: in scope, out of scope, ``<NA>`` unknown under ``missing``."""
+        if not self.applicability:
+            return pd.Series(True, index=cases.index, dtype="boolean")
         for attr in self._selection.columns:
             if attr not in cases.columns:
                 raise NormError(
@@ -164,7 +181,7 @@ class NormConstraint:
                 )
         if self._selection.activities and log is None:
             raise NormError(f"constraint {self.id!r}: 'has'/'lacks' applicability needs the event log")
-        return self._selection.evaluate(CaseTable(cases, log), missing=LEGACY).astype(bool)
+        return self._selection.evaluate(CaseTable(cases, log), missing=missing)
 
     def replace(self, **changes: Any) -> NormConstraint:
         """A copy with the given fields changed (constraints are immutable)."""
@@ -219,6 +236,11 @@ class Norm:
         _check_structure(self)
 
     # ------------------------------------------------------------ lookups
+    @property
+    def semantics(self) -> Semantics:
+        """The semantics profile the norm is evaluated under, given by its schema version (:mod:`wise.semantics`)."""
+        return semantics_of(self.schema_version)
+
     @property
     def recipes(self) -> tuple[Recipe, ...]:
         """The derived attributes as typed records (:mod:`wise.recipes`), in the order of ``derived_attributes``."""
@@ -480,7 +502,8 @@ def _check_structure(norm: Norm) -> None:
 
     Each layer, view and constraint checks its own fields when it is built; this checks what only the norm as a
     whole can: unique ids and names, references between constraints, layers and views, a non-zero weight in every
-    view, the scoring mode, the schema version and the names of the derived attributes.
+    view, the scoring mode, the schema version, the names of the derived attributes and, from schema version 3 on,
+    that no recipe is an ``eval`` (decision 0001, section 3).
     """
     ids = norm.constraint_ids
     dup = sorted({i for i in ids if ids.count(i) > 1})
@@ -519,6 +542,13 @@ def _check_structure(norm: Norm) -> None:
         if r.name in seen:
             raise NormError(f"duplicate derived attribute {r.name!r}")
         seen.add(r.name)
+    if norm.schema_version >= 3:
+        for document in norm.derived_attributes:
+            if document.get("kind") == "eval":
+                raise NormError(
+                    f"derived attribute {document.get('name')!r}: schema version {norm.schema_version} has no eval recipe; "
+                    "name the case-table column with a column recipe instead"
+                )
 
 
 def _rule_attributes(rule: Mapping[str, Any]) -> set[str]:

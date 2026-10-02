@@ -18,6 +18,8 @@ pytestmark = [
     pytest.mark.bpic19,
     pytest.mark.spec("V"),
     pytest.mark.skipif(not CSV or not Path(CSV).exists(), reason="set WISE_BPIC19_CSV to the BPI Challenge 2019 CSV"),
+    # The BPIC'19 norm is a schema version 2 document: Section V reproduces under the 0.1.0 semantics, announced on read.
+    pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning"),
 ]
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"

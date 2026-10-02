@@ -62,7 +62,11 @@ READABLE = [(n, m) for m in mg.MODES for n in mg.MODE_OUTPUTS if n in mg.READABL
     (n, None) for n in mg.COMMON_OUTPUTS if n in mg.READABLE_OUTPUTS
 ]
 
-pytestmark = pytest.mark.spec("golden")
+pytestmark = [
+    pytest.mark.spec("golden"),
+    # The golden norm is a schema version 2 document: it evaluates under the 0.1.0 semantics, announced on every read.
+    pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning"),
+]
 
 
 # ------------------------------------------------------------------ fixtures (module scope: the pipeline runs once)
