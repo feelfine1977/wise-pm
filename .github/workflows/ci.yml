@@ -76,7 +76,7 @@ jobs:
       - if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13' && matrix.deps == 'locked'
         name: golden determinism on this runner and drift against the committed record
         run: uv run --frozen --no-sync python packages/wise-pm/scripts/make_golden.py --check --mode report
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: test-results-${{ matrix.os }}-py${{ matrix.python }}-${{ matrix.deps }}
@@ -126,7 +126,7 @@ jobs:
           tar -xzf dist/wise_pm-*.tar.gz -C "$RUNNER_TEMP"
           cd "$RUNNER_TEMP"/wise_pm-*/
           "$GITHUB_WORKSPACE"/sdist-check/bin/python -m pytest -q -p no:cacheprovider --strict-markers -W error -m "not bench and not bpic19" tests
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: matrix.os == 'ubuntu-latest'
         with:
           name: dist
