@@ -498,9 +498,11 @@ def test_an_unsealable_value_in_a_compared_row_is_refused_as_without_removal() -
         wise.parse(frame, IDENTICAL)
 
 
-def test_an_unknown_policy_name_for_dedupe_is_refused() -> None:
-    with pytest.raises(LogSchemaError, match=r"dedupe must be one of \['keep', 'drop', 'identical'\], got 'exact'"):
-        wise.EventLog(_frame(), **COLS, dedupe="exact")  # type: ignore[arg-type]
+@pytest.mark.parametrize("name", ["exact", "yes", "Identical", ""])
+def test_an_unknown_policy_name_for_dedupe_is_refused(name: str) -> None:
+    # a string is read as a name, not as a truth value: "yes" does not mean drop, nor "" keep
+    with pytest.raises(LogSchemaError, match=rf"dedupe must be one of \['keep', 'drop', 'identical'\], got {name!r}"):
+        wise.EventLog(_frame(), **COLS, dedupe=name)  # type: ignore[arg-type]
 
 
 @pytest.mark.spec("IV-A")
