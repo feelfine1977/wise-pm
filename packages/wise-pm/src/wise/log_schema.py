@@ -14,11 +14,12 @@ a null lifecycle transition, unparseable timestamps under the ``"raise"``
 policy, negative exposure, a log whose filters leave no event, and case
 attributes that vary within a case under the ``"strict"`` policy.
 
-Two rules of the method's input are stated here once, as policies: what an
-event without a timestamp contributes to each primitive
-(:class:`UntimedEvents`; the table is in ``docs/semantics/log-policies.md``),
-and how one value per case is taken from a case attribute recorded on events
-(:class:`CaseAttributeValues`).
+Three rules of the method's input are stated here once, as policies (the
+tables are in ``docs/semantics/log-policies.md``): what an event without a
+timestamp contributes to each primitive (:class:`UntimedEvents`), how one
+value per case is taken from a case attribute recorded on events
+(:class:`CaseAttributeValues`), and which event is kept of events that share
+case, activity and timestamp (:class:`Duplicates`).
 """
 
 from __future__ import annotations
@@ -93,12 +94,23 @@ class UntimedEvents(str, Enum):
 
 
 class Duplicates(str, Enum):
-    """What to do with events equal in case, activity and timestamp."""
+    """What to do with events that share their key: case, activity and timestamp.
+
+    The key compares the values as given, before the timestamps are parsed, so
+    two missing timestamps are equal. Rows that share the key and differ in any
+    other column (an event identifier, an amount) are duplicates all the same.
+    """
 
     KEEP = "keep"
     """Keep every event (default)."""
     DROP = "drop"
-    """Keep the first of each group of equal events."""
+    """Keep one event per key and drop the others. The survivor does not depend
+    on the order of the input rows: it is the event with the smallest
+    ``order_col`` value, then, among events equal so far, the one whose other
+    columns, read in column-name order, are smallest (nulls last; values that
+    do not compare, and values equal but of a different type, compare by type
+    name and ``repr``). The number of dropped events and of the cases they
+    came from are recorded (:attr:`ParsedLog.n_dropped_duplicates`)."""
 
 
 class TimeZone(str, Enum):
@@ -339,7 +351,9 @@ class ParsedLog:
     ``last_ts``, the case attributes and ``exposure``) indexed by case id.
     ``varying_case_attributes`` maps each case attribute that takes more than
     one non-null value within a case to the number of such cases (read-only,
-    in case-table order)."""
+    in case-table order). ``n_dropped_duplicates`` is the number of events
+    removed under :attr:`Duplicates.DROP` and ``n_cases_with_dropped_duplicates``
+    the number of cases they belonged to; both are 0 under :attr:`Duplicates.KEEP`."""
 
     schema: LogSchema
     events: pd.DataFrame
@@ -348,6 +362,8 @@ class ParsedLog:
     n_missing_timestamps: int
     n_null_activities: int
     varying_case_attributes: Mapping[str, int] = field(default_factory=lambda: MappingProxyType({}), kw_only=True)
+    n_dropped_duplicates: int = field(default=0, kw_only=True)
+    n_cases_with_dropped_duplicates: int = field(default=0, kw_only=True)
 
     @property
     def tz(self) -> Any:
@@ -388,10 +404,54 @@ def _parse_timestamps(raw: pd.Series, schema: LogSchema) -> pd.Series:
     return cast("pd.Series", ts)
 
 
+def _canonical(value: Any) -> str:
+    return f"{type(value).__module__}.{type(value).__qualname__}:{value!r}"
+
+
+def _ranks(values: pd.Series) -> np.ndarray:
+    """Dense ranks of ``values`` in ascending order with nulls last; values
+    that do not compare are ranked by type name and ``repr``."""
+    try:
+        codes, uniques = pd.factorize(values, sort=True)
+    except TypeError:
+        codes, uniques = pd.factorize(values.map(_canonical), sort=True)
+    codes = codes.astype(np.int64)
+    codes[codes < 0] = len(uniques)
+    return codes
+
+
+def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame, int, int]:
+    """``df`` without the events that share their key with a survivor (the
+    rule of :attr:`Duplicates.DROP`), the number of dropped events and the
+    number of cases they came from. The kept rows stay in input order."""
+    key = [schema.case_col, schema.activity_col, schema.timestamp_col]
+    in_group = df.duplicated(subset=key, keep=False).to_numpy()
+    if not in_group.any():
+        return df, 0, 0
+    rows = np.flatnonzero(in_group)
+    group = df.iloc[rows]
+    positions = sorted(range(group.shape[1]), key=lambda i: str(group.columns[i]))
+    if schema.order_col is not None:
+        order_at = group.columns.get_loc(schema.order_col)
+        positions = [order_at, *(i for i in positions if i != order_at)] if isinstance(order_at, int) else positions
+    sort_keys: list[np.ndarray] = []
+    for i in positions:
+        column = group.iloc[:, i]
+        sort_keys.append(_ranks(column))
+        if column.dtype == object:
+            sort_keys.append(_ranks(column.map(_canonical)))
+    ranked = np.lexsort(sort_keys[::-1])
+    survives = ~group.iloc[ranked].duplicated(subset=key).to_numpy()
+    keep = ~in_group
+    keep[rows[ranked[survives]]] = True
+    dropped_cases = group[schema.case_col].iloc[ranked[~survives]]
+    return df[keep], int((~survives).sum()), int(dropped_cases.nunique(dropna=False))
+
+
 def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
     """Build the events, the case index and the case table of ``events`` under ``schema``.
 
-    The lifecycle filter and the duplicate policy apply first, then case ids
+    The lifecycle filter and the duplicate policy (:class:`Duplicates`) apply first, then case ids
     are factorised (sorted), timestamps parsed under the time-zone, date-order
     and missing-timestamp policies, and the events sorted by
     ``(case, timestamp, order_col or input row)``. ``events`` is not modified.
@@ -425,8 +485,9 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
                 f"no event of lifecycle column {schema.lifecycle_col!r} has a transition in {list(schema.keep_transitions)} "
                 f"(found: {found}); set keep_transitions to the transitions the log records"
             )
+    n_dropped = n_cases_dropped = 0
     if schema.duplicates is Duplicates.DROP:
-        df = df.drop_duplicates(subset=[case_col, activity_col, timestamp_col])
+        df, n_dropped, n_cases_dropped = _drop_duplicates(df, schema)
 
     # ---- case ids -------------------------------------------------------------------
     case_series = df[case_col]
@@ -519,4 +580,14 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
                 f"{int((exp < 0).sum())} cases; the paper assumes exp(σ) >= 0"
             )
         cases["exposure"] = exp.astype(float)
-    return ParsedLog(schema, ev, index, cases, n_missing_ts, n_null_activities, varying_case_attributes=MappingProxyType(varying))
+    return ParsedLog(
+        schema,
+        ev,
+        index,
+        cases,
+        n_missing_ts,
+        n_null_activities,
+        varying_case_attributes=MappingProxyType(varying),
+        n_dropped_duplicates=n_dropped,
+        n_cases_with_dropped_duplicates=n_cases_dropped,
+    )

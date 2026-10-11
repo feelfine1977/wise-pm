@@ -249,17 +249,84 @@ def test_policies_are_read_from_the_schema_not_from_the_data() -> None:
 
 
 @pytest.mark.spec("IV-A")
-def test_dropping_duplicates_keeps_the_first_event_of_each_group_in_input_order() -> None:
-    # rows 1 and 3 of the frame agree in case, activity and time; only row 1 differs in amount
+def test_dropping_duplicates_keeps_the_same_event_whatever_the_row_order() -> None:
+    # rows 1 and 3 agree in case, activity and time and differ in amount (7 and 5) and lc ('COMPLETE', 'complete');
+    # the first other column in name order that differs is amount, so the row with amount 5 survives
     frame = _frame().assign(amount=[2.0, 7.0, 3.0, 5.0])
     schema = wise.LogSchema(**COLS, exposure_col="amount", exposure_agg="sum")
     kept = wise.parse(frame, schema)
-    dropped = wise.parse(frame, dataclasses.replace(schema, duplicates=Duplicates.DROP))
+    drop = dataclasses.replace(schema, duplicates=Duplicates.DROP)
     assert kept.events["amount"].tolist() == [7.0, 5.0, 2.0, 3.0]
-    assert dropped.events["amount"].tolist() == [7.0, 2.0, 3.0]
     assert kept.cases["exposure"].tolist() == [12.0, 5.0]
-    assert dropped.cases["exposure"].tolist() == [7.0, 5.0]
-    assert dropped.cases["n_events"].tolist() == [1, 2]
+    for rows in ([0, 1, 2, 3], [3, 2, 1, 0], [1, 3, 0, 2]):
+        dropped = wise.parse(frame.iloc[rows], drop)
+        assert dropped.events["amount"].tolist() == [5.0, 2.0, 3.0]
+        assert dropped.events["lc"].tolist() == ["complete", "complete", "start"]
+        assert dropped.cases["exposure"].tolist() == [5.0, 5.0]
+        assert dropped.cases["n_events"].tolist() == [1, 2]
+
+
+@pytest.mark.spec("IV-A")
+def test_the_order_column_chooses_the_survivor_before_the_other_columns() -> None:
+    # seq puts the amount-7 row of case a first, although its amount is the larger one
+    frame = _frame().assign(amount=[2.0, 7.0, 3.0, 5.0], seq=[0, 1, 0, 2])
+    schema = wise.LogSchema(**COLS, order_col="seq", duplicates="drop")
+    for rows in ([0, 1, 2, 3], [3, 2, 1, 0]):
+        assert wise.parse(frame.iloc[rows], schema).events["amount"].tolist() == [7.0, 2.0, 3.0]
+    # equal order values fall back to the other columns: amount 5 survives
+    tied = frame.assign(seq=[0, 1, 0, 1])
+    for rows in ([0, 1, 2, 3], [3, 2, 1, 0]):
+        assert wise.parse(tied.iloc[rows], schema).events["amount"].tolist() == [5.0, 2.0, 3.0]
+
+
+@pytest.mark.spec("IV-A")
+def test_values_that_do_not_compare_still_choose_one_survivor() -> None:
+    # rows 1 and 3 of the frame are equal outside the column added here, which alone decides
+    # equal values of different types rank by type name: 'builtins.bool:True' < 'builtins.int:1'
+    # nested values do not compare and rank by repr: "builtins.list:['p']" < "builtins.list:['q']"
+    pair = _frame().iloc[[1, 3]].reset_index(drop=True).assign(lc="complete")
+    schema = dataclasses.replace(SCHEMA, duplicates=Duplicates.DROP)
+    for column, values, survivor in (("flag", [1, True], True), ("tags", [["q"], ["p"]], ["p"])):
+        frame = pair.assign(**{column: pd.Series(values, dtype=object)})
+        for rows in ([0, 1], [1, 0]):
+            assert wise.parse(frame.iloc[rows], schema).events[column].tolist() == [survivor]
+
+
+@pytest.mark.spec("IV-A")
+def test_the_parsed_record_counts_the_dropped_events_and_their_cases() -> None:
+    # case a: one duplicate; case b: two events at 2024-01-02 duplicate the first one; c: none
+    extra = pd.DataFrame(
+        {
+            "case": ["b", "b", "c"],
+            "activity": ["X", "X", "X"],
+            "time": pd.to_datetime(["2024-01-02", "2024-01-02", "2024-01-02"]),
+            "lc": ["complete"] * 3,
+            "amount": [1.0, 1.0, 1.0],
+            "org": ["n", "n", "o"],
+        }
+    )
+    frame = pd.concat([_frame(), extra], ignore_index=True)
+    dropped = wise.parse(frame, dataclasses.replace(SCHEMA, duplicates=Duplicates.DROP))
+    assert (dropped.n_dropped_duplicates, dropped.n_cases_with_dropped_duplicates) == (3, 2)
+    assert len(dropped.events) == 7 - 3
+    kept = wise.parse(frame, SCHEMA)
+    assert (kept.n_dropped_duplicates, kept.n_cases_with_dropped_duplicates) == (0, 0)
+    clean = wise.parse(_frame().iloc[:3], dataclasses.replace(SCHEMA, duplicates=Duplicates.DROP))
+    assert (clean.n_dropped_duplicates, clean.n_cases_with_dropped_duplicates) == (0, 0)
+
+
+@pytest.mark.spec("IV-A")
+def test_validate_reports_the_dropped_duplicates_when_the_log_drops_them() -> None:
+    log = wise.EventLog(_frame(), **COLS, dedupe=True)
+    report = log.validate()
+    assert (report["dropped_duplicates"], report["cases_with_dropped_duplicates"]) == (1, 1)
+    assert (log.n_dropped_duplicates, log.n_cases_with_dropped_duplicates) == (1, 1)
+    clean = wise.EventLog(_frame().iloc[:3], **COLS, dedupe=True).validate()
+    assert (clean["dropped_duplicates"], clean["cases_with_dropped_duplicates"]) == (0, 0)
+    kept = wise.EventLog(_frame(), **COLS)
+    assert (kept.n_dropped_duplicates, kept.n_cases_with_dropped_duplicates) == (0, 0)
+    assert "dropped_duplicates" not in kept.validate().index
+    assert "cases_with_dropped_duplicates" not in kept.validate().index
 
 
 @pytest.mark.spec("IV-A")

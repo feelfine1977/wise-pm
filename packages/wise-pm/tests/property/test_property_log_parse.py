@@ -8,7 +8,12 @@ combination of the constructor's options, then builds the log both ways: through
 ``LogSchema``), and through the frozen 0.1.0 construction in
 ``_support.legacy_log``. The two agree exactly, except where 0.1.0 accepted
 input silently and wrongly: an event frame without rows, a lifecycle column
-with nulls, and a log that loses every event to its filters are refused.
+with nulls, and a log that loses every event to its filters are refused; and
+where ``dedupe`` meets events equal in case, activity and time that differ
+elsewhere: 0.1.0 kept the first in input order, the parse step keeps the
+survivor that ``Duplicates.DROP`` states (its own property is in
+``test_property_log_dedupe.py``), so only what does not depend on the
+survivor is compared there, without exposure.
 """
 
 from __future__ import annotations
@@ -120,6 +125,20 @@ def options(draw: st.DrawFn) -> dict[str, Any]:
     return opts
 
 
+def _drops_differing_twins(frame: pd.DataFrame, opts: dict[str, Any]) -> bool:
+    key = ["case", "activity", "time"]
+    return bool(opts.get("dedupe")) and len(frame.drop_duplicates(key)) != len(frame.drop_duplicates())
+
+
+def _assert_same_without_survivors(log: wise.EventLog | wise.ParsedLog, old: LegacyLog) -> None:
+    pd.testing.assert_frame_equal(log.cases[["n_events", "first_ts", "last_ts"]], old.cases[["n_events", "first_ts", "last_ts"]])
+    new_index = log.case_index if isinstance(log, wise.EventLog) else log.index
+    assert new_index.n_cases == old.index.n_cases
+    assert str(log.tz) == str(old.tz)
+    assert log.n_missing_timestamps == old.n_missing_timestamps
+    assert log.n_null_activities == old.n_null_activities
+
+
 def _assert_same(log: wise.EventLog | wise.ParsedLog, old: LegacyLog) -> None:
     pd.testing.assert_frame_equal(log.events, old.events, check_exact=True)
     pd.testing.assert_frame_equal(log.cases, old.cases, check_exact=True)
@@ -137,6 +156,10 @@ def _assert_same(log: wise.EventLog | wise.ParsedLog, old: LegacyLog) -> None:
 def test_the_constructor_builds_the_0_1_0_log_or_refuses_what_0_1_0_accepted_wrongly(
     frame: pd.DataFrame, opts: dict[str, Any]
 ) -> None:
+    twins = _drops_differing_twins(frame, opts)
+    if twins:
+        note("dedupe meets twins that differ outside the key")
+        opts = {k: v for k, v in opts.items() if k != "exposure_col"}  # a negative exposure depends on the survivor
     try:
         old: LegacyLog | None = legacy_build(frame, **opts)
         old_error: Exception | None = None
@@ -152,7 +175,11 @@ def test_the_constructor_builds_the_0_1_0_log_or_refuses_what_0_1_0_accepted_wro
         return
     assert old is not None
     log = wise.EventLog(frame, **opts)
-    _assert_same(log, old)
     assert log.case_attributes == list(wise.LogSchema.from_options(**opts).case_attributes)
     assert log.schema == wise.LogSchema.from_options(**opts)
+    if twins:
+        _assert_same_without_survivors(log, old)
+        _assert_same_without_survivors(wise.parse(frame, log.schema), old)
+        return
+    _assert_same(log, old)
     _assert_same(wise.parse(frame, log.schema), old)
