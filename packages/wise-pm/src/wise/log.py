@@ -22,6 +22,7 @@ Column names default to the pm4py / XES conventions ``case:concept:name``,
 from __future__ import annotations
 
 import copy
+import dataclasses
 import hashlib
 import warnings
 from collections.abc import Iterable, Mapping
@@ -147,11 +148,16 @@ class EventLog:
         Restrict :attr:`events` to these columns (plus the core ones) to
         save memory on wide logs.
     dedupe
-        Keep one event per case, activity and timestamp and drop the others,
-        also when they differ in other columns (an event id, an amount). The
-        survivor does not depend on the input row order: the smallest
-        ``order_col`` value, then the smallest other columns in column-name
-        order (:attr:`~wise.log_schema.Duplicates.DROP`). The dropped events
+        ``True`` (or ``"drop"``) keeps one event per case, activity and
+        timestamp and drops the others, also when they differ in other
+        columns (an event id, an amount); use it only when case, activity and
+        time are known to identify an event. The survivor does not depend on
+        the input row order: the smallest ``order_col`` value, then the
+        smallest other columns in column-name order
+        (:attr:`~wise.log_schema.Duplicates.DROP`). ``"identical"`` drops a
+        row only when it equals another row in every column the log reads,
+        for a log in which the same record was loaded twice
+        (:attr:`~wise.log_schema.Duplicates.IDENTICAL`). The dropped events
         and their cases are counted in :attr:`n_dropped_duplicates` and
         :attr:`n_cases_with_dropped_duplicates` and reported by :meth:`validate`.
     schema
@@ -205,7 +211,7 @@ class EventLog:
         missing_timestamps: Literal["raise", "drop", "keep"] = "raise",
         window: tuple[Any, Any] | None = None,
         keep_columns: Iterable[str] | None = None,
-        dedupe: bool = False,
+        dedupe: bool | Literal["drop", "identical"] = False,
         schema: LogSchema | None = None,
     ):
         options = LogSchema.from_options(
@@ -350,13 +356,16 @@ class EventLog:
         """SHA-256 over what the log consumed: the schema (:attr:`LogSchema.digest
         <wise.log_schema.LogSchema.digest>`), every kept event column in event
         order, the case table with the attributes attached later, and the
-        explicit ``window``.
+        explicit ``window``. A log built with ``dedupe="identical"`` dropped
+        only copies of rows it kept, so its schema is read as one that keeps
+        every row: the log has the fingerprint of the log built with ``keep``
+        from the rows it kept.
 
         Changing one consumed value changes it; the order of the input rows does
         not, where the schema orders the events (by case, timestamp and
         ``order_col``) and where it chooses the event kept of duplicates
-        (``dedupe``), nor does the order of the columns. A column the log does
-        not keep (``keep_columns``) is not covered. Values compare by their
+        (``dedupe``, either policy), nor does the order of the columns. A
+        column the log does not keep (``keep_columns``) is not covered. Values compare by their
         pandas hash, so ``1`` and ``"1"`` in an object column are the same.
         A column with nested values is covered by the canonical text of its
         sealed cells: equal for equal values whatever the order of the keys
@@ -367,7 +376,10 @@ class EventLog:
         """
         window = repr(self.window)
         if self._fingerprint is None or self._fingerprint[0] != window:
-            h = hashlib.sha256(f"{_FINGERPRINT_FORMAT}\n{self._schema.digest}\n{window}\n".encode())
+            schema = self._schema
+            if schema.duplicates is Duplicates.IDENTICAL:
+                schema = dataclasses.replace(schema, duplicates=Duplicates.KEEP)
+            h = hashlib.sha256(f"{_FINGERPRINT_FORMAT}\n{schema.digest}\n{window}\n".encode())
             _hash_frame(h, "events", self._events)
             _hash_frame(h, "cases", self._cases.reset_index())
             self._fingerprint = (window, h.hexdigest())
@@ -693,7 +705,8 @@ class EventLog:
         case, the case attributes of the schema that vary within a case
         (``varying_within_case[<attribute>]``: the number of such cases, as
         recorded by the parse step), and exposure issues. A log built with
-        ``dedupe`` (:attr:`~wise.log_schema.Duplicates.DROP`) also reports
+        ``dedupe`` (:attr:`~wise.log_schema.Duplicates.DROP` or
+        :attr:`~wise.log_schema.Duplicates.IDENTICAL`) also reports
         ``dropped_duplicates`` and ``cases_with_dropped_duplicates``, zero
         when nothing was dropped; a log that keeps duplicates has neither row.
         Nothing here raises; read it before trusting a score.
@@ -716,7 +729,7 @@ class EventLog:
             "tied_events_share": float(tied.mean()) if len(tied) else 0.0,
             "cases_with_ties_share": cases_with_ties / max(len(self), 1),
         }
-        if self._schema.duplicates is Duplicates.DROP:
+        if self._schema.duplicates is not Duplicates.KEEP:
             report["dropped_duplicates"] = self.n_dropped_duplicates
             report["cases_with_dropped_duplicates"] = self.n_cases_with_dropped_duplicates
         for attr, n_var in self._varying.items():

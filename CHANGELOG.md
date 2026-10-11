@@ -690,6 +690,28 @@ version as a placeholder; every change to it is listed below. Callers of
   `cases_with_dropped_duplicates` (zero when nothing was dropped); a log that
   keeps duplicates reports neither, so its report is the one of 0.1.0. The
   contract snapshot records the two fields.
+- A third duplicate policy, `Duplicates.IDENTICAL` (`LogSchema(duplicates="identical")`,
+  `EventLog(dedupe="identical")`), drops a row only when it equals another
+  row in every column the log reads (the named columns and the kept ones),
+  compared as given before parsing: of one type and value, nested cells by
+  their canonical form, two missing values in a column equal. One row of each
+  group stays; the log and its fingerprint are the same for every order of the
+  input rows, and the fingerprint is the one of the log built with `keep` from
+  the rows it kept. The counts and the two `validate()` rows are reported as
+  for `drop`. Use `identical` when the same record was loaded twice, and `drop`
+  only when case, activity and time are known to identify an event: `drop`
+  keeps one of two events of a case with the same activity at the same instant
+  and other identifiers or amounts, `identical` keeps both. `dedupe` of
+  `EventLog` and `LogSchema.from_options` takes the annotation
+  `bool | Literal["drop", "identical"]`: `True` still means `drop`, a name
+  selects that policy, an unknown name is refused with a `LogSchemaError`.
+  A string is no longer read as a truth value: in 0.1.0 `dedupe="yes"` meant
+  `drop` and `dedupe=""` meant `keep`; both are now refused, while booleans
+  and other non-string values keep their meaning.
+  `LogSchema(duplicates=...)` takes `Duplicates | Literal["keep", "drop",
+  "identical"]`. `drop`, `keep` and `dedupe=True` are unchanged. The contract
+  snapshot records the three widened annotations. Delta on the golden dataset:
+  none (built without removal).
 
 ### Deprecated
 
