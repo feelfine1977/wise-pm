@@ -233,6 +233,7 @@
     "apps/backend/src/wise_workbench/adapters/db/repositories.py"
    ],
    "read": [
+    "apps/backend/src/wise_workbench/adapters/connectors/xes.py",
     "apps/backend/src/wise_workbench/adapters/db/repositories.py",
     "apps/backend/src/wise_workbench/adapters/engine/gateway.py",
     "apps/backend/src/wise_workbench/api/routers/runs.py",
@@ -247,6 +248,7 @@
     "apps/backend/tests/golden/test_o2c_preset.py",
     "apps/backend/tests/unit/test_domain.py",
     "apps/backend/tests/unit/test_grouping.py",
+    "apps/backend/tests/unit/test_xes_reader.py",
     "packages/process-knowledge/tests/test_templates.py",
     "packages/wise-analytics/src/wise_analytics/demo.py",
     "packages/wise-analytics/tests/test_subgroups.py"
@@ -632,9 +634,11 @@
   },
   "events": {
    "assign": [
+    "apps/backend/src/wise_workbench/adapters/connectors/xes.py",
     "apps/backend/src/wise_workbench/adapters/db/repositories.py"
    ],
    "read": [
+    "apps/backend/src/wise_workbench/adapters/connectors/xes.py",
     "apps/backend/src/wise_workbench/adapters/db/repositories.py",
     "apps/backend/src/wise_workbench/adapters/engine/analytics.py",
     "apps/backend/src/wise_workbench/adapters/engine/driver_evidence.py",
@@ -659,6 +663,7 @@
     "apps/backend/tests/unit/test_filter_semantics.py",
     "apps/backend/tests/unit/test_investigation_questions.py",
     "apps/backend/tests/unit/test_norm_preview_preparation.py",
+    "apps/backend/tests/unit/test_xes_reader.py",
     "packages/wise-analytics/src/wise_analytics/demo.py",
     "packages/wise-analytics/src/wise_analytics/provenance.py",
     "packages/wise-analytics/src/wise_analytics/quality.py",
@@ -958,6 +963,7 @@
     "apps/backend/tests/api/test_norm_decision_reuse.py",
     "apps/backend/tests/api/test_norm_templates.py",
     "apps/backend/tests/api/test_saved_selections.py",
+    "apps/backend/tests/api/test_xes_ingestion.py",
     "apps/backend/tests/distribution/smoke_installed.py",
     "apps/backend/tests/golden/test_bpic19.py",
     "apps/backend/tests/golden/test_o2c_preset.py",
@@ -1086,6 +1092,8 @@
     "apps/backend/tests/conftest.py",
     "apps/backend/tests/distribution/smoke_installed.py",
     "apps/backend/tests/distribution/test_wheels.py",
+    "apps/backend/tests/service/test_xes_parquet.py",
+    "apps/backend/tests/unit/test_xes_reader.py",
     "packages/process-knowledge/src/wise_knowledge/cli.py",
     "packages/process-knowledge/src/wise_knowledge/flow.py",
     "packages/process-knowledge/src/wise_knowledge/graph.py",
@@ -1203,6 +1211,7 @@
   },
   "replace": {
    "read": [
+    "apps/backend/src/wise_workbench/adapters/connectors/xes.py",
     "apps/backend/src/wise_workbench/adapters/db/migrate.py",
     "apps/backend/src/wise_workbench/adapters/db/session.py",
     "apps/backend/src/wise_workbench/adapters/engine/grouping.py",
@@ -1394,6 +1403,7 @@
     "apps/backend/src/wise_workbench/adapters/engine/signals.py",
     "apps/backend/src/wise_workbench/application/services/eda.py",
     "apps/backend/src/wise_workbench/application/services/eda_insights.py",
+    "apps/backend/tests/service/test_xes_parquet.py",
     "packages/process-knowledge/src/wise_knowledge/cli.py",
     "packages/process-knowledge/src/wise_knowledge/graph.py",
     "packages/process-knowledge/tests/test_graph.py",
@@ -1435,6 +1445,9 @@
    ]
   },
   "version": {
+   "assign": [
+    "apps/backend/src/wise_workbench/adapters/connectors/xes.py"
+   ],
    "read": [
     "apps/backend/src/wise_workbench/adapters/db/repositories.py",
     "apps/backend/src/wise_workbench/api/schema_models/norms.py",
@@ -1442,6 +1455,7 @@
     "apps/backend/src/wise_workbench/application/services/runs.py",
     "apps/backend/src/wise_workbench/cli.py",
     "apps/backend/tests/unit/test_cycle2_domain.py",
+    "apps/backend/tests/unit/test_xes_reader.py",
     "packages/process-knowledge/src/wise_knowledge/graph.py",
     "packages/process-knowledge/tests/test_guidance.py"
    ]
