@@ -255,6 +255,7 @@ def prioritize(
     stable_gap, stable_PI, [se, gap_lower, PI_lower], global_mean``. Its ``spec`` holds the slice keys, the view,
     ``gamma``, ``volume``, the requested ``baseline`` and the realised global
     mean, ``min_cases``, ``z``, the score column and the norm fingerprint.
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
     """
     by = _keys(by)
     try:
@@ -337,6 +338,7 @@ def layer_drivers(
     ``<layer>`` (mean contribution) and ``<layer>__delta`` (minus the global
     mean), and ``dominant_layer`` (the largest positive delta). Positive
     deltas mark mechanisms more pronounced in the slice than in the log.
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
     """
     by, view = _from_spec(data, by, view) if isinstance(by, Backlog) else (_keys(by), view)
     df, score_col = _frame(data, view, "score", by)
@@ -382,6 +384,9 @@ def constraint_drivers(
     penalty ``w̃ ν``, the mean violation over evaluated cases, the share of
     evaluated cases with a non-zero violation, the share of cases in scope,
     and the share actually evaluated.
+    The shares do not say why a case is not in scope or not evaluated
+    (unknown scope, a missing anchor, ...); :meth:`ScoreResult.verdicts` carries
+    the reason per case and constraint.
     """
     view = _view_of(result, view)
     mask = select_cases(result.cases, where, log=result.log) & result.scores[view].notna()
@@ -420,7 +425,9 @@ def penalty_mass(
     with ``share``, ``cum_share`` and ``rank`` — the vendor Pareto of the paper.
     ``view`` is a view name or a backlog record ranked on ``result``, whose
     view and (unless ``by`` is given) slice keys are used. ``where`` filters
-    cases as in :func:`constraint_drivers`."""
+    cases as in :func:`constraint_drivers`.
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
+    """
     if isinstance(view, Backlog) and by is None:
         by = list(view.spec.by)
     view = _view_of(result, view)
@@ -457,6 +464,7 @@ def case_slices(
     Returns one row per case, indexed like the cases of ``data``, with the key
     columns (a missing key as :data:`MISSING_KEY`) and the score column
     (``"score"`` for a result; missing for an unscored case).
+    It carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
     """
     if isinstance(by, Backlog):
         score_col = by.spec.score_col
@@ -538,7 +546,9 @@ def view_agreement(
     ``result``; with a record every view is ranked with the record's slice
     keys, ``gamma``, ``volume``, ``baseline``, ``min_cases`` and ``z`` (so
     ``metric="PI_lower"`` works; ``gamma`` is then ignored). ``method`` is ``"pearson"`` (default), ``"spearman"`` or
-    ``"kendall"``; the latter two need SciPy (``pip install "wise-pm[stats]"``)."""
+    ``"kendall"``; the latter two need SciPy (``pip install "wise-pm[stats]"``).
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
+    """
     if method not in ("pearson", "spearman", "kendall"):
         raise NormError(f"method must be 'pearson', 'spearman' or 'kendall', got {method!r}")
     if isinstance(by, Backlog):

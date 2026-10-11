@@ -382,6 +382,31 @@ version as a placeholder; every change to it is listed below. Callers of
   record (schema version 2 legacy profile) that is the record of the divisor
   realised on the scored cases, which states the scored log's fingerprint; on
   the log a record was fitted on, the two are equal.
+- `ScoreResult.reasons` (keyword-only field, default `None`): cases ×
+  constraints, the reason of each constraint's evaluation as `wise.evaluate`
+  gives it (a categorical column per constraint over `wise.family.REASONS`).
+  A case with a value has `evaluated` (`censored` for a `lag` that scores an
+  open case by its age). Before this, the result kept only `violations` and
+  `in_scope`, so a case whose scope is unknown and a case out of scope were
+  the same pair of NaN and `False`. `scope_unknown` occurs only under a schema
+  version 3 norm. Under schema version 2, the default, a rule that reads a
+  missing attribute leaves the case in scope or `out_of_scope` as 0.1.0 did.
+  The family reasons are the same under both versions
+  (`docs/semantics/schema-v3-delta.md`). A result built by hand without it has
+  `None`.
+- `ScoreResult.verdicts()`: one row per case and constraint, indexed by the
+  case id and `constraint`, with the columns `value`, `in_scope` and `reason`,
+  so a table written from a result keeps the reasons. It raises
+  `NotScoredError` for a result without reasons. `wise score` gains
+  `--verdicts-out PATH`, which writes this table as CSV.
+- Which tables carry the reasons: `ScoreResult.frame`, `worst_cases`,
+  `summary`, `penalties` and `effective_weights`, `violation_matrix`,
+  `prioritize`, `layer_drivers`, `constraint_drivers`, `penalty_mass`,
+  `case_slices`, `view_agreement`, `gap_retained`, `validation_table` and
+  `wise score --cases-out` do not, and their documentation now says so. Their
+  columns, the scores, `violations` and `in_scope` are unchanged. Delta on the
+  golden dataset: none. The contract snapshot gains the field, the method and
+  the output table `ScoreResult.verdicts`.
 
 - `wise.selection` grows the leaf operator `regex` (the value's text searched
   with the pattern, as in the recipe where-clauses of 0.1.0; an invalid

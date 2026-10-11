@@ -16,6 +16,29 @@ schema version 3 copy, and the rows that change on the committed data.
 | Fitted calibration | C15 | A `quantile_scale` recipe carries its calibration record. Scoring refuses an unfitted one. | None: such a norm is refused by scoring, so nothing is scored with it. A fitted record gives the values of C15. |
 | No `eval` recipe | C16 | An `eval` recipe is refused. | None: such a norm cannot be built. |
 
+## Reasons a case has no value, per schema version
+
+`wise.evaluate` gives a reason for every case and constraint. A score result
+keeps these reasons in `ScoreResult.reasons`, and `ScoreResult.verdicts()`
+writes them next to each value. The codes are the constants in `wise.family`.
+
+| Reason | Value | Given by | Schema version 2 (default) | Schema version 3 |
+|---|---|---|---|---|
+| `evaluated` | yes | every family | yes | yes |
+| `censored` | yes | `lag` with `missing_b="censor"` | yes | yes |
+| `out_of_scope` | no | applicability | yes, and also for a missing attribute under a rule that leaves it out in 0.1.0 | yes, only for a known attribute |
+| `scope_unknown` | no | applicability | never | yes, for a rule that reads a missing attribute |
+| `missing_anchor` | no | `exclusion`, `singularity`; `precedence` with `missing_a="skip"` | yes | yes |
+| `missing_activity` | no | `precedence` with `missing_b="skip"` | yes | yes |
+| `missing_activation` | no | `lag` with `missing_a="skip"` | yes | yes |
+| `missing_response` | no | `lag` with `missing_b="skip"` | yes | yes |
+| `missing_attribute` | no | `metric` | yes | yes |
+| `not_evaluable` | no | any other case without a value (for example `balance`) | yes | yes |
+
+Only a schema version 3 norm can tell a case whose scope is unknown from a
+case out of scope. Under schema version 2 the first is `out_of_scope` or in
+scope, as in 0.1.0. The family reasons do not depend on the schema version.
+
 ## The running example: `examples/running_p2p_norm_v3.json`
 
 The schema version 3 copy of `examples/running_p2p_norm.json` differs from it
