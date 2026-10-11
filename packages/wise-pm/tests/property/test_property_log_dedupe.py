@@ -25,7 +25,9 @@ pytestmark = pytest.mark.property
 
 COLS: dict[str, Any] = {"case_col": "case", "activity_col": "activity", "timestamp_col": "time", "event_id_col": "eid"}
 
-_events = st.lists(st.tuples(st.sampled_from(["A", "B", "C"]), st.integers(0, 40)), min_size=1, max_size=5, unique_by=lambda e: e[1])
+_events = st.lists(
+    st.tuples(st.sampled_from(["A", "B", "C"]), st.integers(0, 40)), min_size=1, max_size=5, unique_by=lambda e: e[1]
+)
 
 
 @st.composite
@@ -34,7 +36,9 @@ def frames(draw: st.DrawFn) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for i, events in enumerate(draw(st.lists(_events, min_size=1, max_size=4))):
         for activity, day in events:
-            rows.append({"case": f"c{i}", "activity": activity, "day": day, "amount": float(len(rows)), "seq": draw(st.integers(0, 2))})
+            rows.append(
+                {"case": f"c{i}", "activity": activity, "day": day, "amount": float(len(rows)), "seq": draw(st.integers(0, 2))}
+            )
     sources = draw(st.lists(st.integers(0, len(rows) - 1), min_size=1, max_size=4))
     for k, source in enumerate(sources):
         twin = {**rows[source], "amount": draw(st.integers(0, 8)) + 0.25 + 10 * k, "seq": draw(st.integers(0, 2))}
@@ -54,7 +58,9 @@ def _survivors(frame: pd.DataFrame, order_col: str | None) -> list[str]:
 
 @pytest.mark.spec("IV-A")
 @given(frame=frames(), order_col=st.sampled_from([None, "seq"]), data=st.data())
-def test_the_survivor_and_the_fingerprint_do_not_depend_on_the_row_order(frame: pd.DataFrame, order_col: str | None, data: st.DataObject) -> None:
+def test_the_survivor_and_the_fingerprint_do_not_depend_on_the_row_order(
+    frame: pd.DataFrame, order_col: str | None, data: st.DataObject
+) -> None:
     permutation = data.draw(st.permutations(range(len(frame))))
     shuffled = frame.iloc[list(permutation)]
     note(f"rows:\n{shuffled}")
