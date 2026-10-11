@@ -87,6 +87,9 @@ Which to use:
 - `drop` only when case, activity and time are known to identify an event.
   It keeps one of such two events and drops the other.
 
+A `validate()` of a log that keeps duplicates has neither row, so its report
+is the one of 0.1.0.
+
 ### `drop`: the key
 
 Rows equal in the key are dropped although they differ elsewhere: two events
@@ -120,6 +123,3 @@ every order of the input rows. The dropped rows were copies of rows the log
 kept, so the fingerprint of such a log is the one of the log built with
 `keep` from the rows it kept; it differs from the fingerprint of a log built
 with `keep` from all the rows, and from one built with `drop`.
-
-A `validate()` of a log that keeps duplicates has neither row, so its report
-is the one of 0.1.0.

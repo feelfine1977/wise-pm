@@ -705,10 +705,13 @@ version as a placeholder; every change to it is listed below. Callers of
   `EventLog` and `LogSchema.from_options` takes the annotation
   `bool | Literal["drop", "identical"]`: `True` still means `drop`, a name
   selects that policy, an unknown name is refused with a `LogSchemaError`.
+  A string is no longer read as a truth value: in 0.1.0 `dedupe="yes"` meant
+  `drop` and `dedupe=""` meant `keep`; both are now refused, while booleans
+  and other non-string values keep their meaning.
   `LogSchema(duplicates=...)` takes `Duplicates | Literal["keep", "drop",
   "identical"]`. `drop`, `keep` and `dedupe=True` are unchanged. The contract
-  snapshot records the three widened annotations. Delta on the golden dataset: none (built
-  without removal).
+  snapshot records the three widened annotations. Delta on the golden dataset:
+  none (built without removal).
 
 ### Deprecated
 

@@ -364,8 +364,8 @@ class EventLog:
         Changing one consumed value changes it; the order of the input rows does
         not, where the schema orders the events (by case, timestamp and
         ``order_col``) and where it chooses the event kept of duplicates
-        (``dedupe``, either policy), nor does the order of the columns. A column the log does
-        not keep (``keep_columns``) is not covered. Values compare by their
+        (``dedupe``, either policy), nor does the order of the columns. A
+        column the log does not keep (``keep_columns``) is not covered. Values compare by their
         pandas hash, so ``1`` and ``"1"`` in an object column are the same.
         A column with nested values is covered by the canonical text of its
         sealed cells: equal for equal values whatever the order of the keys
