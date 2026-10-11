@@ -132,6 +132,17 @@
         "view"
       ]
     },
+    "ScoreResult.verdicts": {
+      "columns": [
+        "value",
+        "in_scope",
+        "reason"
+      ],
+      "index": [
+        "case",
+        "constraint"
+      ]
+    },
     "ScoreResult.worst_cases": {
       "columns": [
         "n_events",
@@ -2727,7 +2738,8 @@
         "wise_version",
         "_weights",
         "_eff_cache",
-        "calibrations"
+        "calibrations",
+        "reasons"
       ],
       "init": {
         "parameters": [
@@ -2808,6 +2820,12 @@
             "default": "<factory>",
             "kind": "KEYWORD_ONLY",
             "name": "calibrations"
+          },
+          {
+            "annotation": "pd.DataFrame | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "reasons"
           }
         ],
         "returns": "None"
@@ -2894,6 +2912,11 @@
               "name": "case_id"
             }
           ],
+          "returns": "pd.DataFrame"
+        },
+        "verdicts": {
+          "kind": "method",
+          "parameters": [],
           "returns": "pd.DataFrame"
         },
         "views": {

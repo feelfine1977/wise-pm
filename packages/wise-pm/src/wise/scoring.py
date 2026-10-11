@@ -46,7 +46,7 @@ from .calibration import Calibration
 from .constraints import Constraint
 from .derive import derived_log, realised_calibrations
 from .errors import NormError, NotScoredError
-from .family import Evaluation, family_of
+from .family import REASONS, Evaluation, family_of
 from .log import EventLog
 from .norm import SCORING_MODES, Norm, NormConstraint
 from .recipes import QuantileScaleRecipe, Recipe
@@ -98,19 +98,26 @@ def violation_matrix(log: EventLog, norm: Norm, *, return_scope: bool = False) -
 
     With ``return_scope=True`` also return the boolean scope matrix ``S``
     (``σ ∈ C_app``, known to apply), which distinguishes "out of scope" from
-    "not evaluable".
+    "not evaluable". Neither table carries the reason a case has no value;
+    :attr:`ScoreResult.reasons` (from :func:`score`) and :func:`evaluate` do.
     """
+    V, S, _ = _evaluate_norm(log, norm)
+    return (V, S) if return_scope else V
+
+
+def _evaluate_norm(log: EventLog, norm: Norm) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Values, scope and reasons (cases × constraints) of every constraint under the norm's profile."""
     semantics = norm.semantics
     cols: dict[str, pd.Series] = {}
     scope: dict[str, pd.Series] = {}
+    reasons: dict[str, pd.Series] = {}
     for nc in norm.constraints:
         ev = evaluate(nc, log, semantics=semantics)
         cols[nc.id] = ev.value
         scope[nc.id] = ev.in_scope
-    V = pd.DataFrame(cols, index=log.case_ids)
-    if return_scope:
-        return V, pd.DataFrame(scope, index=log.case_ids)
-    return V
+        reasons[nc.id] = ev.reason
+    index = log.case_ids
+    return pd.DataFrame(cols, index=index), pd.DataFrame(scope, index=index), pd.DataFrame(reasons, index=index)
 
 
 # ------------------------------------------------------------------- scores
@@ -128,6 +135,26 @@ class ScoreResult:
     in_scope
         Boolean cases × constraints: ``σ ∈ C_app`` (scope only; a case whose
         scope is unknown under the three-valued policy is not in scope).
+    reasons
+        Cases × constraints, why each case has its value or has none: the
+        reason codes of :mod:`wise.family` (a categorical column per
+        constraint), as :func:`evaluate` gives them. A case with a value has
+        :data:`~wise.family.EVALUATED` (:data:`~wise.family.CENSORED` for a
+        ``lag`` that scores an open case by its age). A case without one is
+        :data:`~wise.family.OUT_OF_SCOPE`, :data:`~wise.family.SCOPE_UNKNOWN`,
+        or the family's reason (:data:`~wise.family.MISSING_ANCHOR`,
+        :data:`~wise.family.MISSING_ACTIVITY`,
+        :data:`~wise.family.MISSING_ATTRIBUTE`,
+        :data:`~wise.family.MISSING_ACTIVATION`,
+        :data:`~wise.family.MISSING_RESPONSE`, otherwise
+        :data:`~wise.family.NOT_EVALUABLE`). Which reasons occur depends on
+        the norm's schema version: :data:`~wise.family.SCOPE_UNKNOWN` only
+        under schema version 3 (three-valued applicability); under schema
+        version 2, the default, a case whose rule reads a missing attribute
+        is in scope or :data:`~wise.family.OUT_OF_SCOPE` as in 0.1.0. The
+        family reasons are the same under both. ``None`` for a result built
+        by hand without them. :meth:`verdicts` writes them out beside the
+        values.
     scores
         Cases × views, ``S^(p)(σ)``; NaN = unscored.
     contributions
@@ -160,6 +187,7 @@ class ScoreResult:
     _weights: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
     _eff_cache: dict[str, pd.DataFrame] = field(default_factory=dict, repr=False)
     calibrations: Mapping[str, Calibration] = field(default_factory=dict, kw_only=True)
+    reasons: pd.DataFrame | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         if self.mode is None:
@@ -182,7 +210,8 @@ class ScoreResult:
 
     def effective_weights(self, view: str) -> pd.DataFrame:
         """Per-case effective weights ``w̃_c,σ`` (cases × constraints); rows of
-        scored cases sum to 1."""
+        scored cases sum to 1. A zero weight does not say why the case has no
+        value; :attr:`reasons` does."""
         if view not in self._eff_cache:
             M = self.violations.notna().to_numpy(dtype=float)
             w_eff = _effective_weights(M, self._weights[view], self.norm, self.mode or self.norm.scoring_mode)
@@ -193,7 +222,8 @@ class ScoreResult:
 
     def penalties(self, view: str) -> pd.DataFrame:
         """Per-constraint penalty ``w̃_c,σ ν_c(σ)`` (cases × constraints); sums
-        to ``1 − S^(p)(σ)`` per case."""
+        to ``1 − S^(p)(σ)`` per case. A zero penalty does not say why the case
+        has no value; :attr:`reasons` does."""
         return self.effective_weights(view) * self.violations.fillna(0.0)
 
     def frame(self, view: str | None = None) -> pd.DataFrame:
@@ -201,7 +231,9 @@ class ScoreResult:
 
         Columns: case attributes, ``exposure`` (if any), then for the chosen
         view ``score`` and ``contrib__<layer>``; with ``view=None`` every view
-        gets ``score__<view>`` and ``contrib__<view>__<layer>``.
+        gets ``score__<view>`` and ``contrib__<view>__<layer>``. It carries
+        neither the per-constraint values nor their reasons; :meth:`verdicts`
+        does.
         """
         if view is not None:
             if view not in self.contributions:
@@ -214,8 +246,34 @@ class ScoreResult:
             parts.append(self.contributions[v].add_prefix(f"contrib__{v}__"))
         return pd.concat([self.cases, *parts], axis=1) if parts else self.cases.copy()
 
+    def verdicts(self) -> pd.DataFrame:
+        """Long table of every case and constraint: the value, the scope and the reason.
+
+        Index ``(<case id>, "constraint")`` in case order, then constraint
+        order; columns ``value`` (``ν_c(σ)``, NaN without a value),
+        ``in_scope`` (as :attr:`in_scope`) and ``reason`` (as :attr:`reasons`,
+        a categorical over the codes of :mod:`wise.family`), so a table
+        written from it still tells why a case has no value. Raises
+        :class:`~wise.errors.NotScoredError` for a result without reasons.
+        """
+        if self.reasons is None:
+            raise NotScoredError("this result carries no reasons (it was built without reasons=); score the log again")
+        V = self.violations
+        index = pd.MultiIndex.from_product([V.index, V.columns], names=[V.index.name, "constraint"])
+        codes = self.reasons.reindex(index=V.index, columns=V.columns).astype(str).to_numpy().ravel()
+        categories = list(dict.fromkeys([*REASONS, *codes]))
+        return pd.DataFrame(
+            {
+                "value": V.to_numpy(dtype=float).ravel(),
+                "in_scope": self.in_scope.reindex(index=V.index, columns=V.columns).to_numpy(dtype=bool).ravel(),
+                "reason": pd.Categorical(codes, categories=categories),
+            },
+            index=index,
+        )
+
     def summary(self) -> pd.DataFrame:
-        """Per view: scored cases, mean score ``μ̄^(p)``, mean layer contributions."""
+        """Per view: scored cases, mean score ``μ̄^(p)``, mean layer contributions
+        (no reasons; :meth:`verdicts` has them per case and constraint)."""
         rows = []
         for v in self.views:
             s = self.scores[v]
@@ -250,7 +308,8 @@ class ScoreResult:
         ``where`` is a filter of :func:`wise.selection.select_cases`: ``{attribute:
         value}`` (equality) or ``{attribute: [values]}`` (membership), the case id
         allowed under the name of the case index, a rule of the selection
-        grammar, or a boolean mask over cases."""
+        grammar, or a boolean mask over cases. Like :meth:`frame` it carries no
+        reasons; :meth:`verdicts` does."""
         f = self.frame(view)
         mask = select_cases(self.cases, where, log=self.log)
         f = f[mask & f["score"].notna()]
@@ -347,7 +406,7 @@ def score(
         scored, log = log, derived_log(log, norm.recipes)
         calibrations = realised_calibrations(scored, log, norm.recipes)
 
-    V, S = violation_matrix(log, norm, return_scope=True)
+    V, S, R = _evaluate_norm(log, norm)
     M = V.notna().to_numpy(dtype=float)
     V0 = V.fillna(0.0).to_numpy(dtype=float)
     cids = list(V.columns)
@@ -384,4 +443,5 @@ def score(
         norm_fingerprint=norm.fingerprint(),
         _weights=weights,
         calibrations=calibrations,
+        reasons=R,
     )

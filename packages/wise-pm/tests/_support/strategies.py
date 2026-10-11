@@ -8,6 +8,7 @@ ties occur naturally.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Literal
 
 import pandas as pd
@@ -46,8 +47,8 @@ _event = st.tuples(_activity, _day, _amount)
 _case = st.tuples(st.sampled_from(FLOWS), st.sampled_from(REGIONS), st.lists(_event, min_size=1, max_size=8))
 
 
-def build_log(cases: list[tuple[str, str, list[tuple[str, float, float]]]]) -> wise.EventLog:
-    """``[(flow, region, [(activity, day, amount), ...]), ...]`` -> EventLog."""
+def build_log(cases: Sequence[tuple[str | None, str, list[tuple[str, float, float]]]]) -> wise.EventLog:
+    """``[(flow, region, [(activity, day, amount), ...]), ...]`` -> EventLog; a flow of ``None`` is missing."""
     rows = [
         (f"c{i:02d}", act, day, amount, flow, region)
         for i, (flow, region, events) in enumerate(cases)

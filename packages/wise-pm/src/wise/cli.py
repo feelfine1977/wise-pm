@@ -68,7 +68,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     s.add_argument("--min-cases", type=int, default=1)
     s.add_argument("--mode", default=None, choices=["flat", "layer_balanced"], help="override the norm's scoring mode")
     s.add_argument("--out", default="-", help="output CSV path ('-' = stdout)")
-    s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores")
+    s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores (no per-constraint values or reasons)")
+    s.add_argument("--verdicts-out", default=None, help="optional CSV with the value, scope and reason per case and constraint")
 
     m = sub.add_parser("migrate", help="migrate a norm file to schema version 3 and print the migration report")
     m.add_argument("norm")
@@ -128,6 +129,12 @@ def _run(args: argparse.Namespace) -> int:
         if args.cases_out:
             result.frame().to_csv(args.cases_out)
             print(f"wrote {len(result.scores)} cases to {args.cases_out}", file=sys.stderr)
+        if args.verdicts_out:
+            result.verdicts().to_csv(args.verdicts_out)
+            print(
+                f"wrote {len(result.scores)} cases × {result.violations.shape[1]} constraints to {args.verdicts_out}",
+                file=sys.stderr,
+            )
         return 0
     if args.cmd == "migrate":
         return _migrate(Path(args.norm), Path(args.out) if args.out else None)
