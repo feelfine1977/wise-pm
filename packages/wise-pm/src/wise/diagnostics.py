@@ -171,6 +171,7 @@ def gap_retained(
     Returns slices × ``[n_cases, n_kept, stable_gap, stable_gap_kept,
     retained]``. ``retained`` can exceed 1 when the excluded cases were a
     slice's best ones; a slice whose gap collapses was a window artefact.
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
     """
     ranked = prioritize(result, by, view=view, gamma=gamma)
     full, baseline = ranked.table, ranked.spec.global_mean
@@ -208,6 +209,7 @@ def validation_table(
     ``replication`` is :func:`event_replication`'s frame (cases with
     ``replication_ratio > ratio_flag`` count as replicated) or a boolean
     Series (e.g. from :func:`cross_case_replication` thresholded).
+    It aggregates scores and carries no reason per case and constraint; :meth:`ScoreResult.verdicts` does.
     """
     ranked = prioritize(result, by, view=view, gamma=gamma)
     full, keys = ranked.table, list(ranked.spec.by)

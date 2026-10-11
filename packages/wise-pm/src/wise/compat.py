@@ -188,7 +188,8 @@ def prioritize(
     """:func:`wise.prioritize` returning the 0.1.0 DataFrame: the record's table
     with the ranking parameters in ``DataFrame.attrs`` (``view`` as passed, as in
     0.1.0, ``gamma``, ``baseline`` = the realised global mean, ``volume``, ``by``).
-    Deprecated."""
+    It aggregates scores and carries no reason per case and constraint;
+    :meth:`~wise.scoring.ScoreResult.verdicts` does. Deprecated."""
     _deprecated("wise.prioritization.prioritize", "wise.prioritize")
     backlog = _prioritize(data, by, view, gamma, volume, min_cases, z, score_col, baseline, as_index)
     frame = legacy_frame(backlog)

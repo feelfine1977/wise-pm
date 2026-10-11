@@ -215,6 +215,7 @@ def output_tables() -> dict[str, dict[str, Any]]:
         "ScoreResult.frame[view]": _table(result.frame(view)),
         "ScoreResult.penalties": _table(result.penalties(view)),
         "ScoreResult.summary": _table(result.summary()),
+        "ScoreResult.verdicts": _table(result.verdicts()),
         "ScoreResult.worst_cases": _table(result.worst_cases(view)),
         "compare_periods": _table(wise.compare_periods(backlog, backlog)),
         "concentration": _table(wise.concentration(backlog)),
