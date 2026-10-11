@@ -109,7 +109,7 @@ class Duplicates(str, Enum):
     ``order_col`` value, then, among events equal so far, the one whose other
     columns, read in column-name order, are smallest (nulls last; values that
     do not compare, and values equal but of a different type, compare by type
-    name and ``repr``). The number of dropped events and of the cases they
+    name and ``repr``; ``0.0`` comes before ``-0.0``). The number of dropped events and of the cases they
     came from are recorded (:attr:`ParsedLog.n_dropped_duplicates`)."""
 
 
@@ -430,7 +430,7 @@ def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame,
         return df, 0, 0
     rows = np.flatnonzero(in_group)
     group = df.iloc[rows]
-    positions = sorted(range(group.shape[1]), key=lambda i: str(group.columns[i]))
+    positions = sorted(range(group.shape[1]), key=lambda i: (str(group.columns[i]), _canonical(group.columns[i])))
     if schema.order_col is not None:
         order_at = group.columns.get_loc(schema.order_col)
         positions = [order_at, *(i for i in positions if i != order_at)] if isinstance(order_at, int) else positions
@@ -440,6 +440,10 @@ def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame,
         sort_keys.append(_ranks(column))
         if column.dtype == object:
             sort_keys.append(_ranks(column.map(_canonical)))
+        elif column.dtype.kind == "f":
+            # equal values with other bits (0.0 and -0.0) rank by their bits
+            bits = column.to_numpy(dtype=np.float64, na_value=np.nan).view(np.uint64)
+            sort_keys.append(_ranks(pd.Series(bits)))
     ranked = np.lexsort(sort_keys[::-1])
     survives = ~group.iloc[ranked].duplicated(subset=key).to_numpy()
     keep = ~in_group

@@ -85,7 +85,8 @@ in any order give the same log and the same fingerprint:
 2. then, among the events still equal, the smallest values of the other
    columns, compared column by column in column-name order, nulls last;
 3. values that do not compare (nested values) or that are equal with
-   different types (`1` and `True`) compare by type name and `repr`.
+   different types (`1` and `True`) compare by type name and `repr`;
+   `0.0` comes before `-0.0`.
 
 Rows that are equal in every column give the same survivor whichever is kept.
 A `validate()` of a log that keeps duplicates has neither row, so its report

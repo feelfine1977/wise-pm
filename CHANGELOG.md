@@ -321,7 +321,7 @@ version as a placeholder; every change to it is listed below. Callers of
   orders gave two logs and two fingerprints. The survivor is now the event
   with the smallest `order_col` value, then the smallest other columns in
   column-name order (nulls last; values that do not compare, and equal values
-  of different types, by type name and `repr`). A log built from rows that
+  of different types, by type name and `repr`; `0.0` before `-0.0`). A log built from rows that
   share a key but differ elsewhere can therefore keep another event than
   0.1.0, with another exposure, case attribute or event order. Rows equal in
   every column, logs without key duplicates and the default (`keep`) are

@@ -293,6 +293,22 @@ def test_values_that_do_not_compare_still_choose_one_survivor() -> None:
 
 
 @pytest.mark.spec("IV-A")
+def test_equal_values_with_other_bits_and_names_with_one_spelling_still_choose_one_survivor() -> None:
+    # 0.0 and -0.0 are equal floats that the fingerprint tells apart: 0.0 survives in any row order
+    pair = _frame().iloc[[1, 3]].reset_index(drop=True).assign(lc="complete", amount=[-0.0, 0.0])
+    schema = dataclasses.replace(SCHEMA, duplicates=Duplicates.DROP)
+    logs = [wise.EventLog(pair.iloc[rows], schema=schema) for rows in ([0, 1], [1, 0])]
+    assert [np.signbit(log.events["amount"]).tolist() for log in logs] == [[False], [False]]
+    assert logs[0].fingerprint() == logs[1].fingerprint()
+    # columns 1 and "1" read alike; the type name orders them (builtins.int < builtins.str) in any column order,
+    # so the row with the smaller value in column 1 survives
+    named = pair.drop(columns="amount").assign(**{"1": [5, 6]})
+    named[1] = [8, 7]
+    for columns in (list(named.columns), list(named.columns)[::-1]):
+        assert wise.parse(named[columns], schema).events[[1, "1"]].values.tolist() == [[7, 6]]
+
+
+@pytest.mark.spec("IV-A")
 def test_the_parsed_record_counts_the_dropped_events_and_their_cases() -> None:
     # case a: one duplicate; case b: two events at 2024-01-02 duplicate the first one; c: none
     extra = pd.DataFrame(
