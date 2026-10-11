@@ -34,7 +34,18 @@ from .case_index import NAT, CaseIndex
 from .constraints import Labels, as_labels
 from .derive import apply_recipes, forget
 from .errors import LogSchemaError
-from .log_schema import ACTIVITY_COL, CASE_COL, TIMESTAMP_COL, LogSchema, UntimedEvents, check_attribute_name, parse
+from .log_schema import (
+    ACTIVITY_COL,
+    CASE_COL,
+    TIMESTAMP_COL,
+    LogSchema,
+    UntimedEvents,
+    canonical,
+    check_attribute_name,
+    nested_cells,
+    parse,
+    sealed,
+)
 
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
 
@@ -62,14 +73,15 @@ def _warn_index_array(name: str, replacement: str) -> None:
 
 
 def _hash_frame(h: Any, part: str, frame: pd.DataFrame) -> None:
-    """Feed ``frame`` into ``h``: its length, then per column (in name order) its name, dtype and row hashes."""
+    """Feed ``frame`` into ``h``: its length, then per column (in name order) its name, dtype and row hashes.
+    A column with nested values is hashed by the canonical text of its cells."""
     h.update(f"{part}:{len(frame)}\n".encode())
     for name in sorted(frame.columns, key=str):
         column = frame[name]
-        try:
+        if nested_cells(column):
+            rows = pd.util.hash_pandas_object(canonical(column), index=False)
+        else:
             rows = pd.util.hash_pandas_object(column, index=False)
-        except TypeError:  # unhashable values (lists, dicts): their text
-            rows = pd.util.hash_pandas_object(column.astype(str), index=False)
         h.update(f"{name!s}:{column.dtype}\n".encode())
         h.update(rows.to_numpy(dtype=np.uint64).tobytes())
 
@@ -148,6 +160,19 @@ class EventLog:
     is done to them changes no later answer of the log. Only
     :meth:`add_case_attribute` and :meth:`derive` change a log;
     :meth:`with_case_attributes` returns a new one.
+
+    A cell that holds a nested value is sealed once, when the log is built or
+    the attribute attached: the log keeps its own deep copy in which mappings
+    are :class:`dict` and lists :class:`list` subclasses that refuse to be
+    changed (``TypeError``), sets become ``frozenset``, tuples keep their type
+    and numeric arrays are read-only. Changing the frame the log was built
+    from does not reach it, and a value handed out by :attr:`events`,
+    :meth:`trace` or :attr:`cases` cannot be written into (``dict(value)``
+    and ``list(value)`` give writable copies of one level). A value that cannot be sealed (an arbitrary object, a
+    ``bytearray``, an object array) is refused with a
+    :class:`~wise.errors.LogSchemaError` naming the column, and a case
+    attribute must hold plain values. Columns of plain values (strings,
+    numbers, timestamps and the like) are not looked at cell by cell.
     """
 
     def __init__(
@@ -291,7 +316,10 @@ class EventLog:
         )
         if not table.index.equals(self.case_ids):
             raise LogSchemaError("an assigned case table must have the log's case ids as its index, in the same order")
-        old, self._cases = self._cases, _copy(table)
+        table = _copy(table)
+        for name in table.columns:
+            table[name] = sealed(table[name], lambda i: f"case {self.case_ids[i]!r}")
+        old, self._cases = self._cases, table
         self._fingerprint = None
         forget(self, [c for c in old.columns if c not in table.columns or not table[c].equals(old[c])])
 
@@ -317,6 +345,10 @@ class EventLog:
         ``order_col``), nor does the order of the columns. A column the log does
         not keep (``keep_columns``) is not covered. Values compare by their
         pandas hash, so ``1`` and ``"1"`` in an object column are the same.
+        A column with nested values is covered by the canonical text of its
+        sealed cells: equal for equal values whatever the order of the keys
+        of a mapping or the items of a set, and different, with a type tag,
+        for ``1``, ``1.0`` and ``"1"`` inside a nested value.
         The fingerprint is computed once and kept until the case table or the
         ``window`` changes.
         """
@@ -605,6 +637,7 @@ class EventLog:
             if len(arr) != len(self):
                 raise LogSchemaError(f"values for {name!r} must have one entry per case ({len(self)})")
             aligned = pd.Series(arr, index=self.case_ids)
+        aligned = sealed(aligned.rename(name), lambda i: f"case {self.case_ids[i]!r}")
         cases = self._cases.copy(deep=False)
         cases[name] = aligned
         self._cases = cases

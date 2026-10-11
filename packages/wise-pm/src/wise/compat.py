@@ -121,8 +121,10 @@ PATHS: Mapping[str, CompatPath] = MappingProxyType(
         ),
         "wise.log.EventLog.events": CompatPath(
             "changed",
-            "add the column to the event frame the log is built from",
-            note="a copy since 0.2.0 (Fixed: C3): assigning it is refused and a write into it does not reach the log",
+            "add the column to the event frame the log is built from; dict(value) or list(value) for a writable cell",
+            note="a copy since 0.2.0 (Fixed: C3): assigning it is refused and a write into it does not reach the log; "
+            "a dict, list or set in a cell is a read-only copy (a set a frozenset), and a column holding other mutable "
+            "objects is refused",
         ),
         "wise.log.EventLog.case_attributes": CompatPath(
             "changed",

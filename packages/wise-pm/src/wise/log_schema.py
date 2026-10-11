@@ -23,10 +23,15 @@ and how one value per case is taken from a case attribute recorded on events
 
 from __future__ import annotations
 
+import datetime
+import decimal
+import fractions
+import gc
 import hashlib
 import json
+import uuid
 import warnings
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, fields
 from enum import Enum
 from types import MappingProxyType
@@ -35,6 +40,7 @@ from typing import Any, Literal, TypeVar, cast
 import numpy as np
 import pandas as pd
 
+from ._frozen import FrozenDict, FrozenList
 from .case_index import CaseIndex, event_order
 from .constraints import as_list
 from .errors import LogSchemaError
@@ -331,6 +337,189 @@ class LogSchema:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+# ------------------------------------------------------------------ sealed values
+# Values a cell keeps as they are: none of them can be changed in place.
+_IMMUTABLE = (
+    str,
+    bytes,
+    bool,
+    int,
+    float,
+    complex,
+    decimal.Decimal,
+    fractions.Fraction,
+    datetime.date,
+    datetime.time,
+    datetime.timedelta,
+    uuid.UUID,
+    Enum,
+    np.number,
+    np.bool_,
+    np.datetime64,
+    np.timedelta64,
+    np.str_,
+    np.bytes_,
+    pd.Period,
+    pd.Interval,
+    type(None),
+    type(pd.NaT),
+    type(pd.NA),
+)
+# What pandas infers for an object column all of whose values are of one immutable kind; such a column is not
+# looked at cell by cell (``mixed`` and the other answers can hide a container).
+_PLAIN_KINDS = frozenset(
+    {
+        "empty",
+        "string",
+        "bytes",
+        "integer",
+        "floating",
+        "mixed-integer-float",
+        "decimal",
+        "complex",
+        "boolean",
+        "datetime64",
+        "datetime",
+        "date",
+        "timedelta64",
+        "timedelta",
+        "time",
+        "period",
+    }
+)
+
+
+# The exact types most cells hold, checked before anything else.
+_PLAIN = frozenset({str, int, float, bool, type(None)})
+
+
+class _Unsealable(Exception):
+    def __init__(self, value: object) -> None:
+        self.value = value
+
+
+def _seal(value: Any) -> Any:
+    """``value`` as an independent copy that cannot be changed in place; mappings become
+    :class:`~wise._frozen.FrozenDict`, lists :class:`~wise._frozen.FrozenList`, sets ``frozenset``, tuples
+    tuples of sealed items and numeric arrays (not their subclasses) read-only arrays over immutable bytes. Raises
+    :class:`_Unsealable` for any other value that is not immutable."""
+    kind = type(value)
+    if kind in _PLAIN:
+        return value
+    if kind is dict or kind is FrozenDict:
+        return FrozenDict({k if type(k) in _PLAIN else _seal(k): v if type(v) in _PLAIN else _seal(v) for k, v in value.items()})
+    if kind is list or kind is FrozenList:
+        return FrozenList([v if type(v) in _PLAIN else _seal(v) for v in value])
+    if kind is tuple:
+        return tuple(v if type(v) in _PLAIN else _seal(v) for v in value)
+    if isinstance(value, _IMMUTABLE):
+        return value
+    if isinstance(value, Mapping):
+        return FrozenDict({_seal(k): _seal(v) for k, v in value.items()})
+    if isinstance(value, list):
+        return FrozenList([_seal(v) for v in value])
+    if isinstance(value, set | frozenset):
+        return frozenset(_seal(v) for v in value)
+    if type(value) is np.ndarray and value.dtype.kind in "biufcmMSU":  # a subclass (masked, matrix) would lose its kind
+        # backed by a bytes object, so that not even ``flags.writeable = True`` makes it writable again
+        return np.frombuffer(value.tobytes(), dtype=value.dtype).reshape(value.shape)
+    raise _Unsealable(value)
+
+
+def _hashable(value: Any) -> bool:
+    try:
+        hash(value)
+    except TypeError:
+        return False
+    return True
+
+
+def _is_nested(value: Any) -> bool:
+    if type(value) is tuple:
+        return any(_is_nested(v) for v in value)
+    return isinstance(value, Mapping | list | set | frozenset | np.ndarray)
+
+
+def _plain(column: pd.Series) -> bool:
+    return column.dtype != object or pd.api.types.infer_dtype(column, skipna=True) in _PLAIN_KINDS
+
+
+def nested_cells(column: pd.Series) -> bool:
+    """Whether a cell of ``column`` holds a mapping, list, set or array, at any depth of a tuple."""
+    if _plain(column):
+        return False
+    return any(_is_nested(v) for v in column.to_numpy())
+
+
+def sealed(column: pd.Series, where: Callable[[int], str] | None = None) -> pd.Series:
+    """``column`` with every cell sealed (``column`` itself when no cell holds a container).
+
+    An object column whose cells are of one immutable kind is returned as it is without looking at the cells.
+    A value that is neither immutable nor a mapping, list, tuple, set or numeric array, at any depth, is
+    refused with a :class:`~wise.errors.LogSchemaError` naming the column and where the value is: ``where``
+    of its position, by default its row label.
+    """
+    if _plain(column):
+        return column
+    values = column.to_numpy()
+    out = np.empty(len(values), dtype=object)
+    changed = False
+    collecting = gc.isenabled()
+    gc.disable()  # the copies hold no cycles; scanning millions of new containers would double the time
+    try:
+        for i, value in enumerate(values):
+            try:
+                out[i] = _seal(value)
+            except (_Unsealable, RecursionError) as exc:
+                at = where(i) if where is not None else f"row {column.index[i]!r}"
+                what = (
+                    f"a value of type {type(exc.value).__name__!r}"
+                    if isinstance(exc, _Unsealable)
+                    else "a value that contains itself or is nested too deeply"
+                )
+                raise LogSchemaError(
+                    f"column {column.name!r} holds {what} in {at} that the log cannot keep unchanged; convert it to "
+                    "a plain value, a dict, list, tuple, set or numeric array, or leave the column out with "
+                    "keep_columns"
+                ) from None
+            changed = changed or out[i] is not value
+    finally:
+        if collecting:
+            gc.enable()
+    return pd.Series(out, index=column.index, name=column.name) if changed else column
+
+
+def _canonical(value: Any) -> str:
+    # of a sealed value (see ``_seal``); ``repr`` keeps 1, 1.0, True, "1" and None apart, and quotes the separators a string may hold
+    kind = type(value)
+    if kind in _PLAIN:
+        return repr(value)
+    if kind is FrozenDict or kind is dict:
+        items = [
+            (repr(k) if type(k) in _PLAIN else _canonical(k)) + ":" + (repr(v) if type(v) in _PLAIN else _canonical(v))
+            for k, v in value.items()
+        ]
+        items.sort()
+        return "{" + ",".join(items) + "}"
+    if kind is FrozenList or kind is list:
+        return "[" + ",".join([repr(v) if type(v) in _PLAIN else _canonical(v) for v in value]) + "]"
+    if kind is tuple:
+        return "(" + ",".join([repr(v) if type(v) in _PLAIN else _canonical(v) for v in value]) + ")"
+    if isinstance(value, frozenset):
+        return "<" + ",".join(sorted(_canonical(v) for v in value)) + ">"
+    if isinstance(value, np.ndarray):
+        return f"array({value.dtype.str},{value.shape},{value.tobytes().hex()})"
+    if isinstance(value, np.generic):
+        return _canonical(value.item())
+    return repr(value)
+
+
+def canonical(column: pd.Series) -> pd.Series:
+    """The text of each cell of a column with nested values, the same for equal values whatever the order of
+    the keys of a mapping or the items of a set; ``1``, ``1.0``, ``True`` and ``"1"`` stay apart."""
+    return pd.Series([_canonical(v) for v in column.to_numpy()], index=column.index, dtype=object)
+
+
 # ------------------------------------------------------------------ parse
 @dataclass(frozen=True)
 class ParsedLog:
@@ -477,6 +666,16 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
         cols = [c for c in cols if c in wanted]
     ev = df.iloc[order][cols].reset_index(drop=True)
     ev[timestamp_col] = ts.to_numpy()[order] if tz is None else ts.iloc[order].reset_index(drop=True)
+    for name in ev.columns:
+        kept = ev[name]
+        column = sealed(kept, lambda i: f"case {uniques[codes[order[i]]]!r}")
+        if column is not kept:
+            if name in schema.case_attributes and not all(_hashable(v) for v in column.to_numpy()):
+                raise LogSchemaError(
+                    f"case attribute {name!r} holds dicts, lists or arrays; a case attribute takes one plain "
+                    "value per case, so flatten it into plain columns first"
+                )
+            ev[name] = column
 
     act = ev[activity_col]
     n_null_activities = int(act.isna().sum())

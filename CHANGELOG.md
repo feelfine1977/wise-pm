@@ -283,6 +283,45 @@ version as a placeholder; every change to it is listed below. Callers of
 - `EventLog.count`, `first_ts` and `last_ts` hand out a copy of the Series the
   log remembers, as `EventLog.events` does (shallow under copy-on-write);
   writing into one no longer changes the log's later answers.
+- An `EventLog` seals the nested values of the columns it keeps, once, when
+  it is built: it holds its own deep copy in which a mapping is a `dict` and
+  a list a `list` subclass that refuses to be changed (`TypeError`, "...is
+  read-only"), a set becomes a `frozenset`, a tuple keeps its type with
+  sealed items and a numeric array becomes read-only over immutable bytes.
+  Before, such a cell was shared by reference with the caller's frame and
+  with every frame the log handed out (`events`, `trace`, `to_pm4py`,
+  `cases`), so a write into it changed the log behind its fingerprint.
+  `add_case_attribute`, `with_case_attributes` and assigning `cases` seal
+  the values they attach. The values compare equal to the ones given;
+  `dict(value)` or `list(value)` gives a writable copy.
+  - A value that cannot be sealed (an object of another class, a
+    `bytearray`, an object-dtype array, a subclass of an array such as a
+    masked array), at any depth, is refused with a
+    `LogSchemaError` naming the column, the value's type and the case; leave
+    the column out with `keep_columns` or convert it. A case attribute that
+    holds dicts, lists or arrays is refused with a `LogSchemaError` naming it
+    (it failed with a pandas `TypeError` before); one of sets is kept as
+    `frozenset`s (it failed before too), and one of tuples as before.
+  - `EventLog.fingerprint()` reads a column with nested values by the
+    canonical text of its cells: equal for equal values whatever the key
+    order of a mapping or the order a set was built in (a set's text
+    depended on the process's hash seed before), and different for `1`,
+    `1.0`, `True` and `"1"` inside a nested value. The fingerprint of a log
+    with such a column changes; the fingerprint of every other log, the
+    golden tier and every number are unchanged.
+  - Cost: object columns whose values pandas infers to be of one plain kind
+    (strings, numbers, timestamps, dates, decimals) are not looked at cell by
+    cell; a column of mixed plain values is looked at but not copied. On
+    `benchmarks/bench_synthetic.py`'s log (1 600 000 events; linux aarch64
+    sandbox; median of five builds in each of two interleaved rounds, before
+    → after) a plain log builds in 3.03 and 2.77 s → 2.47 and 3.26 s, and
+    with its string columns as object dtype in 5.37 and 7.71 s → 5.43 and
+    5.83 s: within run-to-run noise (single plain builds ranged 2.2–3.9 s on
+    both trees); fingerprints of both are unchanged. With one nested column
+    (per event a dict holding a string, a list of two two-key dicts and a
+    list of two strings) the build takes 3.69 and 3.28 s → 18.8 and 20.9 s
+    (about 10 µs per cell, below `copy.deepcopy` of the same cells) and the
+    first fingerprint 11.1 and 11.5 s → 13.7 and 14.6 s.
 
 - Reading a norm document of schema version 1 or 2 emits one
   `wise.LegacySemanticsWarning` (a `FutureWarning`) per norm read, naming the
@@ -899,6 +938,12 @@ deprecation warnings; the module and its paths are removed in 1.0.
   event column to the frame the log is built from; add case attributes with
   `add_case_attribute` or `with_case_attributes`. Assigning `log.cases` still
   works with a warning.
+- A dict, list or set in an event column of a log is a read-only copy: write
+  into `dict(value)` or `list(value)` instead, and change the input frame
+  before the log is built, not after. A set reads back as a `frozenset`. A
+  column holding other mutable objects is refused; drop it with
+  `keep_columns`. The fingerprint of a log with such a column differs from
+  that of the same log under 0.1.0.
 - `log._to_ts(value)` is `log.to_timestamp(value)`; `log._codes`, `_ts`,
   `_valid`, `_starts` are `log.case_index.case_codes`, `timestamps`, `valid`,
   `starts`. `wise.norm._rule_attributes(rule)` is
