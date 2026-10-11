@@ -122,6 +122,8 @@ def test_the_schema_is_frozen() -> None:
         ({"utc": True}, {"time_zone": TimeZone.UTC}),
         ({"dayfirst": True}, {"date_order": DateOrder.DAY_FIRST}),
         ({"dedupe": True}, {"duplicates": Duplicates.DROP}),
+        ({"dedupe": "drop"}, {"duplicates": Duplicates.DROP}),
+        ({"dedupe": "identical"}, {"duplicates": Duplicates.IDENTICAL}),
         ({"missing_timestamps": "keep"}, {"missing_timestamps": MissingTimestamps.KEEP}),
         ({"exposure_col": "amount", "exposure_agg": "sum"}, {"exposure_col": "amount", "exposure_agg": ExposureAggregation.SUM}),
         ({"case_attributes": "org", "keep_columns": ["amount"]}, {"case_attributes": ("org",), "keep_columns": ("amount",)}),
@@ -343,6 +345,162 @@ def test_validate_reports_the_dropped_duplicates_when_the_log_drops_them() -> No
     assert (kept.n_dropped_duplicates, kept.n_cases_with_dropped_duplicates) == (0, 0)
     assert "dropped_duplicates" not in kept.validate().index
     assert "cases_with_dropped_duplicates" not in kept.validate().index
+
+
+def _twins() -> pd.DataFrame:
+    """Two events of case a, same activity, same instant, another identifier and amount; and one of case b."""
+    return pd.DataFrame(
+        {
+            "case": ["a", "a", "b"],
+            "activity": ["X", "X", "X"],
+            "time": pd.to_datetime(["2024-01-01", "2024-01-01", "2024-01-02"]),
+            "eid": ["e1", "e2", "e3"],
+            "amount": [5.0, 7.0, 1.0],
+        }
+    )
+
+
+@pytest.mark.spec("IV-A")
+@pytest.mark.parametrize(
+    ("dedupe", "eids", "dropped"),
+    [
+        (False, ["e1", "e2", "e3"], (0, 0)),
+        (True, ["e1", "e3"], (1, 1)),
+        ("drop", ["e1", "e3"], (1, 1)),
+        ("identical", ["e1", "e2", "e3"], (0, 0)),
+    ],
+)
+def test_only_identical_and_keep_keep_two_events_of_one_instant_that_differ_elsewhere(
+    dedupe: Any, eids: list[str], dropped: tuple[int, int]
+) -> None:
+    # under drop the key (a, X, 2024-01-01) keeps the smaller amount, 5.0, of event e1
+    log = wise.EventLog(_twins(), **COLS, dedupe=dedupe)
+    assert log.events["eid"].tolist() == eids
+    assert (log.n_dropped_duplicates, log.n_cases_with_dropped_duplicates) == dropped
+    report = log.validate()
+    if dedupe is False:
+        assert "dropped_duplicates" not in report.index
+    else:
+        assert (report["dropped_duplicates"], report["cases_with_dropped_duplicates"]) == dropped
+
+
+@pytest.mark.spec("IV-A")
+def test_identical_drops_the_copies_of_rows_loaded_twice() -> None:
+    # every row of the twins frame twice: three copies dropped, from cases a and b
+    single = _twins()
+    doubled = pd.concat([single, single.iloc[::-1]], ignore_index=True)
+    schema = wise.LogSchema(**COLS, exposure_col="amount", exposure_agg="sum")
+    log = wise.EventLog(doubled, schema=dataclasses.replace(schema, duplicates=Duplicates.IDENTICAL))
+    expected = wise.EventLog(single, schema=schema)
+    pd.testing.assert_frame_equal(log.events, expected.events, check_exact=True)
+    pd.testing.assert_frame_equal(log.cases, expected.cases, check_exact=True)
+    assert log.cases["exposure"].tolist() == [12.0, 1.0]
+    assert (log.n_dropped_duplicates, log.n_cases_with_dropped_duplicates) == (3, 2)
+    assert (log.validate()["dropped_duplicates"], log.validate()["cases_with_dropped_duplicates"]) == (3, 2)
+    assert log.fingerprint() == expected.fingerprint()
+    # the fingerprint still tells the log apart from one that kept the copies, or that dropped by key
+    assert log.fingerprint() != wise.EventLog(doubled, schema=schema).fingerprint()
+    assert (
+        log.fingerprint() != wise.EventLog(single, schema=dataclasses.replace(schema, duplicates=Duplicates.DROP)).fingerprint()
+    )
+
+
+def _pair(values: list[Any], dtype: Any = object) -> pd.DataFrame:
+    """Two rows equal in case, activity and time whose column ``v`` holds ``values``."""
+    return pd.DataFrame(
+        {"case": ["a", "a"], "activity": ["X", "X"], "time": ["2024-01-01", "2024-01-01"], "v": pd.Series(values, dtype=dtype)}
+    )
+
+
+IDENTICAL = dataclasses.replace(SCHEMA, duplicates=Duplicates.IDENTICAL)
+
+
+@pytest.mark.spec("IV-A")
+@pytest.mark.parametrize(
+    ("values", "dtype"),
+    [
+        ([1, 1.0], object),
+        ([1, True], object),
+        ([1, "1"], object),
+        ([0.0, -0.0], float),
+        ([0.0, -0.0], object),
+        ([{"k": 1}, {"k": 1.0}], object),
+        ([[1, 2], [2, 1]], object),
+        ([[1, 2], (1, 2)], object),
+        ([None, "x"], object),
+        ([np.nan, 0.0], float),
+    ],
+)
+def test_identical_keeps_rows_whose_values_differ_in_type_or_value(values: list[Any], dtype: Any) -> None:
+    assert len(wise.parse(_pair(values, dtype), IDENTICAL).events) == 2
+
+
+@pytest.mark.spec("IV-A")
+@pytest.mark.parametrize(
+    ("values", "dtype"),
+    [
+        (["x", "x"], object),
+        ([3, 3], "int64"),
+        ([0.5, 0.5], float),
+        ([np.nan, np.nan], float),
+        ([None, None], object),
+        ([None, np.nan], object),
+        ([pd.NA, None], object),
+        ([None, None], "Int64"),
+        ([{"k": 1, "j": [1, {"z"}]}, {"j": [1, {"z"}], "k": 1}], object),
+        ([{2, 1, 3}, {3, 2, 1}], object),
+        ([np.array([1, 2]), np.array([1, 2])], object),
+        ([(1, "a"), (1, "a")], object),
+        ([pd.Timestamp("2024-01-01", tz="UTC"), pd.Timestamp("2024-01-01", tz="UTC")], object),
+    ],
+)
+def test_identical_drops_a_row_equal_in_every_column_missing_and_nested_values_included(values: list[Any], dtype: Any) -> None:
+    parsed = wise.parse(_pair(values, dtype), IDENTICAL)
+    assert len(parsed.events) == 1
+    assert (parsed.n_dropped_duplicates, parsed.n_cases_with_dropped_duplicates) == (1, 1)
+
+
+@pytest.mark.spec("IV-A")
+def test_identical_keeps_the_same_row_of_equal_rows_whatever_their_order() -> None:
+    # None and NaN are both missing, so the rows are equal; the rule of drop keeps NoneType before float
+    frame = _pair([np.nan, None])
+    kept = [wise.EventLog(frame.iloc[rows], schema=IDENTICAL) for rows in ([0, 1], [1, 0])]
+    assert [log.events["v"].tolist() for log in kept] == [[None], [None]]
+    assert kept[0].fingerprint() == kept[1].fingerprint()
+
+
+@pytest.mark.spec("IV-A")
+def test_identical_compares_the_columns_the_log_reads_as_given() -> None:
+    # 'note' is not read under keep_columns=(), so the two rows are equal in what the log reads
+    frame = _pair(["x", "x"]).assign(note=["p", "q"])
+    assert len(wise.parse(frame, IDENTICAL).events) == 2
+    assert len(wise.parse(frame, dataclasses.replace(IDENTICAL, keep_columns=())).events) == 1
+    # timestamps compare before parsing: one instant written in two ways is two rows
+    spelled = _pair(["x", "x"]).assign(time=["2024-01-01", "2024-01-01 00:00"])
+    parsed = wise.parse(spelled, IDENTICAL)
+    assert len(parsed.events) == 2
+    assert parsed.events["time"].nunique() == 1
+    # the lifecycle filter applies first; a start row does not count as a copy
+    lifecycle = _pair(["x", "x"]).assign(lc=["start", "complete"])
+    assert (
+        len(
+            wise.parse(
+                lifecycle, dataclasses.replace(IDENTICAL, lifecycle_col="lc", keep_transitions=("start", "complete"))
+            ).events
+        )
+        == 2
+    )
+
+
+def test_an_unsealable_value_in_a_compared_row_is_refused_as_without_removal() -> None:
+    frame = _pair([object(), object()])
+    with pytest.raises(LogSchemaError, match="column 'v' holds a value of type 'object'"):
+        wise.parse(frame, IDENTICAL)
+
+
+def test_an_unknown_policy_name_for_dedupe_is_refused() -> None:
+    with pytest.raises(LogSchemaError, match=r"dedupe must be one of \['keep', 'drop', 'identical'\], got 'exact'"):
+        wise.EventLog(_frame(), **COLS, dedupe="exact")  # type: ignore[arg-type]
 
 
 @pytest.mark.spec("IV-A")

@@ -18,8 +18,9 @@ Three rules of the method's input are stated here once, as policies (the
 tables are in ``docs/semantics/log-policies.md``): what an event without a
 timestamp contributes to each primitive (:class:`UntimedEvents`), how one
 value per case is taken from a case attribute recorded on events
-(:class:`CaseAttributeValues`), and which event is kept of events that share
-case, activity and timestamp (:class:`Duplicates`).
+(:class:`CaseAttributeValues`), and which rows that repeat another row are
+dropped: those identical in every column read, or those that share case,
+activity and timestamp (:class:`Duplicates`).
 """
 
 from __future__ import annotations
@@ -100,23 +101,40 @@ class UntimedEvents(str, Enum):
 
 
 class Duplicates(str, Enum):
-    """What to do with events that share their key: case, activity and timestamp.
+    """What to do with rows of the log that repeat another row.
 
-    The key compares the values as given, before the timestamps are parsed, so
-    two missing timestamps are equal. Rows that share the key and differ in any
-    other column (an event identifier, an amount) are duplicates all the same.
+    ``IDENTICAL`` drops a row only when it equals another one in every column
+    the log reads; use it when the same record was loaded twice. ``DROP``
+    drops the rows that share their key, case, activity and timestamp, with
+    another row, although they differ in other columns (an event identifier,
+    an amount); use it only when case, activity and time are known to identify
+    an event. Both compare the values as given, before the timestamps are
+    parsed, so two missing timestamps are equal, keep one row of each group of
+    rows that repeat each other, and record the number of dropped events and
+    of the cases they came from (:attr:`ParsedLog.n_dropped_duplicates`).
     """
 
     KEEP = "keep"
     """Keep every event (default)."""
     DROP = "drop"
-    """Keep one event per key and drop the others. The survivor does not depend
+    """Keep one event per key (case, activity and timestamp) and drop the others,
+    also when they differ in other columns (``EventLog(dedupe=True)``). The survivor does not depend
     on the order of the input rows: it is the event with the smallest
     ``order_col`` value, then, among events equal so far, the one whose other
     columns, read in column-name order, are smallest (nulls last; values that
     do not compare, and values equal but of a different type, compare by type
-    name and ``repr``; ``0.0`` comes before ``-0.0``). The number of dropped events and of the cases they
-    came from are recorded (:attr:`ParsedLog.n_dropped_duplicates`)."""
+    name and ``repr``; ``0.0`` comes before ``-0.0``)."""
+    IDENTICAL = "identical"
+    """Keep one row of each group of rows equal in every column the log reads
+    (the named columns and the kept ones, ``keep_columns``) and drop the others.
+    Two cells are equal when they hold the same type and value: ``1``, ``1.0``,
+    ``True`` and ``"1"`` differ, and so do ``0.0`` and ``-0.0``; nested values
+    compare by their canonical form (the order of the keys of a mapping or the
+    items of a set does not matter); two missing values in one column are equal.
+    Two events of one case with the same activity at the same instant and
+    another identifier or amount are both kept. Which row of a group stays is
+    chosen by the rule of ``DROP``, so the log and its fingerprint do not depend
+    on the order of the input rows."""
 
 
 class TimeZone(str, Enum):
@@ -258,7 +276,7 @@ class LogSchema:
         keep_columns: str | Iterable[str] | None = None,
         timestamp_format: str | None = None,
         missing_timestamps: MissingTimestamps | Literal["raise", "drop", "keep"] = MissingTimestamps.RAISE,
-        duplicates: Duplicates | Literal["keep", "drop"] = Duplicates.KEEP,
+        duplicates: Duplicates | Literal["keep", "drop", "identical"] = Duplicates.KEEP,
         time_zone: TimeZone | Literal["as_parsed", "utc"] = TimeZone.AS_PARSED,
         date_order: DateOrder | Literal["month_first", "day_first"] = DateOrder.MONTH_FIRST,
         exposure_agg: ExposureAggregation | str = ExposureAggregation.MAX,
@@ -307,11 +325,16 @@ class LogSchema:
         dayfirst: bool = False,
         missing_timestamps: Literal["raise", "drop", "keep"] = "raise",
         keep_columns: Iterable[str] | None = None,
-        dedupe: bool = False,
+        dedupe: bool | Literal["drop", "identical"] = False,
     ) -> LogSchema:
         """The schema for the column and policy options of :class:`~wise.log.EventLog`:
         ``utc`` selects :attr:`TimeZone.UTC`, ``dayfirst`` :attr:`DateOrder.DAY_FIRST`
-        and ``dedupe`` :attr:`Duplicates.DROP`; the other options map by name."""
+        and ``dedupe=True`` :attr:`Duplicates.DROP`; ``dedupe`` given as a name selects
+        that :class:`Duplicates` policy (``'identical'``); the other options map by name."""
+        if isinstance(dedupe, str):
+            duplicates = _policy("dedupe", Duplicates, dedupe)
+        else:
+            duplicates = Duplicates.DROP if dedupe else Duplicates.KEEP
         return cls(
             case_col=case_col,
             activity_col=activity_col,
@@ -325,7 +348,7 @@ class LogSchema:
             keep_columns=keep_columns,
             timestamp_format=timestamp_format,
             missing_timestamps=missing_timestamps,
-            duplicates=Duplicates.DROP if dedupe else Duplicates.KEEP,
+            duplicates=duplicates,
             time_zone=TimeZone.UTC if utc else TimeZone.AS_PARSED,
             date_order=DateOrder.DAY_FIRST if dayfirst else DateOrder.MONTH_FIRST,
             exposure_agg=exposure_agg,
@@ -556,8 +579,9 @@ class ParsedLog:
     ``varying_case_attributes`` maps each case attribute that takes more than
     one non-null value within a case to the number of such cases (read-only,
     in case-table order). ``n_dropped_duplicates`` is the number of events
-    removed under :attr:`Duplicates.DROP` and ``n_cases_with_dropped_duplicates``
-    the number of cases they belonged to; both are 0 under :attr:`Duplicates.KEEP`."""
+    removed under :attr:`Duplicates.DROP` or :attr:`Duplicates.IDENTICAL` and
+    ``n_cases_with_dropped_duplicates`` the number of cases they belonged to;
+    both are 0 under :attr:`Duplicates.KEEP`."""
 
     schema: LogSchema
     events: pd.DataFrame
@@ -624,16 +648,10 @@ def _ranks(values: pd.Series) -> np.ndarray:
     return codes
 
 
-def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame, int, int]:
-    """``df`` without the events that share their key with a survivor (the
-    rule of :attr:`Duplicates.DROP`), the number of dropped events and the
-    number of cases they came from. The kept rows stay in input order."""
-    key = [schema.case_col, schema.activity_col, schema.timestamp_col]
-    in_group = df.duplicated(subset=key, keep=False).to_numpy()
-    if not in_group.any():
-        return df, 0, 0
-    rows = np.flatnonzero(in_group)
-    group = df.iloc[rows]
+def _ranked(group: pd.DataFrame, schema: LogSchema) -> np.ndarray:
+    """Positions of the rows of ``group`` in the order that chooses the survivor
+    of rows that repeat each other (the rule of :attr:`Duplicates.DROP`),
+    whatever their input order."""
     positions = sorted(range(group.shape[1]), key=lambda i: (str(group.columns[i]), _type_repr(group.columns[i])))
     if schema.order_col is not None:
         order_at = group.columns.get_loc(schema.order_col)
@@ -648,12 +666,87 @@ def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame,
             # equal values with other bits (0.0 and -0.0) rank by their bits
             bits = column.to_numpy(dtype=np.float64, na_value=np.nan).view(np.uint64)
             sort_keys.append(_ranks(pd.Series(bits)))
-    ranked = np.lexsort(sort_keys[::-1])
-    survives = ~group.iloc[ranked].duplicated(subset=key).to_numpy()
-    keep = ~in_group
+    return np.lexsort(sort_keys[::-1])
+
+
+def _drop_repeats(df: pd.DataFrame, schema: LogSchema, rows: np.ndarray, key: pd.DataFrame) -> tuple[pd.DataFrame, int, int]:
+    """``df`` without the rows that repeat the ``key`` of a survivor, the number
+    of dropped events and the number of cases they came from. ``key`` holds the
+    values compared, one row for each position of ``rows`` in ``df``; the rows
+    of ``df`` outside ``rows`` are kept. The kept rows stay in input order."""
+    in_group = key.duplicated(keep=False).to_numpy()
+    if not in_group.any():
+        return df, 0, 0
+    rows = rows[in_group]
+    group = df.iloc[rows]
+    ranked = _ranked(group, schema)
+    survives = ~key[in_group].iloc[ranked].duplicated().to_numpy()
+    keep = np.ones(len(df), dtype=bool)
+    keep[rows] = False
     keep[rows[ranked[survives]]] = True
     dropped_cases = group[schema.case_col].iloc[ranked[~survives]]
     return df[keep], int((~survives).sum()), int(dropped_cases.nunique(dropna=False))
+
+
+def _drop_duplicates(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame, int, int]:
+    """``df`` without the events that share their key with a survivor (the
+    rule of :attr:`Duplicates.DROP`), the number of dropped events and the
+    number of cases they came from. The kept rows stay in input order."""
+    key = [schema.case_col, schema.activity_col, schema.timestamp_col]
+    return _drop_repeats(df, schema, np.arange(len(df)), df[key])
+
+
+_NAN_BITS = np.array([np.nan]).view(np.uint64)[0]
+
+
+def _identity(column: pd.Series) -> pd.Series:
+    """Values that are equal exactly when the cells of ``column`` are identical:
+    of one type and value (``1``, ``1.0``, ``True`` and ``"1"`` differ, and so do
+    ``0.0`` and ``-0.0``), nested values by their canonical form; missing values
+    are all equal. A value the log cannot seal equals no other value."""
+    missing = column.isna().to_numpy()
+    if column.dtype.kind == "f":
+        bits = column.to_numpy(dtype=np.float64, na_value=np.nan).view(np.uint64).copy()
+        bits[missing] = _NAN_BITS
+        return pd.Series(bits)
+    if column.dtype.kind not in "Oc":
+        return column.reset_index(drop=True)
+    values = column.to_numpy(dtype=object)
+    if pd.api.types.infer_dtype(column, skipna=True) == "string":
+        values = values.copy()
+        values[missing] = None
+        return pd.Series(values, dtype=object)
+    out = np.empty(len(values), dtype=object)
+    for i, value in enumerate(values):
+        if missing[i]:
+            out[i] = None
+        elif type(value) is str:
+            out[i] = value
+        else:
+            try:
+                out[i] = (f"{type(value).__module__}.{type(value).__qualname__}", _canonical(_seal(value)))
+            except (_Unsealable, RecursionError):
+                out[i] = object()  # the column is refused when it is sealed
+    return pd.Series(out, dtype=object)
+
+
+def _identities(df: pd.DataFrame, positions: list[int]) -> pd.DataFrame:
+    return pd.DataFrame({k: _identity(df.iloc[:, i]) for k, i in enumerate(positions)})
+
+
+def _drop_identical(df: pd.DataFrame, schema: LogSchema) -> tuple[pd.DataFrame, int, int]:
+    """``df`` without the rows identical to a survivor in every column the log
+    reads (the rule of :attr:`Duplicates.IDENTICAL`), the number of dropped
+    events and the number of cases they came from. The kept rows stay in input order."""
+    columns = list(df.columns)
+    wanted = None if schema.keep_columns is None else set(schema.roles) | set(schema.keep_columns)
+    read = [i for i, c in enumerate(columns) if wanted is None or c in wanted]
+    key = [columns.index(c) for c in (schema.case_col, schema.activity_col, schema.timestamp_col)]
+    # identical rows share case, activity and timestamp: only the rows that do are compared in every column
+    rows = np.flatnonzero(_identities(df, key).duplicated(keep=False).to_numpy())
+    if not len(rows):
+        return df, 0, 0
+    return _drop_repeats(df, schema, rows, _identities(df.iloc[rows], read))
 
 
 def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
@@ -696,6 +789,8 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
     n_dropped = n_cases_dropped = 0
     if schema.duplicates is Duplicates.DROP:
         df, n_dropped, n_cases_dropped = _drop_duplicates(df, schema)
+    elif schema.duplicates is Duplicates.IDENTICAL:
+        df, n_dropped, n_cases_dropped = _drop_identical(df, schema)
 
     # ---- case ids -------------------------------------------------------------------
     case_series = df[case_col]

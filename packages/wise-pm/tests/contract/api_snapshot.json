@@ -919,7 +919,7 @@
             "name": "keep_columns"
           },
           {
-            "annotation": "bool",
+            "annotation": "bool | Literal['drop', 'identical']",
             "default": "False",
             "kind": "KEYWORD_ONLY",
             "name": "dedupe"
@@ -1654,7 +1654,7 @@
             "name": "missing_timestamps"
           },
           {
-            "annotation": "Duplicates | Literal['keep', 'drop']",
+            "annotation": "Duplicates | Literal['keep', 'drop', 'identical']",
             "default": "<Duplicates.KEEP: 'keep'>",
             "kind": "KEYWORD_ONLY",
             "name": "duplicates"
@@ -1793,7 +1793,7 @@
               "name": "keep_columns"
             },
             {
-              "annotation": "bool",
+              "annotation": "bool | Literal['drop', 'identical']",
               "default": "False",
               "kind": "KEYWORD_ONLY",
               "name": "dedupe"
