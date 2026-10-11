@@ -158,7 +158,8 @@ PATHS: Mapping[str, CompatPath] = MappingProxyType(
             "changed",
             "the presence column says in which periods a slice occurs",
             note="adds the column presence and leaves the change of a slice absent from one period missing instead of "
-            "comparing it with zero (Fixed: C24)",
+            "comparing it with zero (Fixed: C24); two backlog records ranked with different specifications, norms or "
+            "scoring modes are refused unless the difference is intended",
         ),
     }
 )

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Hashable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -64,6 +64,9 @@ class BacklogSpec:
         frame.
     score_col
         The score column ranked (``"score"`` for a result).
+    mode
+        The scoring mode of the result the scores came from
+        (:attr:`~wise.scoring.ScoreResult.mode`); ``None`` for a per-case frame.
     """
 
     by: tuple[str, ...]
@@ -76,6 +79,7 @@ class BacklogSpec:
     z: float | None
     norm_fingerprint: str | None
     score_col: str = "score"
+    mode: str | None = field(default=None, kw_only=True)
 
     def to_dict(self) -> dict[str, Any]:
         """The specification as a JSON-ready mapping (``by`` as a list)."""
@@ -90,6 +94,7 @@ class BacklogSpec:
             "z": self.z,
             "norm_fingerprint": self.norm_fingerprint,
             "score_col": self.score_col,
+            "mode": self.mode,
         }
 
     def _legacy_attrs(self) -> dict[str, Any]:

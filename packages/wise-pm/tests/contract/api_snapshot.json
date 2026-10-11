@@ -397,7 +397,8 @@
         "min_cases",
         "z",
         "norm_fingerprint",
-        "score_col"
+        "score_col",
+        "mode"
       ],
       "init": {
         "parameters": [
@@ -460,6 +461,12 @@
             "default": "'score'",
             "kind": "POSITIONAL_OR_KEYWORD",
             "name": "score_col"
+          },
+          {
+            "annotation": "str | None",
+            "default": "None",
+            "kind": "KEYWORD_ONLY",
+            "name": "mode"
           }
         ],
         "returns": "None"

@@ -221,6 +221,7 @@ def test_backlog_parameters_survive_operations_that_drop_dataframe_attrs(p2p_res
         z=1.96,
         norm_fingerprint=p2p_result.norm.fingerprint(),
         score_col="score",
+        mode="flat",
     )
     for record in (backlog, copy.deepcopy(backlog), pickle.loads(pickle.dumps(backlog))):
         assert record.spec == expected

@@ -193,6 +193,27 @@ version as a placeholder; every change to it is listed below. Callers of
   positions. The output gains the column
   `presence` (`"both"`, `"new"`, `"gone"`), and a slice ranked in one period
   only keeps missing `gap_change` and `PI_change` (see `Fixed: C24`).
+- `compare_periods` also compares the norm and the scoring mode the two
+  backlogs were scored under. `BacklogSpec` gains the keyword-only field
+  `mode` (the `ScoreResult.mode` of the ranked result, `None` for a per-case
+  frame; also in `to_dict()`), and `norm_fingerprint` and `mode` join the
+  compared fields. On the same cases a changed bound or another mode changes
+  the scores (on the running example a lag bound lowered from 10 to 5 days
+  moves company B's Finance gap by −0.03, and the two modes differ by up to 0.1235
+  in a case score), which a comparison would otherwise report as a change of
+  the process. Such a difference is refused with a `NormError` naming the
+  field and both values unless it is named in `intended` (`"norm_fingerprint"`
+  or `"norm"`, `"mode"`; other names are still refused). A comparison across
+  an intended difference states it in the result's `attrs`: `"intended"`
+  maps each intended field that differs to its `(previous, current)` values
+  and `"statement"` is a sentence naming them; `attrs` stays empty otherwise.
+  The docstring says what is not compared and why (`global_mean`,
+  `min_cases`, `z`, `score_col`). Comparisons of records scored under the
+  same norm and mode are unchanged: on the golden log split at the median
+  case start, 36 two-period tables (both modes, by company and by
+  company×vendor, three parameter sets, every view) are identical to those
+  before the change. The contract snapshot records the new field. Delta on the
+  golden dataset: none.
 - A case without a value for a slice key falls in the slice labelled
   `wise.MISSING_KEY` (`"(missing)"`, the label the workbench gateway already
   uses) in `prioritize`, `layer_drivers`, `penalty_mass`, `gap_retained` and
@@ -864,8 +885,8 @@ deprecation warnings; the module and its paths are removed in 1.0.
   log=None)` gives a result without its log.
 - `compare_periods` adds the column `presence`, leaves the change of a slice
   absent from one period missing instead of comparing it with zero (C24), and
-  refuses two records ranked with different specifications unless the
-  difference is `intended`.
+  refuses two records ranked with different specifications, under different
+  norms or in different scoring modes unless the difference is `intended`.
 - Input that 0.1.0 accepted although it was malformed is refused with a
   `WiseError`: an empty event frame and null lifecycle transitions (C6),
   non-integer `m`/`k` (C1), unknown recipe keys and options (C5), an `eval`

@@ -254,7 +254,8 @@ def prioritize(
     with ``n_cases, mean_score, volume, [exposure], gap, PI, stable_mean,
     stable_gap, stable_PI, [se, gap_lower, PI_lower], global_mean``. Its ``spec`` holds the slice keys, the view,
     ``gamma``, ``volume``, the requested ``baseline`` and the realised global
-    mean, ``min_cases``, ``z``, the score column and the norm fingerprint.
+    mean, ``min_cases``, ``z``, the score column, the norm fingerprint and the
+    scoring mode.
     """
     by = _keys(by)
     try:
@@ -271,8 +272,9 @@ def prioritize(
     if isinstance(data, ScoreResult):
         view = view if view is not None else data.views[0]
         fingerprint: str | None = data.norm_fingerprint or None
+        mode: str | None = data.mode
     else:
-        view, fingerprint = None, None
+        view, fingerprint, mode = None, None, None
     d = df.dropna(subset=[score_col])
     if d.empty:
         raise NotScoredError("no scored cases to aggregate")
@@ -318,6 +320,7 @@ def prioritize(
         z=z_value,
         norm_fingerprint=fingerprint,
         score_col=score_col,
+        mode=mode,
     )
     return Backlog(agg if as_index else agg.reset_index(), spec)
 
@@ -609,8 +612,10 @@ def hotspot_table(backlog: Backlog | pd.DataFrame, top: int = 12, drivers: pd.Da
     return pos
 
 
-COMPARED_FIELDS: tuple[str, ...] = ("by", "view", "gamma", "baseline", "volume")
+COMPARED_FIELDS: tuple[str, ...] = ("by", "view", "gamma", "baseline", "volume", "norm_fingerprint", "mode")
 """The fields of :class:`~wise.backlog.BacklogSpec` two compared periods must share."""
+
+_INTENDED_ALIASES = {"norm": "norm_fingerprint"}  # other names ``intended`` accepts for a compared field
 
 
 def compare_periods(
@@ -623,24 +628,51 @@ def compare_periods(
 
     Two backlog records must have been ranked alike: their specifications may
     not differ in slice keys (``by``), ``view``, ``gamma``, the requested
-    ``baseline`` or ``volume``, unless each differing field is named in
-    ``intended``; otherwise :class:`~wise.errors.NormError` names the fields.
-    A record is aligned on its slice keys, also when ranked with
+    ``baseline``, ``volume``, the fingerprint of the norm the scores came from
+    (``norm_fingerprint``, also accepted as ``"norm"``) or the scoring
+    ``mode``, unless each differing field is named in ``intended``; otherwise
+    :class:`~wise.errors.NormError` names the fields. On the same cases, a
+    changed norm bound or another scoring mode changes the scores and so the
+    gaps; compared unnoticed, that change would read as a change of the
+    process. A record is aligned on its slice keys, also when ranked with
     ``as_index=False``. Frames carry no specification and are compared as
     given, on their index. Use a common
     ``baseline`` in :func:`prioritize` to compare gaps against one reference.
+
+    Not compared, by design: ``global_mean`` is the reference the period's
+    scores realised; with ``baseline=None`` it is each period's own mean, so
+    two such periods always differ in it and are compared on the rule (the
+    requested ``baseline``), not the value. Their gaps are then measured
+    against different references; pass a common ``baseline`` when that
+    matters. ``min_cases`` and ``z`` do not change ``stable_gap`` or
+    ``stable_PI`` of a slice ranked in both periods (a slice dropped by
+    ``min_cases`` in one period shows as ``"new"`` or ``"gone"``).
+    ``score_col`` is only the name of the column ranked from a per-case
+    frame; the name says nothing about how the scores were computed, and
+    such a specification has no norm or mode to compare.
 
     ``presence`` is ``"both"``, ``"new"`` (ranked in ``current`` only) or
     ``"gone"`` (ranked in ``previous`` only). A slice ranked in one period only
     has no measured change: its ``gap_change`` and ``PI_change`` are missing,
     like the columns of the period it is absent from (C24).
+
+    A comparison across an intended difference says so in ``DataFrame.attrs``:
+    ``"intended"`` maps each intended field that differs to its
+    ``(previous, current)`` values, and ``"statement"`` is a sentence naming
+    them, for a table or report built from the result. When nothing intended
+    differs, ``attrs`` stays empty.
     """
-    accepted = _keys(intended)
-    unknown = [f for f in accepted if f not in COMPARED_FIELDS]
+    named = _keys(intended)
+    accepted = [_INTENDED_ALIASES.get(f, f) for f in named]
+    unknown = [f for f, field in zip(named, accepted, strict=True) if field not in COMPARED_FIELDS]
     if unknown:
-        raise NormError(f"intended names fields that are not compared: {unknown}; compared are {list(COMPARED_FIELDS)}")
+        raise NormError(
+            f"intended names fields that are not compared: {unknown}; "
+            f"compared are {list(COMPARED_FIELDS)} ('norm' names norm_fingerprint)"
+        )
+    differences: dict[str, tuple[Any, Any]] = {}
     if isinstance(previous, Backlog) and isinstance(current, Backlog):
-        _check_comparable(previous.spec, current.spec, accepted)
+        differences = _check_comparable(previous.spec, current.spec, accepted)
     previous = _by_slice(previous, "previous")
     current = _by_slice(current, "current")
     cols = list(BACKLOG_COLUMNS)
@@ -651,7 +683,12 @@ def compare_periods(
     out["PI_change"] = out["stable_PI_now"] - out["stable_PI_prev"]
     in_prev, in_now = out["n_cases_prev"].notna().to_numpy(), out["n_cases_now"].notna().to_numpy()
     out["presence"] = np.select([in_prev & in_now, in_now], ["both", "new"], "gone")
-    return out.sort_values("stable_PI_now", ascending=False, kind="mergesort")
+    out = out.sort_values("stable_PI_now", ascending=False, kind="mergesort")
+    if differences:
+        plural = "an intended difference" if len(differences) == 1 else "intended differences"
+        out.attrs["intended"] = differences
+        out.attrs["statement"] = f"compared across {plural}: {_describe(differences)}"
+    return out
 
 
 def _by_slice(backlog: Backlog | pd.DataFrame, what: str) -> pd.DataFrame:
@@ -664,19 +701,32 @@ def _by_slice(backlog: Backlog | pd.DataFrame, what: str) -> pd.DataFrame:
     return table
 
 
-def _check_comparable(previous: BacklogSpec, current: BacklogSpec, intended: Sequence[str]) -> None:
-    """Refuse two specifications that differ in a compared field not named in ``intended``."""
+def _shown(field: str, value: Any) -> Any:
+    """A specification value as a message shows it: ``by`` as a list, a norm fingerprint shortened."""
+    if isinstance(value, tuple):
+        return list(value)
+    if field == "norm_fingerprint" and isinstance(value, str):
+        return f"{value[:12]}…"
+    return value
 
-    def shown(value: Any) -> Any:
-        return list(value) if isinstance(value, tuple) else value
 
-    refused = [f for f in COMPARED_FIELDS if getattr(previous, f) != getattr(current, f) and f not in intended]
+def _describe(differences: dict[str, tuple[Any, Any]]) -> str:
+    """``field <previous> and <current>`` for each difference, joined by ``; ``."""
+    return "; ".join(f"{f} {_shown(f, a)!r} and {_shown(f, b)!r}" for f, (a, b) in differences.items())
+
+
+def _check_comparable(previous: BacklogSpec, current: BacklogSpec, intended: Sequence[str]) -> dict[str, tuple[Any, Any]]:
+    """The intended differences of two specifications; a difference in a compared field not named in ``intended`` is refused."""
+    differences = {
+        f: (getattr(previous, f), getattr(current, f)) for f in COMPARED_FIELDS if getattr(previous, f) != getattr(current, f)
+    }
+    refused = [f for f in differences if f not in intended]
     if refused:
-        differences = "; ".join(f"{f} {shown(getattr(previous, f))!r} and {shown(getattr(current, f))!r}" for f in refused)
         raise NormError(
-            f"the periods were ranked with different specifications: {differences}; "
+            f"the periods were ranked with different specifications: {_describe({f: differences[f] for f in refused})}; "
             f"pass intended={refused!r} if the difference is intended"
         )
+    return differences
 
 
 def estimate_gamma(
