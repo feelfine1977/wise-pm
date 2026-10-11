@@ -88,3 +88,17 @@ def test_tuples_and_frozen_sets_slice_like_plain_values(kind: str, view: str) ->
     renamed = table.rename(index=labels)
     pd.testing.assert_frame_equal(renamed, plain)
     assert table["n_cases"].sum() == 5
+
+
+def test_only_the_key_that_cannot_be_ordered_is_named() -> None:
+    # "pair" holds tuples (an object column that orders), "company" strings
+    log = wise.running_p2p_log()
+    log = log.with_case_attributes(
+        {
+            "pair": pd.Series([("a", 1), ("b", 2), ("a", 1), ("b", 2), ("a", 1)], index=log.case_ids, dtype=object),
+            "context": pd.Series(_KINDS["every kind"], index=log.case_ids, dtype=object),
+        }
+    )
+    result = wise.score(log, wise.running_p2p_norm())
+    with pytest.raises(NormError, match=r"^slice key 'context' holds values that cannot be ordered"):
+        wise.prioritize(result, ["pair", "company", "context"], view="Finance")
