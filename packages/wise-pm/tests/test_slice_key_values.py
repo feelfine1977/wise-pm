@@ -8,6 +8,7 @@ a bare ``TypeError``.
 
 from __future__ import annotations
 
+import contextlib
 import warnings
 from collections.abc import Callable
 from typing import Any
@@ -61,10 +62,8 @@ def test_slicing_by_any_accepted_case_attribute_returns_or_raises_a_library_erro
     result = _result(values if missing else [*values[:4], values[0]])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        try:
+        with contextlib.suppress(WiseError):
             call(result, view)
-        except WiseError:
-            pass
 
 
 @pytest.mark.parametrize("kind", sorted(_UNORDERABLE))
