@@ -39,7 +39,9 @@ def _cells(values: list[Any]) -> pd.Series:
 
 
 def _log(frame: pd.DataFrame, **kwargs: Any) -> wise.EventLog:
-    return wise.EventLog(frame, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["region"], **kwargs)
+    return wise.EventLog(
+        frame, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["region"], **kwargs
+    )
 
 
 def _state(log: wise.EventLog) -> tuple[Any, ...]:
@@ -143,9 +145,9 @@ def test_a_numeric_array_is_kept_read_only_and_cannot_be_made_writable() -> None
     before = log.fingerprint()
     frame["vector"].iloc[0][0] = 9.0
     cell = log.events["vector"].iloc[0]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="read-only"):
         cell[0] = 9.0
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="WRITEABLE"):
         cell.flags.writeable = True
     np.testing.assert_array_equal(log.events["vector"].iloc[0], [1.0, 2.0])
     assert log.fingerprint() == before
@@ -239,8 +241,10 @@ def test_other_mappings_lists_and_immutable_scalars_are_sealed_and_fingerprinted
     )
     log = _log(frame)
     extra = log.events["extra"]
-    assert type(extra.iloc[0]) is not collections.OrderedDict and extra.iloc[0] == {"a": decimal.Decimal("2.5"), "b": 1}
-    assert type(extra.iloc[1]) is not _Tags and extra.iloc[1] == ["x"]
+    assert type(extra.iloc[0]) is not collections.OrderedDict
+    assert extra.iloc[0] == {"a": decimal.Decimal("2.5"), "b": 1}
+    assert type(extra.iloc[1]) is not _Tags
+    assert extra.iloc[1] == ["x"]
     with pytest.raises(TypeError, match="read-only"):
         extra.iloc[1].append("y")
     same = _frame()
@@ -297,9 +301,7 @@ def test_a_case_attribute_of_tuples_or_sets_is_kept() -> None:
     frame = _frame()
     frame["pair"] = _cells([("x", 1), ("x", 1), ("y", 2)])
     frame["kinds"] = _cells([{"p"}, {"p"}, {"q"}])
-    log = wise.EventLog(
-        frame, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["pair", "kinds"]
-    )
+    log = wise.EventLog(frame, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["pair", "kinds"])
     assert log.cases["pair"].tolist() == [("x", 1), ("y", 2)]
     assert log.cases["kinds"].tolist() == [frozenset({"p"}), frozenset({"q"})]
 
