@@ -26,7 +26,8 @@ columns. A case without a value for a slice key falls in the slice labelled
 from __future__ import annotations
 
 import warnings
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from typing import Any, Literal, TypeVar
 
 import numpy as np
@@ -111,6 +112,32 @@ _Table = TypeVar("_Table", pd.DataFrame, "pd.Series[Any]")
 def _sort_slices(frame: _Table, labelled: bool) -> _Table:
     """``frame`` in slice-key order; with a labelled missing key that slice comes last, as NaN did."""
     return frame.sort_index(key=_missing_last) if labelled else frame.sort_index()
+
+
+@contextmanager
+def _ordering(df: pd.DataFrame, by: Sequence[str]) -> Iterator[None]:
+    """Refuse slice keys whose values cannot be ordered (``1`` and ``"x"``, a tuple and a frozenset) with a
+    :class:`~wise.errors.NormError` naming them, where grouping or sorting by them fails."""
+    try:
+        yield
+    except TypeError as exc:
+        named = [col for col in by if not _orderable(df[col])] or list(by)
+        keys = ", ".join(repr(col) for col in named)
+        raise NormError(
+            f"slice key{'s' if len(named) > 1 else ''} {keys} {'hold' if len(named) > 1 else 'holds'} values that "
+            f"cannot be ordered against each other ({exc}); convert {'them' if len(named) > 1 else 'it'} to values "
+            "of one kind first, e.g. with astype(str)"
+        ) from None
+
+
+def _orderable(values: pd.Series) -> bool:
+    if values.dtype != object:
+        return True
+    try:
+        sorted(pd.unique(values[values.notna() & (values != MISSING_KEY)]))
+    except TypeError:
+        return False
+    return True
 
 
 BACKLOG_COLUMNS: tuple[str, ...] = ("n_cases", "stable_gap", "stable_PI")
@@ -286,7 +313,8 @@ def prioritize(
         raise NormError(f"volume column {vol_col!r} not in frame")
 
     g = d.groupby(by, dropna=False, observed=True, sort=True)
-    agg = g[score_col].agg(n_cases="size", mean_score="mean", sd="std")
+    with _ordering(d, by):
+        agg = g[score_col].agg(n_cases="size", mean_score="mean", sd="std")
     agg["volume"] = g[vol_col].sum().astype(float) if vol_col is not None else agg["n_cases"].astype(float)
     if "exposure" in d.columns:
         agg["exposure"] = g["exposure"].sum().astype(float)
@@ -309,7 +337,8 @@ def prioritize(
     agg["global_mean"] = mu_bar
 
     agg = agg[agg["n_cases"] >= min_cases]
-    agg = _sort_slices(agg, labelled).sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
+    with _ordering(d, by):
+        agg = _sort_slices(agg, labelled).sort_values(["stable_PI", "n_cases"], ascending=[False, False], kind="mergesort")
     spec = BacklogSpec(
         by=tuple(by),
         view=view,
@@ -358,10 +387,11 @@ def layer_drivers(
         raise NotScoredError("no scored cases to aggregate")
     global_mean = d[layer_cols].mean()
     g = d.groupby(by, dropna=False, observed=True, sort=True)
-    out = g[layer_cols].mean()
+    with _ordering(d, by):
+        out = g[layer_cols].mean()
+        if labelled:
+            out = _sort_slices(out, labelled)
     out.insert(0, "n_cases", g.size())
-    if labelled:
-        out = _sort_slices(out, labelled)
     deltas = out[layer_cols] - global_mean
     for col in layer_cols:
         out[f"{col[len(prefix) :]}__delta"] = deltas[col]
@@ -445,8 +475,10 @@ def penalty_mass(
         raise NotScoredError("no scored cases match the filter")
     d = d.assign(_penalty=1.0 - d[score_col])
     g = d.groupby(by, dropna=False, observed=True, sort=True)
-    out = pd.DataFrame({"n_cases": g.size(), "penalty_mass": g["_penalty"].sum(), "mean_penalty": g["_penalty"].mean()})
-    out = _sort_slices(out, labelled).sort_values(["penalty_mass", "n_cases"], ascending=False, kind="mergesort")
+    with _ordering(d, by):
+        out = pd.DataFrame({"n_cases": g.size(), "penalty_mass": g["_penalty"].sum(), "mean_penalty": g["_penalty"].mean()})
+        out = _sort_slices(out, labelled)
+    out = out.sort_values(["penalty_mass", "n_cases"], ascending=False, kind="mergesort")
     total = float(out["penalty_mass"].sum())
     out["share"] = out["penalty_mass"] / total if total > 0 else 0.0
     out["cum_share"] = out["share"].cumsum()
@@ -758,7 +790,8 @@ def estimate_gamma(
     by = _keys(by)
     df, score_col = _frame(data, view, score_col, by)
     d = df.dropna(subset=[score_col])
-    stats = d.groupby(by, dropna=False, observed=True)[score_col].agg(["size", "mean", "var"])
+    with _ordering(d, by):
+        stats = d.groupby(by, dropna=False, observed=True)[score_col].agg(["size", "mean", "var"])
     stats = stats[stats["size"] >= 2]
     if len(stats) < 2:
         raise NotScoredError("estimate_gamma needs at least two slices with two or more scored cases")

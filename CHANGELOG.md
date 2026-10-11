@@ -306,6 +306,14 @@ version as a placeholder; every change to it is listed below. Callers of
     before, and was accepted on attachment, after which `prioritize` by it
     failed with `TypeError: unhashable type`); one of sets is kept as
     `frozenset`s (it failed before too), and one of tuples as before.
+  - `prioritize`, `layer_drivers`, `penalty_mass` and `estimate_gamma`, and
+    the helpers built on them (`validation_table`, `gap_retained`,
+    `view_agreement`), refuse a slice key whose values cannot be ordered
+    against each other (`1` next to `"x"`, a tuple next to a frozenset,
+    tuples whose items differ in kind) with a `NormError` naming the key,
+    where they failed with a pandas `TypeError`. A key of plain values, of
+    tuples or of frozen sets ranks as before, and every call that returned
+    before returns the same.
   - `EventLog.fingerprint()` reads a column with nested values by the
     canonical text of its cells: equal for equal values whatever the key
     order of a mapping or the order a set was built in (a set's text
