@@ -440,9 +440,13 @@ def _is_nested(value: Any) -> bool:
     return isinstance(value, Mapping | list | set | frozenset | np.ndarray)
 
 
+def _plain(column: pd.Series) -> bool:
+    return column.dtype != object or pd.api.types.infer_dtype(column, skipna=True) in _PLAIN_KINDS
+
+
 def nested_cells(column: pd.Series) -> bool:
     """Whether a cell of ``column`` holds a mapping, list, set or array, at any depth of a tuple."""
-    if column.dtype != object or pd.api.types.infer_dtype(column, skipna=True) in _PLAIN_KINDS:
+    if _plain(column):
         return False
     return any(_is_nested(v) for v in column.to_numpy())
 
@@ -455,7 +459,7 @@ def sealed(column: pd.Series, where: Callable[[int], str] | None = None) -> pd.S
     refused with a :class:`~wise.errors.LogSchemaError` naming the column and where the value is: ``where``
     of its position, by default its row label.
     """
-    if column.dtype != object or pd.api.types.infer_dtype(column, skipna=True) in _PLAIN_KINDS:
+    if _plain(column):
         return column
     values = column.to_numpy()
     out = np.empty(len(values), dtype=object)
