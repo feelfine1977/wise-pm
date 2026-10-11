@@ -118,7 +118,18 @@ def test_the_verdict_table_written_by_the_command_line_keeps_the_reasons(tmp_pat
     assert rc == 0
     assert not verdicts.exists()
     rc = main(
-        ["score", str(norm), str(log), *common, "--by", "flow_type", "--out", str(tmp_path / "b.csv"), "--verdicts-out", str(verdicts)]
+        [
+            "score",
+            str(norm),
+            str(log),
+            *common,
+            "--by",
+            "flow_type",
+            "--out",
+            str(tmp_path / "b.csv"),
+            "--verdicts-out",
+            str(verdicts),
+        ]
     )
     assert rc == 0
     written = pd.read_csv(verdicts, keep_default_na=False).set_index(["case", "constraint"])

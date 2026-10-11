@@ -27,7 +27,9 @@ pytestmark = pytest.mark.filterwarnings("ignore::wise.LegacySemanticsWarning")
 
 PKG = Path(__file__).resolve().parents[2]
 
-_event = st.tuples(st.sampled_from(ACTIVITIES), st.integers(0, 120).map(lambda v: v / 2), st.integers(0, 400).map(lambda v: v / 4))
+_event = st.tuples(
+    st.sampled_from(ACTIVITIES), st.integers(0, 120).map(lambda v: v / 2), st.integers(0, 400).map(lambda v: v / 4)
+)
 # a case may lack its flow, so that applicability is unknown under schema version 3
 _case = st.tuples(st.sampled_from([*FLOWS, None]), st.sampled_from(REGIONS), st.lists(_event, min_size=1, max_size=8))
 
