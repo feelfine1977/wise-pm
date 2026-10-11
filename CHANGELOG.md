@@ -402,8 +402,9 @@ version as a placeholder; every change to it is listed below. Callers of
 - Which tables carry the reasons: `ScoreResult.frame`, `worst_cases`,
   `summary`, `penalties` and `effective_weights`, `violation_matrix`,
   `prioritize`, `layer_drivers`, `constraint_drivers`, `penalty_mass`,
-  `case_slices`, `view_agreement`, `gap_retained`, `validation_table` and
-  `wise score --cases-out` do not, and their documentation now says so. Their
+  `case_slices`, `view_agreement`, `gap_retained`, `validation_table`,
+  `wise.compat.prioritize`, `wise score --out` and `wise score --cases-out`
+  do not, and their documentation now says so. Their
   columns, the scores, `violations` and `in_scope` are unchanged. Delta on the
   golden dataset: none. The contract snapshot gains the field, the method and
   the output table `ScoreResult.verdicts`.

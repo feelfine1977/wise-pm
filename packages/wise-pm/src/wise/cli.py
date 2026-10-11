@@ -67,7 +67,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     s.add_argument("--volume", default="cases", help="'cases', 'exposure' or a column")
     s.add_argument("--min-cases", type=int, default=1)
     s.add_argument("--mode", default=None, choices=["flat", "layer_balanced"], help="override the norm's scoring mode")
-    s.add_argument("--out", default="-", help="output CSV path ('-' = stdout)")
+    s.add_argument(
+        "--out", default="-", help="output CSV path of the ranked slices ('-' = stdout; no reasons, see --verdicts-out)"
+    )
     s.add_argument("--cases-out", default=None, help="optional CSV with per-case scores (no per-constraint values or reasons)")
     s.add_argument("--verdicts-out", default=None, help="optional CSV with the value, scope and reason per case and constraint")
 

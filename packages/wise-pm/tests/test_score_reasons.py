@@ -20,6 +20,7 @@ import pandas as pd
 import pytest
 
 import wise
+import wise.compat
 from wise.cli import main
 from wise.family import EVALUATED, OUT_OF_SCOPE, SCOPE_UNKNOWN
 
@@ -163,3 +164,29 @@ def test_replacing_the_log_keeps_the_reasons(reason_log: wise.EventLog) -> None:
     detached = dataclasses.replace(result, log=None)
     assert detached.reasons is result.reasons
     pd.testing.assert_frame_equal(detached.verdicts(), result.verdicts())
+
+
+@pytest.mark.parametrize(
+    "table",
+    [
+        wise.ScoreResult.frame,
+        wise.ScoreResult.worst_cases,
+        wise.ScoreResult.summary,
+        wise.ScoreResult.penalties,
+        wise.ScoreResult.effective_weights,
+        wise.violation_matrix,
+        wise.prioritize,
+        wise.compat.prioritize,
+        wise.layer_drivers,
+        wise.constraint_drivers,
+        wise.penalty_mass,
+        wise.case_slices,
+        wise.view_agreement,
+        wise.gap_retained,
+        wise.validation_table,
+    ],
+    ids=lambda f: f"{f.__module__}.{f.__qualname__}",
+)
+def test_every_table_written_from_a_result_says_where_the_reasons_are(table: Any) -> None:
+    doc = " ".join((table.__doc__ or "").split())
+    assert "verdicts" in doc or "reasons`" in doc
