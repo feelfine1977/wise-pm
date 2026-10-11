@@ -111,7 +111,7 @@ PATHS: Mapping[str, CompatPath] = MappingProxyType(
             "EventLog.add_case_attribute or EventLog.with_case_attributes",
             ("assigning EventLog.cases",),
             "reading gives a copy: a write into it (log.cases[col] = ...) does not reach the log; assign the table or "
-            "use the replacement",
+            "use the replacement; a case attribute of dicts, lists or arrays is refused there as when the log is built",
         ),
         "wise.scoring.ScoreResult._weights": CompatPath(
             "kept",

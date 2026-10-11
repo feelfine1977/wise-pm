@@ -501,6 +501,21 @@ def sealed(column: pd.Series, where: Callable[[int], str] | None = None) -> pd.S
     return pd.Series(out, index=column.index, name=column.name) if changed else column
 
 
+def sealed_case_attribute(column: pd.Series, where: Callable[[int], str] | None = None) -> pd.Series:
+    """``column`` sealed as :func:`sealed` does, refused when a cell holds a dict, list or array.
+
+    A case attribute takes one plain value per case: tuples and sets of such values are kept, anything
+    unhashable is refused with a :class:`~wise.errors.LogSchemaError` naming the column.
+    """
+    out = sealed(column, where)
+    if out is not column and not all(_hashable(v) for v in out.to_numpy()):
+        raise LogSchemaError(
+            f"case attribute {column.name!r} holds dicts, lists or arrays; a case attribute takes one plain "
+            "value per case, so flatten it into plain columns first"
+        )
+    return out
+
+
 def _canonical(value: Any) -> str:
     # of a sealed value (see ``_seal``); ``repr`` keeps 1, 1.0, True, "1" and None apart, and quotes the separators a string may hold
     kind = type(value)
@@ -733,13 +748,9 @@ def parse(events: pd.DataFrame, schema: LogSchema) -> ParsedLog:
     ev[timestamp_col] = ts.to_numpy()[order] if tz is None else ts.iloc[order].reset_index(drop=True)
     for name in ev.columns:
         kept = ev[name]
-        column = sealed(kept, lambda i: f"case {uniques[codes[order[i]]]!r}")
+        seal = sealed_case_attribute if name in schema.case_attributes else sealed
+        column = seal(kept, lambda i: f"case {uniques[codes[order[i]]]!r}")
         if column is not kept:
-            if name in schema.case_attributes and not all(_hashable(v) for v in column.to_numpy()):
-                raise LogSchemaError(
-                    f"case attribute {name!r} holds dicts, lists or arrays; a case attribute takes one plain "
-                    "value per case, so flatten it into plain columns first"
-                )
             ev[name] = column
 
     act = ev[activity_col]

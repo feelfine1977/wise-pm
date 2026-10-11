@@ -208,18 +208,15 @@ def test_logs_that_differ_in_one_nested_value_have_different_fingerprints(column
     assert _log(changed).fingerprint() != _log(frame).fingerprint()
 
 
-def test_an_attached_nested_attribute_is_sealed_and_fingerprinted_by_content() -> None:
+def test_an_attached_attribute_of_sets_is_sealed_and_fingerprinted_by_content() -> None:
     log = _log(_frame())
-    values: dict[str, Any] = {"a": {"y": 1, "x": [2]}, "b": {"x": []}}
-    log.add_case_attribute("profile", pd.Series(values))
+    values: dict[str, Any] = {"a": {"y", "x"}, "b": set()}
+    log.add_case_attribute("kinds", pd.Series(values))
     before = log.fingerprint()
-    values["a"]["x"].append(3)
-    profile: Any = log.cases["profile"]["a"]
-    with pytest.raises(TypeError, match="read-only"):
-        profile["x"].append(3)
-    assert log.cases["profile"]["a"] == {"y": 1, "x": [2]}
+    values["a"].add("z")
+    assert log.cases["kinds"].tolist() == [frozenset({"x", "y"}), frozenset()]
     assert log.fingerprint() == before
-    other = _log(_frame()).with_case_attributes({"profile": pd.Series({"a": {"x": [2], "y": 1}, "b": {"x": []}})})
+    other = _log(_frame()).with_case_attributes({"kinds": pd.Series({"a": {"x", "y"}, "b": set()})})
     assert other.fingerprint() == before
 
 
@@ -311,6 +308,63 @@ def test_a_case_attribute_of_tuples_or_sets_is_kept() -> None:
     log = wise.EventLog(frame, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["pair", "kinds"])
     assert log.cases["pair"].tolist() == [("x", 1), ("y", 2)]
     assert log.cases["kinds"].tolist() == [frozenset({"p"}), frozenset({"q"})]
+
+
+_NESTED_ATTRIBUTES: dict[str, list[Any]] = {
+    "dict": [{"doc": "D1"}, {"doc": "D3"}],
+    "list": [["po", "sap"], []],
+    "array": [np.array([1, 2]), np.array([3])],
+}
+
+
+def _attach_by_add(log: wise.EventLog, name: str, values: pd.Series) -> wise.EventLog:
+    log.add_case_attribute(name, values)
+    return log
+
+
+def _attach_by_with(log: wise.EventLog, name: str, values: pd.Series) -> wise.EventLog:
+    return log.with_case_attributes({name: values})
+
+
+def _attach_by_assignment(log: wise.EventLog, name: str, values: pd.Series) -> wise.EventLog:
+    with pytest.warns(DeprecationWarning, match="assigning EventLog.cases is deprecated"):
+        log.cases = log.cases.assign(**{name: values})
+    return log
+
+
+_ATTACHMENTS: dict[str, Callable[[wise.EventLog, str, pd.Series], wise.EventLog]] = {
+    "add_case_attribute": _attach_by_add,
+    "with_case_attributes": _attach_by_with,
+    "cases assignment": _attach_by_assignment,
+}
+
+
+@pytest.mark.parametrize("attach", _ATTACHMENTS.values(), ids=_ATTACHMENTS.keys())
+@pytest.mark.parametrize("kind", _NESTED_ATTRIBUTES)
+def test_an_attached_nested_case_attribute_is_refused_as_at_construction(
+    attach: Callable[[wise.EventLog, str, pd.Series], wise.EventLog], kind: str
+) -> None:
+    built = _frame()
+    built["context"] = _cells([_NESTED_ATTRIBUTES[kind][0]] * 2 + [_NESTED_ATTRIBUTES[kind][1]])
+    with pytest.raises(LogSchemaError) as at_construction:
+        wise.EventLog(built, case_col="case", activity_col="activity", timestamp_col="time", case_attributes=["context"])
+    log = _log(_frame())
+    fingerprint, cases = log.fingerprint(), log.cases
+    with pytest.raises(LogSchemaError) as on_attachment:
+        attach(log, "context", pd.Series(_NESTED_ATTRIBUTES[kind], index=["a", "b"], dtype=object))
+    assert str(on_attachment.value) == str(at_construction.value)
+    assert str(on_attachment.value).startswith("case attribute 'context' holds dicts, lists or arrays")
+    assert log.fingerprint() == fingerprint
+    pd.testing.assert_frame_equal(log.cases, cases)
+    assert log.case_attributes == ["region"]
+
+
+@pytest.mark.parametrize("attach", _ATTACHMENTS.values(), ids=_ATTACHMENTS.keys())
+def test_an_attached_case_attribute_of_tuples_or_sets_is_kept(
+    attach: Callable[[wise.EventLog, str, pd.Series], wise.EventLog],
+) -> None:
+    log = attach(_log(_frame()), "pair", pd.Series([("x", 1), {"p"}], index=["a", "b"], dtype=object))
+    assert log.cases["pair"].tolist() == [("x", 1), frozenset({"p"})]
 
 
 # ------------------------------------------------------------------ plain columns
