@@ -1,7 +1,7 @@
-# Events without a timestamp and case attributes that vary
+# Events without a timestamp, case attributes that vary, and duplicate events
 
-The log schema (`wise.LogSchema`) carries two rules of the method's input
-(paper Sec. IV-A) as policies. Both defaults reproduce 0.1.0, so classic
+The log schema (`wise.LogSchema`) carries three rules of the method's input
+(paper Sec. IV-A) as policies. Their defaults reproduce 0.1.0, so classic
 numbers do not move; decision 0001 (section 4) keys these rules on the log
 schema in the same way as the semantics profile on the norm.
 
@@ -64,3 +64,29 @@ case disagree:
 | `strict` | the single non-null value | the log is refused with a `LogSchemaError` that names each attribute and its number of cases |
 
 Null values never count as a second value.
+
+## Events that share case, activity and timestamp
+
+`duplicates` decides what happens to events that share their key: the case,
+the activity and the timestamp, compared as given before the timestamps are
+parsed (two missing timestamps are equal).
+
+| Value | Events that share the key | Recorded |
+|---|---|---|
+| `keep` (default) | all kept | nothing; `ParsedLog.n_dropped_duplicates` and `n_cases_with_dropped_duplicates` are 0 |
+| `drop` (`EventLog(dedupe=True)`) | one survivor kept, the others dropped | the number of dropped events and of their cases in `ParsedLog.n_dropped_duplicates` and `ParsedLog.n_cases_with_dropped_duplicates` (also on `EventLog`), reported by `EventLog.validate()` as `dropped_duplicates` and `cases_with_dropped_duplicates`, zero when nothing was dropped |
+
+Rows equal in the key are dropped although they differ elsewhere: two events
+with different event identifiers or amounts at the same instant count as one.
+The survivor does not depend on the order of the input rows, so the same rows
+in any order give the same log and the same fingerprint:
+
+1. the smallest `order_col` value, if the schema names an order column;
+2. then, among the events still equal, the smallest values of the other
+   columns, compared column by column in column-name order, nulls last;
+3. values that do not compare (nested values) or that are equal with
+   different types (`1` and `True`) compare by type name and `repr`.
+
+Rows that are equal in every column give the same survivor whichever is kept.
+A `validate()` of a log that keeps duplicates has neither row, so its report
+is the one of 0.1.0.
