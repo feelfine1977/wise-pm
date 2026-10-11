@@ -295,7 +295,8 @@ version as a placeholder; every change to it is listed below. Callers of
   the values they attach. The values compare equal to the ones given;
   `dict(value)` or `list(value)` gives a writable copy.
   - A value that cannot be sealed (an object of another class, a
-    `bytearray`, an object-dtype array), at any depth, is refused with a
+    `bytearray`, an object-dtype array, a subclass of an array such as a
+    masked array), at any depth, is refused with a
     `LogSchemaError` naming the column, the value's type and the case; leave
     the column out with `keep_columns` or convert it. A case attribute that
     holds dicts, lists or arrays is refused with a `LogSchemaError` naming it

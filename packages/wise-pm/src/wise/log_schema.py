@@ -401,7 +401,7 @@ class _Unsealable(Exception):
 def _seal(value: Any) -> Any:
     """``value`` as an independent copy that cannot be changed in place; mappings become
     :class:`~wise._frozen.FrozenDict`, lists :class:`~wise._frozen.FrozenList`, sets ``frozenset``, tuples
-    tuples of sealed items and numeric arrays read-only arrays over immutable bytes. Raises
+    tuples of sealed items and numeric arrays (not their subclasses) read-only arrays over immutable bytes. Raises
     :class:`_Unsealable` for any other value that is not immutable."""
     kind = type(value)
     if kind in _PLAIN:
@@ -420,7 +420,7 @@ def _seal(value: Any) -> Any:
         return FrozenList([_seal(v) for v in value])
     if isinstance(value, set | frozenset):
         return frozenset(_seal(v) for v in value)
-    if isinstance(value, np.ndarray) and value.dtype.kind in "biufcmMSU":
+    if type(value) is np.ndarray and value.dtype.kind in "biufcmMSU":  # a subclass (masked, matrix) would lose its kind
         # backed by a bytes object, so that not even ``flags.writeable = True`` makes it writable again
         return np.frombuffer(value.tobytes(), dtype=value.dtype).reshape(value.shape)
     raise _Unsealable(value)

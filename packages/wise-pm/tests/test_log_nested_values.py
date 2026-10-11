@@ -265,8 +265,15 @@ class _Mutable:
 
 @pytest.mark.parametrize(
     "value",
-    [_Mutable(), bytearray(b"ab"), {"k": _Mutable()}, [1, [bytearray(b"x")]], np.array([{"k": 1}], dtype=object)],
-    ids=["object", "bytearray", "in a dict", "in a nested list", "object array"],
+    [
+        _Mutable(),
+        bytearray(b"ab"),
+        {"k": _Mutable()},
+        [1, [bytearray(b"x")]],
+        np.array([{"k": 1}], dtype=object),
+        np.ma.array([1.0, 2.0], mask=[False, True]),
+    ],
+    ids=["object", "bytearray", "in a dict", "in a nested list", "object array", "masked array"],
 )
 def test_a_value_that_cannot_be_sealed_is_refused_with_the_column_named(value: Any) -> None:
     frame = _frame()
