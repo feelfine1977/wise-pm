@@ -66,6 +66,7 @@ def test_spec_of_a_frame_backlog_holds_the_parameters() -> None:
         z=None,
         norm_fingerprint=None,
         score_col="score",
+        mode=None,
     )
 
 
@@ -78,7 +79,14 @@ def test_spec_of_a_result_backlog_names_view_norm_and_every_parameter(p2p_result
     assert (spec.gamma, spec.min_cases, spec.z, spec.baseline, spec.global_mean) == (2.0, 2, 1.96, 1.0, 1.0)
     assert spec.volume == "cases"
     assert spec.norm_fingerprint == wise.running_p2p_norm().fingerprint()
+    assert spec.mode == p2p_result.mode == "flat"
     assert spec.to_dict()["by"] == ["company", "vendor"]
+    assert spec.to_dict()["mode"] == "flat"
+
+
+def test_spec_names_the_scoring_mode_the_scores_were_computed_in(p2p_log: wise.EventLog, p2p_norm: wise.Norm) -> None:
+    result = wise.score(p2p_log, p2p_norm, mode="layer_balanced")
+    assert wise.prioritize(result, "company", view="Finance").spec.mode == "layer_balanced"
 
 
 def test_spec_names_the_only_view_when_none_is_given() -> None:
