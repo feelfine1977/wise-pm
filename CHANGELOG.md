@@ -292,7 +292,8 @@ version as a placeholder; every change to it is listed below. Callers of
   with every frame the log handed out (`events`, `trace`, `to_pm4py`,
   `cases`), so a write into it changed the log behind its fingerprint.
   `add_case_attribute`, `with_case_attributes` and assigning `cases` seal
-  the values they attach. The values compare equal to the ones given;
+  the values they attach and refuse what the constructor refuses (below),
+  leaving the log as it was. The values compare equal to the ones given;
   `dict(value)` or `list(value)` gives a writable copy.
   - A value that cannot be sealed (an object of another class, a
     `bytearray`, an object-dtype array, a subclass of an array such as a
@@ -300,7 +301,10 @@ version as a placeholder; every change to it is listed below. Callers of
     `LogSchemaError` naming the column, the value's type and the case; leave
     the column out with `keep_columns` or convert it. A case attribute that
     holds dicts, lists or arrays is refused with a `LogSchemaError` naming it
-    (it failed with a pandas `TypeError` before); one of sets is kept as
+    and the same message whether it is given when the log is built or
+    attached afterwards (it failed with a pandas `TypeError` at construction
+    before, and was accepted on attachment, after which `prioritize` by it
+    failed with `TypeError: unhashable type`); one of sets is kept as
     `frozenset`s (it failed before too), and one of tuples as before.
   - `EventLog.fingerprint()` reads a column with nested values by the
     canonical text of its cells: equal for equal values whatever the key
@@ -969,8 +973,10 @@ deprecation warnings; the module and its paths are removed in 1.0.
   into `dict(value)` or `list(value)` instead, and change the input frame
   before the log is built, not after. A set reads back as a `frozenset`. A
   column holding other mutable objects is refused; drop it with
-  `keep_columns`. The fingerprint of a log with such a column differs from
-  that of the same log under 0.1.0.
+  `keep_columns`. A case attribute of dicts, lists or arrays is refused,
+  also by `add_case_attribute`, `with_case_attributes` and assigning `cases`;
+  flatten it into plain columns. The fingerprint of a log with such a column
+  differs from that of the same log under 0.1.0.
 - `log._to_ts(value)` is `log.to_timestamp(value)`; `log._codes`, `_ts`,
   `_valid`, `_starts` are `log.case_index.case_codes`, `timestamps`, `valid`,
   `starts`. `wise.norm._rule_attributes(rule)` is

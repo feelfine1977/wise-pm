@@ -45,7 +45,7 @@ from .log_schema import (
     check_attribute_name,
     nested_cells,
     parse,
-    sealed,
+    sealed_case_attribute,
 )
 
 __all__ = ["ACTIVITY_COL", "CASE_COL", "TIMESTAMP_COL", "EventLog"]
@@ -177,8 +177,11 @@ class EventLog:
     :meth:`trace` or :attr:`cases` cannot be written into (``dict(value)``
     and ``list(value)`` give writable copies of one level). A value that cannot be sealed (an arbitrary object, a
     ``bytearray``, an object array) is refused with a
-    :class:`~wise.errors.LogSchemaError` naming the column, and a case
-    attribute must hold plain values. Columns of plain values (strings,
+    :class:`~wise.errors.LogSchemaError` naming the column. A case attribute
+    holds plain values, or tuples and sets of them: one that holds dicts,
+    lists or arrays is refused in the same way, whether given when the log is
+    built, to :meth:`add_case_attribute` or :meth:`with_case_attributes`, or
+    assigned to :attr:`cases`, and the log is left as it was. Columns of plain values (strings,
     numbers, timestamps and the like) are not looked at cell by cell.
     """
 
@@ -327,7 +330,7 @@ class EventLog:
             raise LogSchemaError("an assigned case table must have the log's case ids as its index, in the same order")
         table = _copy(table)
         for name in table.columns:
-            table[name] = sealed(table[name], lambda i: f"case {self.case_ids[i]!r}")
+            table[name] = sealed_case_attribute(table[name], lambda i: f"case {self.case_ids[i]!r}")
         old, self._cases = self._cases, table
         self._fingerprint = None
         forget(self, [c for c in old.columns if c not in table.columns or not table[c].equals(old[c])])
@@ -619,6 +622,8 @@ class EventLog:
         :attr:`case_attributes`. An attribute :meth:`derive` produced counts as
         the user's own afterwards, so :func:`~wise.score` refuses a recipe that
         would replace it. :meth:`with_case_attributes` leaves the log alone.
+        Values that are dicts, lists or arrays are refused with a
+        :class:`~wise.errors.LogSchemaError`, as when the log is built.
         """
         self._attach(name, values)
         forget(self, (name,))
@@ -647,7 +652,7 @@ class EventLog:
             if len(arr) != len(self):
                 raise LogSchemaError(f"values for {name!r} must have one entry per case ({len(self)})")
             aligned = pd.Series(arr, index=self.case_ids)
-        aligned = sealed(aligned.rename(name), lambda i: f"case {self.case_ids[i]!r}")
+        aligned = sealed_case_attribute(aligned.rename(name), lambda i: f"case {self.case_ids[i]!r}")
         cases = self._cases.copy(deep=False)
         cases[name] = aligned
         self._cases = cases
