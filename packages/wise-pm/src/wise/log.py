@@ -38,6 +38,7 @@ from .log_schema import (
     ACTIVITY_COL,
     CASE_COL,
     TIMESTAMP_COL,
+    Duplicates,
     LogSchema,
     UntimedEvents,
     canonical,
@@ -146,7 +147,13 @@ class EventLog:
         Restrict :attr:`events` to these columns (plus the core ones) to
         save memory on wide logs.
     dedupe
-        Drop exact duplicate events (same case, activity, timestamp).
+        Keep one event per case, activity and timestamp and drop the others,
+        also when they differ in other columns (an event id, an amount). The
+        survivor does not depend on the input row order: the smallest
+        ``order_col`` value, then the smallest other columns in column-name
+        order (:attr:`~wise.log_schema.Duplicates.DROP`). The dropped events
+        and their cases are counted in :attr:`n_dropped_duplicates` and
+        :attr:`n_cases_with_dropped_duplicates` and reported by :meth:`validate`.
     schema
         A :class:`~wise.log_schema.LogSchema` to build the log with, instead
         of the column and policy options above (``window`` still applies).
@@ -232,6 +239,8 @@ class EventLog:
         self.exposure_col, self.order_col, self.event_id_col = schema.exposure_col, schema.order_col, schema.event_id_col
         self.n_missing_timestamps = parsed.n_missing_timestamps
         self.n_null_activities = parsed.n_null_activities
+        self.n_dropped_duplicates = parsed.n_dropped_duplicates
+        self.n_cases_with_dropped_duplicates = parsed.n_cases_with_dropped_duplicates
         self._varying = parsed.varying_case_attributes
 
         self.window: tuple[pd.Timestamp | None, pd.Timestamp | None] | None = None
@@ -342,7 +351,8 @@ class EventLog:
 
         Changing one consumed value changes it; the order of the input rows does
         not, where the schema orders the events (by case, timestamp and
-        ``order_col``), nor does the order of the columns. A column the log does
+        ``order_col``) and where it chooses the event kept of duplicates
+        (``dedupe``), nor does the order of the columns. A column the log does
         not keep (``keep_columns``) is not covered. Values compare by their
         pandas hash, so ``1`` and ``"1"`` in an object column are the same.
         A column with nested values is covered by the canonical text of its
@@ -677,7 +687,10 @@ class EventLog:
         observation window, null activity labels, timestamp ties within a
         case, the case attributes of the schema that vary within a case
         (``varying_within_case[<attribute>]``: the number of such cases, as
-        recorded by the parse step), and exposure issues.
+        recorded by the parse step), and exposure issues. A log built with
+        ``dedupe`` (:attr:`~wise.log_schema.Duplicates.DROP`) also reports
+        ``dropped_duplicates`` and ``cases_with_dropped_duplicates``, zero
+        when nothing was dropped; a log that keeps duplicates has neither row.
         Nothing here raises; read it before trusting a score.
         """
         start, end = self.observation_window(q)
@@ -698,6 +711,9 @@ class EventLog:
             "tied_events_share": float(tied.mean()) if len(tied) else 0.0,
             "cases_with_ties_share": cases_with_ties / max(len(self), 1),
         }
+        if self._schema.duplicates is Duplicates.DROP:
+            report["dropped_duplicates"] = self.n_dropped_duplicates
+            report["cases_with_dropped_duplicates"] = self.n_cases_with_dropped_duplicates
         for attr, n_var in self._varying.items():
             report[f"varying_within_case[{attr}]"] = n_var
         if "exposure" in self._cases.columns:

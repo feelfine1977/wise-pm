@@ -352,6 +352,24 @@ version as a placeholder; every change to it is listed below. Callers of
   `scoring_mode` (see `Fixed: C13`); the contract snapshot records the new
   default and the annotation `str | None`.
 
+- Duplicate removal (`EventLog(dedupe=True)`, `LogSchema(duplicates="drop")`)
+  keeps an event that does not depend on the order of the input rows. Events
+  that share the key (case, activity and timestamp as given) are dropped
+  although they differ in other columns, such as an event identifier or an
+  amount; 0.1.0 kept the first in input row order, so the same rows in two
+  orders gave two logs and two fingerprints. The survivor is now the event
+  with the smallest `order_col` value, then the smallest other columns in
+  column-name order (nulls last; values that do not compare, and equal values
+  of different types, by type name and `repr`; `0.0` before `-0.0`). A log built from rows that
+  share a key but differ elsewhere can therefore keep another event than
+  0.1.0, with another exposure, case attribute or event order. Rows equal in
+  every column, logs without key duplicates and the default (`keep`) are
+  unchanged. Delta on the golden dataset: none (built without removal); the
+  golden tier and the fingerprints are unchanged. The docstrings and
+  `docs/semantics/log-policies.md` state the key, that rows different
+  outside it are dropped, and the survivor; they no longer call the dropped
+  rows "exact" duplicates.
+
 ### Added
 
 - `wise.compat`, the compatibility module of decision record 0001 (section
@@ -651,6 +669,15 @@ version as a placeholder; every change to it is listed below. Callers of
   `<NORM>_v3.json` beside it) and prints the migration report as JSON. It
   refuses to write over its input, also through another spelling of the path
   or a link.
+
+- `ParsedLog.n_dropped_duplicates` and `ParsedLog.n_cases_with_dropped_duplicates`
+  (keyword-only fields, default 0) and the attributes of the same names on
+  `EventLog` count the events dropped as duplicates and the cases they came
+  from; both are 0 when duplicates are kept. `EventLog.validate()` of a log
+  built with `dedupe=True` reports them as `dropped_duplicates` and
+  `cases_with_dropped_duplicates` (zero when nothing was dropped); a log that
+  keeps duplicates reports neither, so its report is the one of 0.1.0. The
+  contract snapshot records the two fields.
 
 ### Deprecated
 

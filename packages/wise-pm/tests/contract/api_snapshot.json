@@ -2542,7 +2542,9 @@
         "cases",
         "n_missing_timestamps",
         "n_null_activities",
-        "varying_case_attributes"
+        "varying_case_attributes",
+        "n_dropped_duplicates",
+        "n_cases_with_dropped_duplicates"
       ],
       "init": {
         "parameters": [
@@ -2587,6 +2589,18 @@
             "default": "<factory>",
             "kind": "KEYWORD_ONLY",
             "name": "varying_case_attributes"
+          },
+          {
+            "annotation": "int",
+            "default": "0",
+            "kind": "KEYWORD_ONLY",
+            "name": "n_dropped_duplicates"
+          },
+          {
+            "annotation": "int",
+            "default": "0",
+            "kind": "KEYWORD_ONLY",
+            "name": "n_cases_with_dropped_duplicates"
           }
         ],
         "returns": "None"
