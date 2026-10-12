@@ -6,9 +6,10 @@ Status: accepted 2026-09-27 (proposed the same day; the ten questions were answe
 > decided later: it goes into a companion package of this workspace, not into
 > `wise-pm`, and the name of that package is not settled (`wise-pm-actionability`
 > and `wise_actionability` below are the names this record used). `wise-pm` is
-> MIT as a whole, in every version. The licence names in the disposition table
-> below ("PolyForm-NC") quote the state of 2026-09-27 and are not the licence of
-> anything in this repository. The record below is kept as it was accepted.
+> MIT as a whole, in every version. The licence names in the section on the
+> disposition of the workbench analytics package ("PolyForm-NC")
+> quote the state of 2026-09-27 and are not the licence of anything in this
+> repository. The record below is kept as it was accepted.
 
 ## Context
 
