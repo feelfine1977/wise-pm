@@ -11,9 +11,9 @@ of these methods use a stand-in module.
 from __future__ import annotations
 
 import ast
+import re
 import subprocess
 import sys
-import re
 import textwrap
 import types
 import warnings
@@ -120,9 +120,9 @@ def _imports_of_pm4py(path: Path) -> list[tuple[str, ...]]:
 
     def visit(node: ast.AST, scope: tuple[str, ...]) -> None:
         for child in ast.iter_child_nodes(node):
-            if isinstance(child, ast.Import) and any(a.name.split(".")[0] == "pm4py" for a in child.names):
-                found.append(scope)
-            elif isinstance(child, ast.ImportFrom) and (child.module or "").split(".")[0] == "pm4py":
+            if (isinstance(child, ast.Import) and any(a.name.split(".")[0] == "pm4py" for a in child.names)) or (
+                isinstance(child, ast.ImportFrom) and (child.module or "").split(".")[0] == "pm4py"
+            ):
                 found.append(scope)
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 visit(child, (*scope, child.name))
