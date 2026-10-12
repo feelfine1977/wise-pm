@@ -15,13 +15,20 @@ and every private name of 0.1.0 that a known consumer touches, is listed in
 ``kept``
     A private name that works exactly as in 0.1.0, without a warning, because 0.2.0
     has no public replacement for it yet.
+``withdrawn``
+    The 0.1.0 form still works in 0.2.0 and emits one :class:`DeprecationWarning` per
+    use that names the version removing it (:attr:`CompatPath.removed_in`, 0.3.0) and
+    what to do instead; ``wise`` keeps no replacement of its own. These are the methods
+    named after pm4py (``EventLog.from_xes``, ``from_pm4py``, ``to_pm4py``), served by
+    the object itself, and with them the optional extra ``pm4py``.
 ``changed``
     No compatibility path: the change is a correction from the defect ledger or a
     guarantee of the new design (an event table that cannot be changed through the
     log), and serving the 0.1.0 form would bring the defect back. The note says what
     to do instead.
 
-The module is removed in 1.0, together with every ``deprecated`` path.
+The module is removed in 1.0, together with every ``deprecated`` path; the
+``withdrawn`` paths go in 0.3.0.
 """
 
 from __future__ import annotations
@@ -43,7 +50,7 @@ from .selection import parse
 
 __all__ = ["PATHS", "Backlog", "CompatPath", "EventLog", "ScoreResult", "norm_from_dict", "prioritize"]
 
-Status = Literal["deprecated", "kept", "changed"]
+Status = Literal["deprecated", "kept", "withdrawn", "changed"]
 
 #: The schema version 0.1.0 read a norm document without ``schema_version`` as.
 LEGACY_DEFAULT_SCHEMA_VERSION = 2
@@ -56,19 +63,41 @@ class CompatPath:
     Attributes
     ----------
     status
-        ``deprecated``, ``kept`` or ``changed`` (see the module documentation).
+        ``deprecated``, ``kept``, ``withdrawn`` or ``changed`` (see the module documentation).
     replacement
         What to use instead; a deprecation warning of the path names it.
     served_by
         Where the 0.1.0 form is served (empty for ``changed``).
     note
         What else a caller needs to know.
+    removed_in
+        The version that removes the 0.1.0 form: 0.3.0 for a ``withdrawn`` path, 1.0
+        otherwise.
     """
 
     status: Status
     replacement: str
     served_by: tuple[str, ...] = ()
     note: str = ""
+    removed_in: str = "1.0"
+
+
+#: What replaces each method named after pm4py; the deprecation warning of the method ends with the same text.
+_PM4PY_REPLACEMENTS = {
+    "from_xes": "read the file with pm4py.read_xes (or any XES reader) and pass the DataFrame to EventLog",
+    "from_pm4py": "pass the DataFrame to EventLog; for a pm4py object, EventLog(pm4py.convert_to_dataframe(obj))",
+    "to_pm4py": "rename the columns of EventLog.events to 'case:concept:name', 'concept:name' and 'time:timestamp'",
+}
+
+
+def _named_after_pm4py(name: str) -> CompatPath:
+    return CompatPath(
+        "withdrawn",
+        _PM4PY_REPLACEMENTS[name],
+        (f"EventLog.{name}",),
+        "named after pm4py; removed in 0.3.0 together with the optional extra pm4py",
+        removed_in="0.3.0",
+    )
 
 
 def _index_array(name: str, replacement: str) -> CompatPath:
@@ -113,6 +142,9 @@ PATHS: Mapping[str, CompatPath] = MappingProxyType(
             "reading gives a copy: a write into it (log.cases[col] = ...) does not reach the log; assign the table or "
             "use the replacement; a case attribute of dicts, lists or arrays is refused there as when the log is built",
         ),
+        "wise.log.EventLog.from_xes": _named_after_pm4py("from_xes"),
+        "wise.log.EventLog.from_pm4py": _named_after_pm4py("from_pm4py"),
+        "wise.log.EventLog.to_pm4py": _named_after_pm4py("to_pm4py"),
         "wise.scoring.ScoreResult._weights": CompatPath(
             "kept",
             "dataclasses.replace(result, log=None) for a result without its log",

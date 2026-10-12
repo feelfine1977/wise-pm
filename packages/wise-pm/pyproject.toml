@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-pm4py = ["pm4py>=2.7"]
+pm4py = ["pm4py>=2.7"]  # deprecated with EventLog.from_xes, from_pm4py and to_pm4py; removed in 0.3.0
 stats = ["scipy>=1.10"]
 io = ["pyarrow>=14"]
 

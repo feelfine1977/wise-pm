@@ -723,6 +723,18 @@ version as a placeholder; every change to it is listed below. Callers of
 ### Deprecated
 
 - `wise.compat` as a whole: every path it serves is removed in 1.0.
+- The interface named after pm4py: `EventLog.from_xes`, `EventLog.from_pm4py`,
+  `EventLog.to_pm4py` and the optional extra `pm4py` are removed in 0.3.0.
+  Each call emits one `DeprecationWarning` that names 0.3.0 and what to do
+  instead: read an XES file with `pm4py.read_xes` (or any XES reader) and pass
+  the DataFrame to `EventLog`; pass a DataFrame to `EventLog` directly, a pm4py
+  object as `EventLog(pm4py.convert_to_dataframe(obj))`; rename the columns of
+  `EventLog.events` to `case:concept:name`, `concept:name` and
+  `time:timestamp`. The methods return what they returned before. pm4py is
+  imported only when `from_xes`, or `from_pm4py` with a pm4py object, is
+  called; nothing else in the package or its tests needs it. `wise.compat.PATHS`
+  lists the three under the new status `withdrawn`, and `CompatPath` gains the
+  field `removed_in` (`"0.3.0"` for them, `"1.0"` for every other path).
 - `EventLog._to_ts` emits a `DeprecationWarning` and delegates to
   `EventLog.to_timestamp`; it is removed in 1.0. The arrays `EventLog._codes`,
   `_ts`, `_valid` and `_starts` remain readable as read-only views of the
@@ -983,7 +995,16 @@ version as a placeholder; every change to it is listed below. Callers of
 
 Every item below is listed with its replacement in `wise.compat.PATHS`.
 Importing from `wise.compat` keeps a 0.1.0 caller running through 0.2.x with
-deprecation warnings; the module and its paths are removed in 1.0.
+deprecation warnings; the module and its paths are removed in 1.0, except the
+interface named after pm4py, which goes in 0.3.0.
+
+- `EventLog.from_xes(path)` is `EventLog(pm4py.read_xes(path))`,
+  `EventLog.from_pm4py(frame)` is `EventLog(frame)` (a pm4py object:
+  `EventLog(pm4py.convert_to_dataframe(obj))`), and `log.to_pm4py()` is
+  `log.events.rename(columns={log.case_col: "case:concept:name",
+  log.activity_col: "concept:name", log.timestamp_col: "time:timestamp"})`.
+  Install pm4py yourself instead of the extra `wise-pm[pm4py]`. All three warn
+  in 0.2.x and are removed in 0.3.0.
 
 - `wise.prioritize` returns a `Backlog` record: read `backlog.table` (the
   ranked frame) and `backlog.spec` (its parameters) instead of the frame and

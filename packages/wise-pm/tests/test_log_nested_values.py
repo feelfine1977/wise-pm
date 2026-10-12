@@ -72,10 +72,16 @@ _LIST_WRITES: dict[str, Callable[[Any], None]] = {
     "sort": lambda xs: xs.sort(reverse=True),
 }
 
+
+def _to_pm4py(log: wise.EventLog) -> pd.DataFrame:
+    with pytest.deprecated_call(match="removed in 0.3.0"):
+        return log.to_pm4py()
+
+
 _SOURCES: dict[str, Callable[[wise.EventLog], pd.DataFrame]] = {
     "events": lambda log: log.events,
     "trace": lambda log: log.trace("a"),
-    "to_pm4py": lambda log: log.to_pm4py(),
+    "to_pm4py": _to_pm4py,
 }
 
 

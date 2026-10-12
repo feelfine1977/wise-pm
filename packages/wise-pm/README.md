@@ -29,9 +29,12 @@ From the current `main` (workspace layout) install the package directory:
 python -m pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"
 ```
 
-Optional extras: `.[pm4py]` for XES import, `.[stats]` for SciPy-backed
-Spearman/Kendall correlations in `view_agreement`, and `.[io]` for parquet
-input through pyarrow. For development, clone the repository and run
+Optional extras: `.[stats]` for SciPy-backed Spearman/Kendall correlations
+in `view_agreement` and `.[io]` for parquet input through pyarrow. The extra
+`.[pm4py]` and the methods named after pm4py (`EventLog.from_xes`,
+`EventLog.from_pm4py`, `EventLog.to_pm4py`) are deprecated and removed in
+0.3.0; each call warns. Read an XES file with pm4py (or any XES reader) and
+pass the DataFrame to `wise.EventLog`; `wise` itself does not need pm4py. For development, clone the repository and run
 `make setup` (see [CONTRIBUTING.md](https://github.com/feelfine1977/wise-pm/blob/main/CONTRIBUTING.md)).
 
 The included synthetic example needs no dataset download:

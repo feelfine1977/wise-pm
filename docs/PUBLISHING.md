@@ -95,7 +95,7 @@ independent of the package version.
 
 ```bash
 pip install wise-pm                      # PyPI
-pip install "wise-pm[pm4py]"             # with the pm4py extra (XES import, pm4py objects)
+pip install "wise-pm[pm4py]"             # with the pm4py extra (deprecated; removed in 0.3.0)
 pip install "wise-pm[stats]"             # SciPy, for Spearman / Kendall view agreement
 uv add wise-pm                           # uv / pyproject-based projects
 pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"   # straight from GitHub, no PyPI needed

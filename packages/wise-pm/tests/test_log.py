@@ -17,7 +17,8 @@ def test_missing_columns_and_defaults(p2p_log):
     log = wise.EventLog(pm)  # pm4py defaults
     assert len(log) == 5
     assert log.count("Record Goods Receipt")["B"] == 4
-    assert set(log.to_pm4py().columns) >= {"case:concept:name", "concept:name", "time:timestamp"}
+    with pytest.deprecated_call(match="removed in 0.3.0"):
+        assert set(log.to_pm4py().columns) >= {"case:concept:name", "concept:name", "time:timestamp"}
     assert "EventLog(" in repr(log)
     assert log.activity_labels
 
