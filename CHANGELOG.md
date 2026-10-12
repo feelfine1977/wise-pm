@@ -35,9 +35,15 @@ version as a placeholder; every change to it is listed below. Callers of
   `MANIFEST.in` is gone. Install from a checkout with
   `pip install ./packages/wise-pm` or `pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"`.
   The public API, the norm file format and every number are unchanged.
-- The `wise-pm` distribution declares the `MIT` licence expression and ships
-  only the MIT licence file; rights-controlled additions will live in a
-  separate distribution.
+- Licence: `wise-pm` is MIT as a whole, in this version and every earlier
+  one, everything under `packages/wise-pm/` included. The distribution
+  declares the licence expression `MIT` and ships the MIT licence file. The
+  repository's `LICENSE` is now the same MIT text, and `NOTICE` and
+  `COMMERCIAL_LICENSING.md` say the same: commercial use needs no separate
+  permission. A package added to this workspace later may carry another
+  licence, stated in its own folder and metadata. `scripts/check_dist.py`
+  checks the licence text and expression of the built wheel and sdist in CI
+  and in the release workflow.
 - Development tooling: `make setup|test|check|golden|contract|bench|compat|build`,
   pre-commit hooks that run the locked tool versions, `ruff` with an extended
   rule set, `mypy --strict` (the 0.1.0 test modules are temporarily excluded
@@ -603,8 +609,9 @@ version as a placeholder; every change to it is listed below. Callers of
   arithmetic (the golden tier compares parquet records exactly). The decision
   record also names the capability set, the contracts the application
   consumers wait for, the executed parity baseline, the packaging fallback and
-  the disposition of the workbench analytics package between the MIT core and
-  the noncommercial extension.
+  the disposition of the workbench analytics package; a note dated 2026-10-12
+  at its top records that new analysis functionality goes into a companion
+  package whose name is not settled, not into `wise-pm`.
 - Golden tier: the manifest records the environment that produced the record
   (system, machine, Python, numpy, pandas, BLAS, SIMD set); the golden test's
   default `auto` mode compares exactly on that host and within 1e-9 elsewhere,

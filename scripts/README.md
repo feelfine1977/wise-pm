@@ -9,6 +9,7 @@ installed with the distribution; every script prints its usage with `--help`.
 | `packages/wise-pm/scripts/make_golden.py` | Regenerates the golden pipeline snapshot under `tests/`. `make golden`. | Writes only with `--write` (comparison is `--check`) |
 | `packages/wise-pm/scripts/snapshot_api.py` | Regenerates the public-API contract snapshot `tests/contract/api_snapshot.json`. `make contract`. | Writes only with `--write` (comparison is `--check`) |
 | `check_release.py` | Verifies that a release tag, the package versions, `CITATION.cff` and `CHANGELOG.md` agree. | No |
+| `check_dist.py` | Verifies that the built wheel and sdist hold the MIT text of `LICENSE` and declare `License-Expression: MIT`. | No |
 | `changelog_section.py` | Prints the `CHANGELOG.md` section of one version, for release notes. | No |
 
 `make_golden.py` and `snapshot_api.py` touch the committed files only when

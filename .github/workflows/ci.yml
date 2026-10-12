@@ -98,6 +98,7 @@ jobs:
       - run: uv sync --frozen --all-packages --group dev
       - run: uv build --all-packages
       - run: uv run --frozen --no-sync twine check --strict dist/*
+      - run: uv run --frozen --no-sync python scripts/check_dist.py dist
       - name: install the wheel into a clean environment and exercise it
         run: |
           uv venv smoke --python 3.12

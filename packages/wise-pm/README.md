@@ -6,9 +6,8 @@ A norm states expected execution as constraints; views weight those constraints;
 WISE scores cases and ranks slices such as companies, vendors or flow types.
 Layer and constraint contributions help explain where the penalties arise.
 
-This is the MIT case-based core. Rights-controlled additions will ship as a
-separate distribution (`wise-pm-actionability`, import `wise_actionability`);
-see [COMMERCIAL_LICENSING.md](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
+This is the case-based core, MIT licensed as a whole; see
+[COMMERCIAL_LICENSING.md](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
 
 ## Install and run
 
@@ -149,10 +148,9 @@ It does not discover a correct norm, prove causes, estimate guaranteed savings
 or optimise an action roadmap. Applications own data preparation, norm approval,
 workflow and deployment. This classic runtime uses case-based event logs.
 
-This distribution is [MIT](https://github.com/feelfine1977/wise-pm/blob/main/packages/wise-pm/LICENSE) licensed. Prospective rights-controlled
-additions live in a separate distribution under
-[PolyForm Noncommercial 1.0.0](https://github.com/feelfine1977/wise-pm/blob/main/LICENSE); see
-[prospective scope and commercial permission](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
+This distribution is [MIT](https://github.com/feelfine1977/wise-pm/blob/main/packages/wise-pm/LICENSE) licensed as a whole,
+commercial use included, without separate permission; see
+[licensing and commercial use](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
 Please cite the method using [CITATION.cff](https://github.com/feelfine1977/wise-pm/blob/main/CITATION.cff). See
 [CHANGELOG.md](https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md) and the [publishing guide](https://github.com/feelfine1977/wise-pm/blob/main/docs/PUBLISHING.md)
 for release history and procedure.
