@@ -24,8 +24,11 @@ PACKAGE_LICENCE = REPO / "packages" / "wise-pm" / "LICENSE"
 
 pytestmark = pytest.mark.skipif(not SCRIPT.exists(), reason="the repository's licence documents are not part of this tree")
 
-#: Words that belonged to the licence policy wise-pm does not have (split, so that this file does not hold them).
-WITHDRAWN = re.compile("(?i:poly" "form|non" "commercial|rights-" "controlled)|MIT" " AND")
+#: Words that belonged to the licence policy wise-pm does not have, as halves so that this file does not hold them.
+_HALVES = {"any case": [("poly", "form"), ("non", "commercial"), ("rights-", "controlled")], "exact": [("MIT", " AND")]}
+WITHDRAWN = re.compile(
+    "(?i:" + "|".join(a + b for a, b in _HALVES["any case"]) + ")|" + "|".join(a + b for a, b in _HALVES["exact"])
+)
 
 #: Records that quote an earlier state and say so at their top.
 QUOTING = {Path("docs/decisions/0001-canonical-library-and-migration-map.md")}
@@ -80,7 +83,9 @@ def test_a_record_that_quotes_the_earlier_state_says_so_at_its_top() -> None:
 
 
 # ------------------------------------------------------------------ the built artefacts
-METADATA = "Metadata-Version: 2.4\nName: wise-pm\nVersion: 0.2.0\nLicense-Expression: {expression}\nLicense-File: LICENSE\n\nReadme.\n"
+METADATA = (
+    "Metadata-Version: 2.4\nName: wise-pm\nVersion: 0.2.0\nLicense-Expression: {expression}\nLicense-File: LICENSE\n\nReadme.\n"
+)
 
 
 def _artefacts(dist: Path, *, expression: str = "MIT", licence: bytes | None = None) -> None:
