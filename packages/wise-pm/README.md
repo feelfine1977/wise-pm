@@ -6,9 +6,8 @@ A norm states expected execution as constraints; views weight those constraints;
 WISE scores cases and ranks slices such as companies, vendors or flow types.
 Layer and constraint contributions help explain where the penalties arise.
 
-This is the MIT case-based core. Rights-controlled additions will ship as a
-separate distribution (`wise-pm-actionability`, import `wise_actionability`);
-see [COMMERCIAL_LICENSING.md](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
+This is the case-based core, MIT licensed as a whole; see
+[COMMERCIAL_LICENSING.md](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
 
 ## Install and run
 
@@ -30,9 +29,12 @@ From the current `main` (workspace layout) install the package directory:
 python -m pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"
 ```
 
-Optional extras: `.[pm4py]` for XES import, `.[stats]` for SciPy-backed
-Spearman/Kendall correlations in `view_agreement`, and `.[io]` for parquet
-input through pyarrow. For development, clone the repository and run
+Optional extras: `.[stats]` for SciPy-backed Spearman/Kendall correlations
+in `view_agreement` and `.[io]` for parquet input through pyarrow. The extra
+`.[pm4py]` and the methods named after pm4py (`EventLog.from_xes`,
+`EventLog.from_pm4py`, `EventLog.to_pm4py`) are deprecated and removed in
+0.3.0; each call warns. Read an XES file with pm4py (or any XES reader) and
+pass the DataFrame to `wise.EventLog`; `wise` itself does not need pm4py. For development, clone the repository and run
 `make setup` (see [CONTRIBUTING.md](https://github.com/feelfine1977/wise-pm/blob/main/CONTRIBUTING.md)).
 
 The included synthetic example needs no dataset download:
@@ -149,10 +151,9 @@ It does not discover a correct norm, prove causes, estimate guaranteed savings
 or optimise an action roadmap. Applications own data preparation, norm approval,
 workflow and deployment. This classic runtime uses case-based event logs.
 
-This distribution is [MIT](https://github.com/feelfine1977/wise-pm/blob/main/packages/wise-pm/LICENSE) licensed. Prospective rights-controlled
-additions live in a separate distribution under
-[PolyForm Noncommercial 1.0.0](https://github.com/feelfine1977/wise-pm/blob/main/LICENSE); see
-[prospective scope and commercial permission](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
+This distribution is [MIT](https://github.com/feelfine1977/wise-pm/blob/main/packages/wise-pm/LICENSE) licensed as a whole,
+commercial use included, without separate permission; see
+[licensing and commercial use](https://github.com/feelfine1977/wise-pm/blob/main/COMMERCIAL_LICENSING.md).
 Please cite the method using [CITATION.cff](https://github.com/feelfine1977/wise-pm/blob/main/CITATION.cff). See
 [CHANGELOG.md](https://github.com/feelfine1977/wise-pm/blob/main/CHANGELOG.md) and the [publishing guide](https://github.com/feelfine1977/wise-pm/blob/main/docs/PUBLISHING.md)
 for release history and procedure.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 from types import ModuleType
 
@@ -21,8 +22,8 @@ VERSION_FILE = Path("packages") / "wise-pm" / "src" / "wise" / "_version.py"
 pytestmark = pytest.mark.skipif(not SCRIPT.exists(), reason="repository scripts are not part of this tree")
 
 
-def _load() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("check_release", SCRIPT)
+def _load(script: Path = SCRIPT) -> ModuleType:
+    spec = importlib.util.spec_from_file_location("check_release", script)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -97,3 +98,27 @@ def test_this_checkout_refuses_a_tag_that_is_not_its_version(
     assert module.read_version_file(module.VERSION_FILES[0]) == wise.__version__
     assert module.main(["check_release.py", "v99.0.0"]) == 1
     assert f"_version.py has {wise.__version__}, tag says 99.0.0" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("heading", ["## [0.2.0] — YYYY-MM-DD", "## [0.2.0]", "## [0.2.0] — 2026-13-01"])
+def test_a_release_heading_without_a_real_date_is_refused(
+    check: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str], heading: str
+) -> None:
+    _tree(tmp_path, package="0.2.0", citation="0.2.0", changelog=RELEASED.replace("## [0.2.0] — 2026-12-01", heading))
+    assert check.main(["check_release.py", "v0.2.0"]) == 1
+    err = capsys.readouterr().err.splitlines()
+    assert len(err) == 1
+    assert err[0].startswith("release check: CHANGELOG.md heading of 0.2.0 has no release date")
+    assert err[0].endswith("enter the date of the tag")
+
+
+def test_the_version_file_of_every_package_of_the_workspace_is_read(tmp_path: Path) -> None:
+    other = tmp_path / "packages" / "companion" / "src" / "companion" / "_version.py"
+    for path in (tmp_path / VERSION_FILE, other):
+        path.parent.mkdir(parents=True)
+        path.write_text('__version__ = "0.2.0"\n', encoding="utf-8")
+    script = tmp_path / "scripts" / "check_release.py"
+    script.parent.mkdir()
+    shutil.copyfile(SCRIPT, script)
+    module = _load(script)
+    assert [tmp_path / VERSION_FILE, other] == module.VERSION_FILES

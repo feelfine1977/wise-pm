@@ -64,18 +64,10 @@ See `docs/PUBLISHING.md`. The tag, `wise.__version__`, `CITATION.cff` and the
 first CHANGELOG heading must agree; `scripts/check_release.py v<version>`
 checks that and the release workflow refuses otherwise.
 
-## Licensing of prospective contributions
+## Licensing of contributions
 
-Read [COMMERCIAL_LICENSING.md](COMMERCIAL_LICENSING.md) before submitting.
-The `wise-pm` distribution is MIT. Rights-controlled additions live in a
-separate distribution under their own licence file. Identify pre-existing or
-third-party material and retain its licences and attributions. Disclose any
-employer, university or other approval required for the proposed grant; do
-not assume that authorship alone establishes authority.
-
-Submission under the repository policy does not transfer ownership or grant a
-separate commercial exception. Before accepting work intended for a separately
-licensed commercial offering, the maintainer must establish and document the
-necessary permissions from the relevant rights holder(s), using a separate
-agreement where needed. This contribution guide is not a CLA and makes no
-claim that commercial relicensing rights have already been secured.
+`wise-pm` is MIT licensed as a whole (see [COMMERCIAL_LICENSING.md](COMMERCIAL_LICENSING.md)),
+and a contribution to it is offered under the MIT licence. Identify
+pre-existing or third-party material and retain its licences and attributions.
+A package added to this workspace later states its own licence in its folder
+and metadata; a contribution to it is offered under that licence.

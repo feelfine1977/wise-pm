@@ -74,6 +74,22 @@ def _warn_index_array(name: str, replacement: str) -> None:
     )
 
 
+#: What replaces each method named after pm4py, which 0.3.0 removes (wise.compat.PATHS states the same).
+_PM4PY_REPLACEMENTS = {
+    "from_xes": "read the file with pm4py.read_xes (or any XES reader) and pass the DataFrame to EventLog",
+    "from_pm4py": "pass the DataFrame to EventLog; for a pm4py object, EventLog(pm4py.convert_to_dataframe(obj))",
+    "to_pm4py": "rename the columns of EventLog.events to 'case:concept:name', 'concept:name' and 'time:timestamp'",
+}
+
+
+def _warn_pm4py(name: str) -> None:
+    warnings.warn(
+        f"EventLog.{name} is deprecated and will be removed in 0.3.0; {_PM4PY_REPLACEMENTS[name]}",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
 def _hash_frame(h: Any, part: str, frame: pd.DataFrame) -> None:
     """Feed ``frame`` into ``h``: its length, then per column (in name order) its name, dtype and row hashes.
     A column with nested values is hashed by the canonical text of its cells."""
@@ -277,7 +293,13 @@ class EventLog:
 
     @classmethod
     def from_pm4py(cls, obj: Any, **kwargs: Any) -> EventLog:
-        """Build from a pm4py DataFrame or EventLog object (pm4py optional)."""
+        """Build from a pm4py DataFrame or EventLog object (pm4py optional).
+
+        .. deprecated:: 0.2.0
+            Removed in 0.3.0, together with the ``pm4py`` extra. Pass the DataFrame to
+            :class:`EventLog`; for a pm4py object, ``EventLog(pm4py.convert_to_dataframe(obj))``.
+        """
+        _warn_pm4py("from_pm4py")
         if isinstance(obj, pd.DataFrame):
             return cls(obj, **kwargs)
         try:
@@ -288,7 +310,13 @@ class EventLog:
 
     @classmethod
     def from_xes(cls, path: str, **kwargs: Any) -> EventLog:
-        """Read an XES file with pm4py (optional dependency)."""
+        """Read an XES file with pm4py (optional dependency).
+
+        .. deprecated:: 0.2.0
+            Removed in 0.3.0, together with the ``pm4py`` extra. Read the file with
+            ``pm4py.read_xes`` (or any XES reader) and pass the DataFrame to :class:`EventLog`.
+        """
+        _warn_pm4py("from_xes")
         try:
             import pm4py  # type: ignore[import-not-found]
         except ImportError as exc:  # pragma: no cover - optional dependency
@@ -296,7 +324,14 @@ class EventLog:
         return cls(pm4py.read_xes(str(path)), **kwargs)
 
     def to_pm4py(self) -> pd.DataFrame:
-        """The events with pm4py's standard column names."""
+        """The events with pm4py's standard column names.
+
+        .. deprecated:: 0.2.0
+            Removed in 0.3.0. Rename the columns of :attr:`events` to ``case:concept:name``,
+            ``concept:name`` and ``time:timestamp``: ``log.events.rename(columns={log.case_col:
+            "case:concept:name", log.activity_col: "concept:name", log.timestamp_col: "time:timestamp"})``.
+        """
+        _warn_pm4py("to_pm4py")
         return self._events.rename(
             columns={self.case_col: CASE_COL, self.activity_col: ACTIVITY_COL, self.timestamp_col: TIMESTAMP_COL}
         )

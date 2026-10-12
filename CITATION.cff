@@ -6,7 +6,7 @@ authors:
   - family-names: Jessen
     given-names: Urszula
     affiliation: Eindhoven University of Technology
-version: 0.1.0
+version: 0.2.0
 license: MIT
 repository-code: https://github.com/feelfine1977/wise-pm
 preferred-citation:

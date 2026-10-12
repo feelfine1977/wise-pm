@@ -599,13 +599,15 @@ def test_from_csv_goes_through_the_parse_step(tmp_path: Path, parse_calls: list[
 
 @pytest.mark.spec("IV-A")
 def test_from_pm4py_goes_through_the_parse_step(monkeypatch: pytest.MonkeyPatch, parse_calls: list[wise.LogSchema]) -> None:
-    wise.EventLog.from_pm4py(_frame(), **COLS)
+    with pytest.deprecated_call(match="removed in 0.3.0"):
+        wise.EventLog.from_pm4py(_frame(), **COLS)
     fake = types.ModuleType("pm4py")
     fake.convert_to_dataframe = lambda obj: _frame()  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "pm4py", fake)
-    wise.EventLog.from_pm4py(object(), schema=SCHEMA)
+    with pytest.deprecated_call(match="removed in 0.3.0"):
+        wise.EventLog.from_pm4py(object(), schema=SCHEMA)
     assert parse_calls == [SCHEMA, SCHEMA]
-    with pytest.raises(LogSchemaError, match="no rows"):
+    with pytest.raises(LogSchemaError, match="no rows"), pytest.deprecated_call(match="removed in 0.3.0"):
         wise.EventLog.from_pm4py(_frame().iloc[:0], **COLS)
 
 
@@ -617,6 +619,7 @@ def test_from_xes_goes_through_the_parse_step(monkeypatch: pytest.MonkeyPatch, p
     fake = types.ModuleType("pm4py")
     fake.read_xes = read_xes  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "pm4py", fake)
-    log = wise.EventLog.from_xes("log.xes", lifecycle_col="lc")
+    with pytest.deprecated_call(match="removed in 0.3.0"):
+        log = wise.EventLog.from_xes("log.xes", lifecycle_col="lc")
     assert parse_calls == [wise.LogSchema(lifecycle_col="lc")]
     assert np.array_equal(log.cases["n_events"].to_numpy(), [2, 1])

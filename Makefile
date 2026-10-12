@@ -37,8 +37,8 @@ bench:            ## benchmark on the synthetic 1.6 M-event log
 compat:           ## workbench, analytics and knowledge suites against this tree
 	scripts/compat_gate.sh
 
-build:            ## wheels and sdists for every package, checked with twine
-	rm -rf dist && $(UV) build --all-packages && $(RUN) twine check --strict dist/*
+build:            ## wheels and sdists for every package, checked with twine and for the MIT licence
+	rm -rf dist && $(UV) build --all-packages && $(RUN) twine check --strict dist/* && $(RUN) python scripts/check_dist.py dist
 
 clean:            ## remove build, cache and smoke directories
 	rm -rf dist build .pytest_cache .mypy_cache .ruff_cache .hypothesis .compat-results smoke sdist-check

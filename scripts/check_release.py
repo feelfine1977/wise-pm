@@ -1,5 +1,7 @@
 """Verify that a release tag, the package versions, CITATION.cff and CHANGELOG.md agree.
 
+The changelog's heading of the release must also carry its date (``## [0.2.0] — 2026-12-01``).
+
 Usage: python scripts/check_release.py v0.2.0
 Prints ``version=0.2.0`` on success (for GITHUB_OUTPUT) and exits 1 with one line
 per problem otherwise. Standard library only for the version, changelog and
@@ -15,12 +17,14 @@ import io
 import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+#: The version file of wise-pm first, then that of every other package of the workspace.
 VERSION_FILES = [
     ROOT / "packages" / "wise-pm" / "src" / "wise" / "_version.py",
-    ROOT / "packages" / "wise-pm-actionability" / "src" / "wise_actionability" / "_version.py",
+    *sorted(p for p in ROOT.glob("packages/*/src/*/_version.py") if p.parts[-4] != "wise-pm"),
 ]
 SEMVER = r"\d+\.\d+\.\d+(?:[-.]?(?:a|b|rc|dev)\d+)?"
 
@@ -71,6 +75,24 @@ def changelog_versions(text: str) -> tuple[str | None, bool]:
     return first_release, unreleased_empty
 
 
+def release_date_problem(text: str, version: str) -> str | None:
+    """None when the heading of ``version`` carries a real date (``## [0.2.0] — 2026-12-01``)."""
+    m = re.search(rf"^## \[{re.escape(version)}\](.*)$", text, flags=re.M)
+    if m is None:
+        return None  # reported as a heading mismatch
+    found = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", m.group(1))
+    if found is not None:
+        try:
+            date.fromisoformat(found.group(1))
+        except ValueError:
+            pass
+        else:
+            return None
+    return (
+        f"CHANGELOG.md heading of {version} has no release date ({m.group(1).strip(' —-') or 'none'}); enter the date of the tag"
+    )
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: check_release.py v<version>", file=sys.stderr)
@@ -114,9 +136,12 @@ def main(argv: list[str]) -> int:
             if e["status"] == "open" and claimed:
                 problems.append(f"CHANGELOG.md claims '{token}' but the ledger still lists {e['id']} as open")
 
-    first_release, unreleased_empty = changelog_versions((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+    changelog_text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    first_release, unreleased_empty = changelog_versions(changelog_text)
     if first_release != version:
         problems.append(f"CHANGELOG.md first release heading is {first_release}, tag says {version}")
+    elif date_problem := release_date_problem(changelog_text, version):
+        problems.append(date_problem)
     if not unreleased_empty:
         problems.append("CHANGELOG.md still has entries under [Unreleased]")
 

@@ -95,7 +95,7 @@ independent of the package version.
 
 ```bash
 pip install wise-pm                      # PyPI
-pip install "wise-pm[pm4py]"             # with the pm4py extra (XES import, pm4py objects)
+pip install "wise-pm[pm4py]"             # with the pm4py extra (deprecated; removed in 0.3.0)
 pip install "wise-pm[stats]"             # SciPy, for Spearman / Kendall view agreement
 uv add wise-pm                           # uv / pyproject-based projects
 pip install "wise-pm @ git+https://github.com/feelfine1977/wise-pm.git@main#subdirectory=packages/wise-pm"   # straight from GitHub, no PyPI needed
@@ -147,4 +147,5 @@ Pages (`mkdocs gh-deploy`).
 - [ ] version bumped; `CHANGELOG.md` updated; `CITATION.cff` version updated
 - [ ] README renders on PyPI (check on TestPyPI the first time)
 - [ ] the sdist holds `src`, `scripts`, `benchmarks`, `tests` (with its golden data), README and LICENSE (`tar tzf dist/*.tar.gz`)
+- [ ] `uv run python scripts/check_dist.py dist` confirms the MIT text and `License-Expression: MIT` in the wheel and the sdist
 - [ ] `uv run python scripts/check_release.py vX.Y.Z` prints the version (tag, package, CITATION.cff and CHANGELOG agree)

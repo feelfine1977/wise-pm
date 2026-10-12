@@ -5,7 +5,7 @@
   "data_root_environment": "WISE_EVALUATION_DATA_ROOT",
   "path_resolution": "Files.path is relative to evaluation; an explicit data-root replaces data/raw. Never require a workstation path.",
   "source_files_policy": "Copy bytes into local ignored data/raw using files.source_relative_path under a user-supplied source root. Verify destination hash before reporting success.",
-  "code_license_policy": "Preserve repository LICENSE, NOTICE, COMMERCIAL_LICENSING.md and retained package MIT notices; data licences are independent.",
+  "code_license_policy": "Preserve the MIT notices in LICENSE, NOTICE and packages/wise-pm/LICENSE; data licences are independent.",
   "datasets": [
     {
       "id": "uci_incidents",
