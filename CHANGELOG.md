@@ -6,19 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] — YYYY-MM-DD
+
 The 0.2.0 line deepens the library's modules behind their public interface.
 Classic numbers do not change: a schema version 2 norm evaluates under the
 0.1.0 semantics and every golden table is unchanged; the corrections of the
 defect ledger apply to schema version 3 documents, to input that 0.1.0
 accepted although it was malformed, and to outputs that were wrong (each
-`Fixed: C<n>` below states its delta). The package version is `0.2.0.dev0`.
-`CITATION.cff` stays at the released version 0.1.0 and changes at release
-time. The committed records that name the library version that produced them
-(the golden manifest, the BPIC'19 oracle and the native evaluation summary)
-keep `0.1.0`: they are provenance, the golden check tolerates a version
+`Fixed: C<n>` below states its delta). The package version and
+`CITATION.cff` are `0.2.0`. The committed records that name the library
+version that produced them (the golden manifest, the BPIC'19 oracle and the
+native evaluation summary) keep `0.1.0`: they are provenance, the golden check tolerates a version
 difference, and no golden value changes. The contract snapshot writes the
 version as a placeholder; every change to it is listed below. Callers of
-0.1.0 start with *Migrating from 0.1.0* at the end of this section.
+0.1.0 start with *Migrating from 0.1.0* at the end of this section: every
+change that can break or change a 0.1.0 call is listed under *Changed* with
+what to do, including the corrections whose details are under *Fixed*.
 
 ### Changed
 
@@ -65,7 +68,8 @@ version as a placeholder; every change to it is listed below. Callers of
   number per case: max, sum, first, last, min, mean, median, prod, std, var,
   sem, skew, count, nunique, size, any, all), checked even when no exposure
   column is set; `idxmin`/`idxmax` (which gave a row label as exposure) and
-  callables are refused with a `LogSchemaError` that lists the names. An
+  callables are refused with a `LogSchemaError` that lists the names; compute
+  such an exposure yourself and attach it with `add_case_attribute`. An
   unknown `missing_timestamps` is refused with "must be one of ['raise',
   'drop', 'keep']". Delta on the golden dataset: none.
 - `EventLog.validate()` reports `varying_within_case[<attribute>]` from the
@@ -83,7 +87,9 @@ version as a placeholder; every change to it is listed below. Callers of
   attached with `EventLog.derive` by the same recipe is still reused, and
   attributes computed by a run are remembered for that log until its case
   table changes, so scoring twice computes them once. A recipe named like a
-  case attribute it did not produce is refused (see `Fixed: C3`).
+  case attribute it did not produce is refused (see `Fixed: C3`). Code that
+  read a derived attribute from the scored log after `score()` reads it from
+  `result.cases` or `result.log`, or attaches it first with `EventLog.derive`.
   `EventLog.derive` and `EventLog.add_case_attribute` still change the log they
   are called on; their docstrings say so. An attribute that `add_case_attribute`
   replaces no longer counts as produced by a recipe.
@@ -150,7 +156,8 @@ version as a placeholder; every change to it is listed below. Callers of
   take a rule of the selection grammar (`all`, `any`, `not`, the leaf
   operators, `has`, `lacks`); a recipe clause reads event columns and tests
   `has`/`lacks` on the event's case. A `where=` key named `all`, `any`, `not`,
-  `attr`, `has` or `lacks` is read as a rule, not as an attribute. Refusals:
+  `attr`, `has` or `lacks` is read as a rule, not as an attribute; select
+  such an attribute with a boolean Series. Refusals:
   a `where=` that is neither a mapping, a boolean Series nor `None` and an
   empty list value raise `NormError` (0.1.0 raised `AttributeError` or
   `ValueError`); a recipe clause with an invalid `regex` string raises
@@ -227,7 +234,8 @@ version as a placeholder; every change to it is listed below. Callers of
   every keyed slice on a tie, as NaN did. A numeric key column
   with missing values becomes `object`, a categorical one gains the label as
   its last category. A key column that has missing values and the value
-  `"(missing)"` is refused with `NormError` (see `Fixed: C23`).
+  `"(missing)"` is refused with `NormError` (see `Fixed: C23`). Address that
+  slice with `wise.MISSING_KEY` where code looked for a NaN key.
 - `diagnostics.gap_retained` and `validation_table` compute through
   `prioritize`, the backlog record and `case_slices`; their results are
   unchanged. `wise.constraints._UNITS` is now the public, read-only
@@ -272,7 +280,8 @@ version as a placeholder; every change to it is listed below. Callers of
   written back as version 1 (0.1.0 rewrote it as 2). A `schema_version` that
   is a boolean, a float, `null`, zero or negative is refused with `NormError`
   (0.1.0 converted it with `int()`); an integer or a string of digits is read
-  as before.
+  as before. State `"schema_version": 2` in a 0.1.0 document, or read it with
+  `wise.compat.norm_from_dict`.
 - A norm's structure is checked once, when it is built: each layer, view and
   constraint checks its own fields, and the norm checks only what needs the
   whole (ids, references, a non-zero view, scoring mode, schema version, recipe
@@ -382,11 +391,47 @@ version as a placeholder; every change to it is listed below. Callers of
   share a key but differ elsewhere can therefore keep another event than
   0.1.0, with another exposure, case attribute or event order. Rows equal in
   every column, logs without key duplicates and the default (`keep`) are
-  unchanged. Delta on the golden dataset: none (built without removal); the
+  unchanged. Where the duplicates are the same record loaded twice, use
+  `dedupe="identical"` (see Added), which keeps events that differ. Delta on the golden dataset: none (built without removal); the
   golden tier and the fingerprints are unchanged. The docstrings and
   `docs/semantics/log-policies.md` state the key, that rows different
   outside it are dropped, and the survivor; they no longer call the dropped
   rows "exact" duplicates.
+- `EventLog(dedupe=...)` reads a string as the name of a duplicate policy, no
+  longer as a truth value: in 0.1.0 `dedupe="yes"` meant `drop` and
+  `dedupe=""` meant `keep`; both are now refused with a `LogSchemaError`, as
+  is any name other than `drop`, `identical` and `keep`. Pass `True`/`False`
+  or a policy name. Booleans and other non-string values keep their meaning.
+- `EventLog.validate()` of a log built with `dedupe=True` gains the rows
+  `dropped_duplicates` and `cases_with_dropped_duplicates` (see Added); a log
+  that keeps duplicates reports what 0.1.0 reported.
+- Corrections that change what a 0.1.0 call does (each is detailed under
+  *Fixed*), with what to do:
+  - Input 0.1.0 accepted although it was malformed is refused with a
+    `WiseError`: a non-integer `m` or `k` (C1; write integers), unknown recipe
+    keys, option values and wrongly typed recipe values (C5; correct the
+    norm), an empty event frame, null lifecycle transitions, a lifecycle
+    filter that keeps nothing and `missing_timestamps="drop"` with no
+    timestamp (C6; do not build such a log), an `eval` recipe other than one
+    case-table column (C16; use a `column` recipe or `wise migrate`), a
+    numeric `divisor` key on a `quantile_scale` recipe (C15; remove it or
+    give a `calibration` record), and `baseline=NaN`, a negative or
+    non-finite `z` and a fractional or negative `min_cases` in `prioritize`
+    (C26–C28; pass valid values).
+  - Errors: bad arguments raise `WiseError` subclasses where 0.1.0 raised
+    `ValueError`, `AttributeError`, `TypeError`, `KeyError` or
+    `json.JSONDecodeError` (C9), and `NormError`, `NotScoredError` and
+    `LogSchemaError` no longer inherit `ValueError` or `KeyError` (C11):
+    catch the `wise` classes or `WiseError`.
+  - The containers of a norm are read-only and raise `TypeError` on an
+    in-place change (C7): build a new norm with `replace`,
+    `replace_constraint` or a new `View`.
+  - `Norm.fingerprint()` leaves out `metadata` and descriptions, so the
+    fingerprints of the shipped norms changed (C12): rank stored backlog
+    records and results again before combining them with new ones.
+  - A list in `where=` is a membership test (C29); pass a boolean Series for
+    an element-wise mask.
+  - `Norm.dump()` and `Norm.to_json(path=...)` end the file with a newline.
 
 ### Added
 
@@ -586,7 +631,9 @@ version as a placeholder; every change to it is listed below. Callers of
 
 - Tests for `scripts/check_release.py`: a tag that agrees with the package,
   `CITATION.cff` and the changelog passes; a development version, the
-  previous release tag and a tag without the `v` prefix are refused.
+  previous release tag, a tag without the `v` prefix and a release heading
+  without a date are refused. The check reads the version file of every
+  package of the workspace.
 
 - Dataset evaluation tools for 15 configurations and 44 primary views: portable
   source catalogue, raw-data adapters, explicit domain configurations, native
@@ -711,10 +758,8 @@ version as a placeholder; every change to it is listed below. Callers of
   and other identifiers or amounts, `identical` keeps both. `dedupe` of
   `EventLog` and `LogSchema.from_options` takes the annotation
   `bool | Literal["drop", "identical"]`: `True` still means `drop`, a name
-  selects that policy, an unknown name is refused with a `LogSchemaError`.
-  A string is no longer read as a truth value: in 0.1.0 `dedupe="yes"` meant
-  `drop` and `dedupe=""` meant `keep`; both are now refused, while booleans
-  and other non-string values keep their meaning.
+  selects that policy, an unknown name is refused with a `LogSchemaError`
+  (see Changed for strings that 0.1.0 read as a truth value).
   `LogSchema(duplicates=...)` takes `Duplicates | Literal["keep", "drop",
   "identical"]`. `drop`, `keep` and `dedupe=True` are unchanged. The contract
   snapshot records the three widened annotations. Delta on the golden dataset:
@@ -1021,12 +1066,24 @@ interface named after pm4py, which goes in 0.3.0.
   does) or migrate the file with `wise migrate NORM` and, for a
   `quantile_scale` recipe, fit it with `wise.fit_calibration` before scoring.
   Norm fingerprints differ from those of 0.1.0 (C12).
+- Install from a checkout with `pip install ./packages/wise-pm`: the library
+  moved into a uv workspace, and the repository root is no longer a package.
+- `score()` leaves the log it is given as it was (C3): the derived attributes
+  of the norm are in `result.cases` and on `result.log`, not on the scored
+  log; attach them first with `log.derive(...)` if later code reads them
+  there. A recipe named like a case attribute it did not produce is refused;
+  rename the recipe.
 - `EventLog.events`, `cases` and `case_attributes` hand out copies (C3): a
   write into them (`log.events[col] = ...`, `log.cases[col] = ...`) does not
   reach the log, and `events` and `case_attributes` cannot be assigned. Add an
   event column to the frame the log is built from; add case attributes with
   `add_case_attribute` or `with_case_attributes`. Assigning `log.cases` still
-  works with a warning.
+  works with a warning. `count`, `first_ts`, `last_ts` and `trace` hand out
+  copies too.
+- A norm is read-only once built (C7): its weights, applicability rules,
+  derived attributes, metadata and `layer_of` raise `TypeError` on an in-place
+  change; build a new norm with `replace`, `replace_constraint` or a new
+  `View`.
 - A dict, list or set in an event column of a log is a read-only copy: write
   into `dict(value)` or `list(value)` instead, and change the input frame
   before the log is built, not after. A set reads back as a `frozenset`. A
@@ -1040,7 +1097,28 @@ interface named after pm4py, which goes in 0.3.0.
   `starts`. `wise.norm._rule_attributes(rule)` is
   `set(wise.selection.parse(rule).columns)`.
 - `NormError`, `NotScoredError` and `LogSchemaError` no longer inherit
-  `ValueError` or `KeyError` (C11): catch the `wise` classes or `WiseError`.
+  `ValueError` or `KeyError` (C11), and bad arguments that raised builtin
+  errors raise them (C9): catch the `wise` classes or `WiseError`.
+- Duplicate removal (`dedupe=True`) keeps the same event for every order of
+  the input rows, which can be another event than 0.1.0 kept when rows share
+  case, activity and timestamp but differ elsewhere; use `dedupe="identical"`
+  to drop only rows equal in every column. A string `dedupe` is a policy name
+  (`"drop"`, `"identical"`, `"keep"`); other strings are refused.
+  `validate()` of a deduplicated log reports the dropped events.
+- A case without a value for a slice key is in the slice `wise.MISSING_KEY`
+  (`"(missing)"`) instead of a NaN key (C23).
+- `where=` filters: a list value is a membership test (C29); a key named
+  `all`, `any`, `not`, `attr`, `has` or `lacks` is read as a rule.
+  `penalty_mass` needs `by` unless it is given a backlog record.
+- `EventLog(exposure_agg=...)` takes only the names of
+  `wise.log_schema.ExposureAggregation`; compute another exposure yourself and attach it
+  with `add_case_attribute`.
+- Underscore names of 0.1.0 that no known consumer uses changed or are gone
+  without a compatibility path, among them `wise.scoring._evaluate`,
+  `_evaluate_lag`, `_lag_missing` and `_where_mask`, the rule helpers of
+  `wise.norm`, `EventLog._recipe_cache` and `wise.constraints._UNITS` (now the
+  public `wise.constraints.TIME_UNITS`); use the public interface.
+  `wise.compat.PATHS` lists every private name a known consumer touches.
 - A `ScoreResult` built by hand without `mode` takes its norm's
   `scoring_mode` (C13); pass `mode=` to keep a mode. Passing `_weights=` and
   reading `result._weights` work as in 0.1.0; `dataclasses.replace(result,
@@ -1051,10 +1129,13 @@ interface named after pm4py, which goes in 0.3.0.
   norms or in different scoring modes unless the difference is `intended`.
 - Input that 0.1.0 accepted although it was malformed is refused with a
   `WiseError`: an empty event frame and null lifecycle transitions (C6),
-  non-integer `m`/`k` (C1), unknown recipe keys and options (C5), an `eval`
-  recipe other than one case-table column (C16), and invalid ranking
-  parameters (C26–C28); scoring refuses a schema version 3 norm whose
-  `quantile_scale` recipe has no fitted calibration (C15).
+  non-integer `m`/`k` (C1), unknown recipe keys and options and a recipe
+  where-clause without an operator (C5), an `eval` recipe other than one
+  case-table column (C16), a numeric `divisor` key of a `quantile_scale`
+  recipe (C15), invalid ranking parameters (C26–C28), and a slice key whose
+  values cannot be ordered against each other; scoring refuses a schema
+  version 3 norm whose `quantile_scale` recipe has no fitted calibration
+  (C15).
 
 ## [0.1.0] — 2026-09-05
 

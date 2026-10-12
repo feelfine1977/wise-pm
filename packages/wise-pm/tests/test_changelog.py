@@ -1,4 +1,4 @@
-"""The changelog's section for the coming release is complete.
+"""The changelog's section for the coming release (the package version) is complete.
 
 It has the sections Added, Changed, Deprecated and Fixed; it closes each fixed
 entry of the defect ledger with exactly one ``Fixed: C<n>`` item that states the
@@ -27,15 +27,17 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _unreleased() -> str:
+def _coming() -> str:
+    """The section of the package version once it is a release, the Unreleased section on a development line."""
+    heading = "Unreleased" if re.search(r"[a-z]", wise.__version__) else re.escape(wise.__version__)
     text = CHANGELOG.read_text(encoding="utf-8")
-    match = re.search(r"^## \[Unreleased\]\n(.*?)(?=^## \[)", text, flags=re.M | re.S)
+    match = re.search(rf"^## \[{heading}\][^\n]*\n(.*?)(?=^## \[)", text, flags=re.M | re.S)
     assert match is not None
     return match.group(1)
 
 
 def _sections() -> dict[str, str]:
-    parts = re.split(r"^### (.+)$", _unreleased(), flags=re.M)
+    parts = re.split(r"^### (.+)$", _coming(), flags=re.M)
     return {parts[i].strip(): parts[i + 1] for i in range(1, len(parts), 2)}
 
 
