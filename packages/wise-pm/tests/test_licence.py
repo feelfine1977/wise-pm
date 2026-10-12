@@ -51,10 +51,35 @@ def _tracked() -> list[Path]:
     return [Path(name) for name in out.decode().split("\0") if name]
 
 
+#: The MIT licence as published by the Open Source Initiative, with the owner's copyright line.
+MIT_TEXT = """MIT License
+
+Copyright (c) 2026 Urszula Jessen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+
 def test_the_root_and_the_package_licence_are_the_same_mit_text() -> None:
     root = (REPO / "LICENSE").read_bytes()
     assert root == PACKAGE_LICENCE.read_bytes()
-    assert root.startswith(b"MIT License\n\nCopyright (c) 2026 Urszula Jessen\n\nPermission is hereby granted, free of charge,")
+    assert root == MIT_TEXT.encode()
 
 
 def test_the_notice_names_the_copyright_holder_and_the_mit_licence() -> None:
@@ -83,14 +108,12 @@ def test_a_record_that_quotes_the_earlier_state_says_so_at_its_top() -> None:
 
 
 # ------------------------------------------------------------------ the built artefacts
-METADATA = (
-    "Metadata-Version: 2.4\nName: wise-pm\nVersion: 0.2.0\nLicense-Expression: {expression}\nLicense-File: LICENSE\n\nReadme.\n"
-)
+METADATA = "Metadata-Version: 2.4\nName: wise-pm\nVersion: 0.2.0\nLicense-Expression: {expression}\nLicense-File: LICENSE\n{extra}\nReadme.\n"
 
 
-def _artefacts(dist: Path, *, expression: str = "MIT", licence: bytes | None = None) -> None:
+def _artefacts(dist: Path, *, expression: str = "MIT", licence: bytes | None = None, extra: str = "") -> None:
     text = PACKAGE_LICENCE.read_bytes() if licence is None else licence
-    metadata = METADATA.format(expression=expression).encode()
+    metadata = METADATA.format(expression=expression, extra=extra).encode()
     with zipfile.ZipFile(dist / "wise_pm-0.2.0-py3-none-any.whl", "w") as wheel:
         wheel.writestr("wise_pm-0.2.0.dist-info/METADATA", metadata)
         wheel.writestr("wise_pm-0.2.0.dist-info/licenses/LICENSE", text)
@@ -126,3 +149,19 @@ def test_another_licence_text_is_refused(tmp_path: Path, capsys: pytest.CaptureF
 def test_a_directory_without_both_artefacts_is_refused(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert _load().main(["check_dist.py", str(tmp_path)]) == 1
     assert "does not hold both a wise_pm wheel and a wise_pm sdist" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("extra", "problem"),
+    [
+        ("License: MIT\n", "carries a License field besides License-Expression"),
+        ("Classifier: License :: OSI Approved :: MIT License\n", "carries licence classifiers"),
+        ("License-File: NOTICE\n", "License-File is ['LICENSE', 'NOTICE'], expected ['LICENSE']"),
+    ],
+)
+def test_a_further_licence_field_is_refused(tmp_path: Path, capsys: pytest.CaptureFixture[str], extra: str, problem: str) -> None:
+    _artefacts(tmp_path, extra=extra)
+    assert _load().main(["check_dist.py", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert f"wise_pm-0.2.0-py3-none-any.whl: {problem}" in err
+    assert f"wise_pm-0.2.0.tar.gz: {problem}" in err
